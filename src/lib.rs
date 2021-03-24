@@ -87,15 +87,11 @@
 #![deny(broken_intra_doc_links)]
 
 // If no target specified, print error message.
-#[cfg(not(any(
-    feature = "gd32f130",
-)))]
+#[cfg(not(any(feature = "gd32f130",)))]
 compile_error!("Target not found. A `--features <target-name>` is required.");
 
 // If any two or more targets are specified, print error message.
-#[cfg(any(
-    all(feature = "gd32f130", feature = "stm32f101"),
-))]
+#[cfg(any(all(feature = "gd32f130", feature = "stm32f101"),))]
 compile_error!(
     "Multiple targets specified. Only a single `--features <target-name>` can be specified."
 );
@@ -104,7 +100,7 @@ compile_error!(
 use embedded_hal as hal;
 
 #[cfg(feature = "gd32f130")]
-pub use stm32f1::stm32f103 as pac;
+pub use gd32f1::gd32f1x0 as pac;
 
 /*#[cfg(feature = "device-selected")]
 pub mod adc;

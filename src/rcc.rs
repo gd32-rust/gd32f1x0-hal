@@ -2,23 +2,27 @@
 
 use core::cmp;
 
-use crate::pac::{rcc, PWR, RCC};
+use crate::pac::{
+    fmc::{ws::WSCNT_A, WS},
+    rcu::{self, cfg0::{PLLSEL_A, SCS_A, USBDPSC_A}},
+    RCU,
+};
 use cast::u32;
 
-use crate::flash::ACR;
+//use crate::flash::ACR;
 use crate::time::Hertz;
 
 //use crate::backup_domain::BackupDomain;
 
-/// Extension trait that constrains the `RCC` peripheral
-pub trait RccExt {
-    /// Constrains the `RCC` peripheral so it plays nicely with the other abstractions
-    fn constrain(self) -> Rcc;
+/// Extension trait that constrains the `RCU` peripheral
+pub trait RcuExt {
+    /// Constrains the `RCU` peripheral so it plays nicely with the other abstractions
+    fn constrain(self) -> Rcu;
 }
 
-impl RccExt for RCC {
-    fn constrain(self) -> Rcc {
-        Rcc {
+impl RcuExt for RCU {
+    fn constrain(self) -> Rcu {
+        Rcu {
             ahb: AHB { _0: () },
             apb1: APB1 { _0: () },
             apb2: APB2 { _0: () },
@@ -35,16 +39,16 @@ impl RccExt for RCC {
     }
 }
 
-/// Constrained RCC peripheral
+/// Constrained RCU peripheral
 ///
-/// Aquired by calling the [constrain](../trait.RccExt.html#tymethod.constrain) method
-/// on the Rcc struct from the `PAC`
+/// Aquired by calling the [constrain](../trait.RcuExt.html#tymethod.constrain) method
+/// on the Rcu struct from the `PAC`
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcc = dp.RCC.constrain();
+/// let mut rcu = dp.RCU.constrain();
 /// ```
-pub struct Rcc {
+pub struct Rcu {
     /// AMBA High-performance Bus (AHB) registers
     pub ahb: AHB,
     /// Advanced Peripheral Bus 1 (APB1) registers
@@ -57,12 +61,12 @@ pub struct Rcc {
 
 /// AMBA High-performance Bus (AHB) registers
 ///
-/// Aquired through the `Rcc` registers:
+/// Aquired through the `Rcu` registers:
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcc = dp.RCC.constrain();
-/// function_that_uses_ahb(&mut rcc.ahb)
+/// let mut rcu = dp.RCU.constrain();
+/// function_that_uses_ahb(&mut rcu.ahb)
 /// ```
 pub struct AHB {
     _0: (),
@@ -71,66 +75,66 @@ pub struct AHB {
 impl AHB {
     // TODO remove `allow`
     #[allow(dead_code)]
-    pub(crate) fn enr(&mut self) -> &rcc::AHBENR {
+    pub(crate) fn enr(&mut self) -> &rcu::AHBEN {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCC::ptr()).ahbenr }
+        unsafe { &(*RCU::ptr()).ahben }
     }
 }
 
 /// Advanced Peripheral Bus 1 (APB1) registers
 ///
-/// Aquired through the `Rcc` registers:
+/// Aquired through the `Rcu` registers:
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcc = dp.RCC.constrain();
-/// function_that_uses_apb1(&mut rcc.apb1)
+/// let mut rcu = dp.RCU.constrain();
+/// function_that_uses_apb1(&mut rcu.apb1)
 /// ```
 pub struct APB1 {
     _0: (),
 }
 
 impl APB1 {
-    pub(crate) fn enr(&mut self) -> &rcc::APB1ENR {
+    pub(crate) fn enr(&mut self) -> &rcu::APB1EN {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCC::ptr()).apb1enr }
+        unsafe { &(*RCU::ptr()).apb1en }
     }
 
-    pub(crate) fn rstr(&mut self) -> &rcc::APB1RSTR {
+    pub(crate) fn rstr(&mut self) -> &rcu::APB1RST {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCC::ptr()).apb1rstr }
+        unsafe { &(*RCU::ptr()).apb1rst }
     }
 }
 
 impl APB1 {
-    /// Set power interface clock (PWREN) bit in RCC_APB1ENR
+    /// Set power interface clock (PWREN) bit in RCU_APB1ENR
     pub fn set_pwren(&mut self) {
-        self.enr().modify(|_r, w| w.pwren().set_bit())
+        self.enr().modify(|_r, w| w.pmuen().enabled())
     }
 }
 
 /// Advanced Peripheral Bus 2 (APB2) registers
 ///
-/// Aquired through the `Rcc` registers:
+/// Aquired through the `Rcu` registers:
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcc = dp.RCC.constrain();
-/// function_that_uses_apb2(&mut rcc.apb2);
+/// let mut rcu = dp.RCU.constrain();
+/// function_that_uses_apb2(&mut rcu.apb2);
 /// ```
 pub struct APB2 {
     _0: (),
 }
 
 impl APB2 {
-    pub(crate) fn enr(&mut self) -> &rcc::APB2ENR {
+    pub(crate) fn enr(&mut self) -> &rcu::APB2EN {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCC::ptr()).apb2enr }
+        unsafe { &(*RCU::ptr()).apb2en }
     }
 
-    pub(crate) fn rstr(&mut self) -> &rcc::APB2RSTR {
+    pub(crate) fn rstr(&mut self) -> &rcu::APB2RST {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCC::ptr()).apb2rstr }
+        unsafe { &(*RCU::ptr()).apb2rst }
     }
 }
 
@@ -220,25 +224,21 @@ impl CFGR {
     /// ```rust
     /// let dp = pac::Peripherals::take().unwrap();
     /// let mut flash = dp.FLASH.constrain();
-    /// let mut rcc = dp.RCC.constrain();
-    /// let clocks = rcc.cfgr.freeze(&mut flash.acr);
+    /// let mut rcu = dp.RCU.constrain();
+    /// let clocks = rcu.cfgr.freeze(&mut flash.acr);
     /// ```
 
-    pub fn freeze(self, acr: &mut ACR) -> Clocks {
-        let pllsrcclk = self.hse.unwrap_or(HSI / 2);
+    pub fn freeze(self, ws: &mut WS) -> Clocks {
+        let pllsrculk = self.hse.unwrap_or(HSI / 2);
 
-        let pllmul = self.sysclk.unwrap_or(pllsrcclk) / pllsrcclk;
+        let pllmul = self.sysclk.unwrap_or(pllsrculk) / pllsrculk;
 
         let (pllmul_bits, sysclk) = if pllmul == 1 {
             (None, self.hse.unwrap_or(HSI))
         } else {
-            #[cfg(not(feature = "connectivity"))]
             let pllmul = cmp::min(cmp::max(pllmul, 1), 16);
 
-            #[cfg(feature = "connectivity")]
-            let pllmul = cmp::min(cmp::max(pllmul, 4), 9);
-
-            (Some(pllmul as u8 - 2), pllsrcclk * pllmul)
+            (Some(pllmul as u8 - 2), pllsrculk * pllmul)
         };
 
         assert!(sysclk <= 72_000_000);
@@ -302,26 +302,23 @@ impl CFGR {
         assert!(pclk2 <= 72_000_000);
 
         // adjust flash wait states
-        #[cfg(any(feature = "stm32f103", feature = "connectivity"))]
-        unsafe {
-            acr.acr().write(|w| {
-                w.latency().bits(if sysclk <= 24_000_000 {
-                    0b000
-                } else if sysclk <= 48_000_000 {
-                    0b001
-                } else {
-                    0b010
-                })
+        ws.write(|w| {
+            w.wscnt().variant(if sysclk <= 24_000_000 {
+                WSCNT_A::WS0
+            } else if sysclk <= 48_000_000 {
+                WSCNT_A::WS1
+            } else {
+                WSCNT_A::WS2
             })
-        }
+        });
 
         // the USB clock is only valid if an external crystal is used, the PLL is enabled, and the
         // PLL output frequency is a supported one.
         // usbpre == false: divide clock by 1.5, otherwise no division
         let (usbpre, usbclk_valid) = match (self.hse, pllmul_bits, sysclk) {
-            (Some(_), Some(_), 72_000_000) => (false, true),
-            (Some(_), Some(_), 48_000_000) => (true, true),
-            _ => (true, false),
+            (Some(_), Some(_), 72_000_000) => (USBDPSC_A::DIV1_5, true),
+            (Some(_), Some(_), 48_000_000) => (USBDPSC_A::DIV1, true),
+            _ => (USBDPSC_A::DIV1_5, false),
         };
 
         let apre_bits: u8 = self
@@ -339,100 +336,54 @@ impl CFGR {
 
         assert!(adcclk <= 14_000_000);
 
-        let rcc = unsafe { &*RCC::ptr() };
+        let rcu = unsafe { &*RCU::ptr() };
 
         if self.hse.is_some() {
             // enable HSE and wait for it to be ready
 
-            rcc.cr.modify(|_, w| w.hseon().set_bit());
+            rcu.ctl0.modify(|_, w| w.hxtalen().on());
 
-            while rcc.cr.read().hserdy().bit_is_clear() {}
+            while rcu.ctl0.read().hxtalstb().is_not_ready() {}
         }
 
         if let Some(pllmul_bits) = pllmul_bits {
             // enable PLL and wait for it to be ready
 
-            #[allow(unused_unsafe)]
-            rcc.cfgr.modify(|_, w| unsafe {
-                w.pllmul()
+            rcu.cfg0.modify(|_, w| 
+                w.pllmf()
                     .bits(pllmul_bits)
-                    .pllsrc()
-                    .bit(self.hse.is_some())
-            });
+                    .pllsel()
+                    .variant(if self.hse.is_some() {
+                        PLLSEL_A::HXTAL
+                    } else {
+                        PLLSEL_A::IRC8M_2
+                    })
+            );
 
-            rcc.cr.modify(|_, w| w.pllon().set_bit());
+            rcu.ctl0.modify(|_, w| w.pllen().on());
 
-            while rcc.cr.read().pllrdy().bit_is_clear() {}
+            while rcu.ctl0.read().pllstb().is_not_ready() {}
         }
 
         // set prescalers and clock source
-        #[cfg(feature = "connectivity")]
-        rcc.cfgr.modify(|_, w| unsafe {
-            w.adcpre().bits(apre_bits);
-            w.ppre2()
+        #[cfg(feature = "gd32f130")]
+        rcu.cfg0.modify(|_, w| unsafe {
+            w.adcpsc().bits(apre_bits);
+            w.apb2psc()
                 .bits(ppre2_bits)
-                .ppre1()
+                .apb1psc()
                 .bits(ppre1_bits)
-                .hpre()
+                .ahbpsc()
                 .bits(hpre_bits)
-                .otgfspre()
-                .bit(usbpre)
-                .sw()
-                .bits(if pllmul_bits.is_some() {
-                    // PLL
-                    0b10
+                .usbdpsc()
+                .variant(usbpre)
+                .scs()
+                .variant(if pllmul_bits.is_some() {
+                    SCS_A::PLL
                 } else if self.hse.is_some() {
-                    // HSE
-                    0b1
+                    SCS_A::HXTAL
                 } else {
-                    // HSI
-                    0b0
-                })
-        });
-
-        #[cfg(feature = "stm32f103")]
-        rcc.cfgr.modify(|_, w| unsafe {
-            w.adcpre().bits(apre_bits);
-            w.ppre2()
-                .bits(ppre2_bits)
-                .ppre1()
-                .bits(ppre1_bits)
-                .hpre()
-                .bits(hpre_bits)
-                .usbpre()
-                .bit(usbpre)
-                .sw()
-                .bits(if pllmul_bits.is_some() {
-                    // PLL
-                    0b10
-                } else if self.hse.is_some() {
-                    // HSE
-                    0b1
-                } else {
-                    // HSI
-                    0b0
-                })
-        });
-
-        #[cfg(any(feature = "stm32f100", feature = "stm32f101"))]
-        rcc.cfgr.modify(|_, w| unsafe {
-            w.adcpre().bits(apre_bits);
-            w.ppre2()
-                .bits(ppre2_bits)
-                .ppre1()
-                .bits(ppre1_bits)
-                .hpre()
-                .bits(hpre_bits)
-                .sw()
-                .bits(if pllmul_bits.is_some() {
-                    // PLL
-                    0b10
-                } else if self.hse.is_some() {
-                    // HSE
-                    0b1
-                } else {
-                    // HSI
-                    0b0
+                    SCS_A::IRC8M
                 })
         });
 
@@ -471,15 +422,15 @@ pub struct BKP {
 ///
 /// The existence of this value indicates that the clock configuration can no longer be changed
 ///
-/// To acquire it, use the freeze function on the `rcc.cfgr` register. If desired, you can adjust
+/// To acquire it, use the freeze function on the `rcu.cfgr` register. If desired, you can adjust
 /// the frequencies using the methods on [cfgr](struct.CFGR.html) before calling freeze.
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcc = dp.RCC.constrain();
+/// let mut rcu = dp.RCU.constrain();
 /// let mut flash = dp.FLASH.constrain();
 ///
-/// let clocks = rcc.cfgr.freeze(&mut flash.acr);
+/// let clocks = rcu.cfgr.freeze(&mut flash.acr);
 /// ```
 #[derive(Clone, Copy)]
 pub struct Clocks {
@@ -578,28 +529,28 @@ impl GetBusFreq for APB2 {
 
 pub(crate) mod sealed {
     /// Bus associated to peripheral
-    pub trait RccBus {
+    pub trait RcuBus {
         /// Bus type;
         type Bus;
     }
 }
-use sealed::RccBus;
+use sealed::RcuBus;
 
 /// Enable/disable peripheral
-pub trait Enable: RccBus {
+pub trait Enable: RcuBus {
     fn enable(apb: &mut Self::Bus);
     fn disable(apb: &mut Self::Bus);
 }
 
 /// Reset peripheral
-pub trait Reset: RccBus {
+pub trait Reset: RcuBus {
     fn reset(apb: &mut Self::Bus);
 }
 
 macro_rules! bus {
     ($($PER:ident => ($apbX:ty, $peren:ident, $perrst:ident),)+) => {
         $(
-            impl RccBus for crate::pac::$PER {
+            impl RcuBus for crate::pac::$PER {
                 type Bus = $apbX;
             }
             impl Enable for crate::pac::$PER {
@@ -626,7 +577,7 @@ macro_rules! bus {
 macro_rules! ahb_bus {
     ($($PER:ident => ($peren:ident),)+) => {
         $(
-            impl RccBus for crate::pac::$PER {
+            impl RcuBus for crate::pac::$PER {
                 type Bus = AHB;
             }
             impl Enable for crate::pac::$PER {
@@ -643,115 +594,32 @@ macro_rules! ahb_bus {
     }
 }
 
-#[cfg(feature = "stm32f103")]
 bus! {
-    ADC2 => (APB2, adc2en, adc2rst),
-    CAN1 => (APB1, canen, canrst),
-}
-#[cfg(feature = "connectivity")]
-bus! {
-    ADC2 => (APB2, adc2en, adc2rst),
+    ADC => (APB2, adcen, adcrst),
+    CAN0 => (APB1, can0en, can0rst),
     CAN1 => (APB1, can1en, can1rst),
-    CAN2 => (APB1, can2en, can2rst),
-}
-#[cfg(all(feature = "stm32f103", feature = "high",))]
-bus! {
-    ADC3 => (APB2, adc3en, adc3rst),
-}
-bus! {
-    ADC1 => (APB2, adc1en, adc1rst),
-    AFIO => (APB2, afioen, afiorst),
-    GPIOA => (APB2, iopaen, ioparst),
-    GPIOB => (APB2, iopben, iopbrst),
-    GPIOC => (APB2, iopcen, iopcrst),
-    GPIOD => (APB2, iopden, iopdrst),
-    GPIOE => (APB2, iopeen, ioperst),
+    I2C0 => (APB1, i2c0en, i2c0rst),
     I2C1 => (APB1, i2c1en, i2c1rst),
-    I2C2 => (APB1, i2c2en, i2c2rst),
-    SPI1 => (APB2, spi1en, spi1rst),
+    //I2C2 => (ADDAPB1, i2c2en, i2c2rst),
+    SPI0 => (APB2, spi0en, spi0rst),
+    SPI1 => (APB1, spi1en, spi1rst),
     SPI2 => (APB1, spi2en, spi2rst),
-    USART1 => (APB2, usart1en, usart1rst),
-    USART2 => (APB1, usart2en, usart2rst),
-    USART3 => (APB1, usart3en, usart3rst),
-    WWDG => (APB1, wwdgen, wwdgrst),
-}
-
-#[cfg(any(feature = "high", feature = "connectivity"))]
-bus! {
-    SPI3 => (APB1, spi3en, spi3rst),
+    TIMER0 => (APB2, timer0en, timer0rst),
+    TIMER1 => (APB1, timer1en, timer1rst),
+    TIMER2 => (APB1, timer2en, timer2rst),
+    TIMER5 => (APB1, timer5en, timer5rst),
+    USART0 => (APB2, usart0en, usart0rst),
+    USART1 => (APB1, usart1en, usart1rst),
+    USBD => (APB1, usbden, usbdrst),
+    WWDGT => (APB1, wwdgten, wwdgtrst),
 }
 
 ahb_bus! {
     CRC => (crcen),
-    DMA1 => (dma1en),
-    DMA2 => (dma2en),
-}
-
-#[cfg(feature = "high")]
-ahb_bus! {
-    FSMC => (fsmcen),
-}
-
-bus! {
-    TIM2 => (APB1, tim2en, tim2rst),
-    TIM3 => (APB1, tim3en, tim3rst),
-}
-
-#[cfg(any(feature = "stm32f100", feature = "stm32f103", feature = "connectivity"))]
-bus! {
-    TIM1 => (APB2, tim1en, tim1rst),
-}
-
-#[cfg(any(feature = "stm32f100", feature = "high", feature = "connectivity"))]
-bus! {
-    TIM6 => (APB1, tim6en, tim6rst),
-}
-
-#[cfg(any(
-    all(feature = "high", any(feature = "stm32f101", feature = "stm32f103")),
-    any(feature = "stm32f100", feature = "connectivity")
-))]
-bus! {
-    TIM7 => (APB1, tim7en, tim7rst),
-}
-
-#[cfg(feature = "stm32f100")]
-bus! {
-    TIM15 => (APB2, tim15en, tim15rst),
-    TIM16 => (APB2, tim16en, tim16rst),
-    TIM17 => (APB2, tim17en, tim17rst),
-}
-
-#[cfg(feature = "medium")]
-bus! {
-    TIM4 => (APB1, tim4en, tim4rst),
-}
-
-#[cfg(any(feature = "high", feature = "connectivity"))]
-bus! {
-    TIM5 => (APB1, tim5en, tim5rst),
-}
-
-#[cfg(any(feature = "xl", all(feature = "stm32f100", feature = "high",)))]
-bus! {
-    TIM12 => (APB1, tim12en, tim12rst),
-    TIM13 => (APB1, tim13en, tim13rst),
-    TIM14 => (APB1, tim14en, tim14rst),
-}
-
-#[cfg(all(feature = "stm32f103", feature = "high",))]
-bus! {
-    TIM8 => (APB2, tim8en, tim8rst),
-}
-
-#[cfg(feature = "xl")]
-bus! {
-    TIM9 => (APB2, tim9en, tim9rst),
-    TIM10 => (APB2, tim10en, tim10rst),
-    TIM11 => (APB2, tim11en, tim11rst),
-}
-
-#[cfg(any(feature = "stm32f102", feature = "stm32f103"))]
-bus! {
-    USB => (APB1, usben, usbrst),
+    DMA => (dmaen),
+    GPIOA => (paen),
+    GPIOB => (paen),
+    GPIOC => (paen),
+    GPIOD => (paen),
+    GPIOF => (paen),
 }
