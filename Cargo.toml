@@ -12,7 +12,7 @@ edition = "2018"
 version = "0.7.0"
 
 [package.metadata.docs.rs]
-features = ["stm32f103", "rt", "stm32-usbd"]
+features = ["gd32f130", "rt"]
 default-target = "x86_64-unknown-linux-gnu"
 
 [dependencies]
@@ -77,11 +77,7 @@ version = "1.0.90"
 device-selected = []
 doc = []
 rt = ["stm32f1/rt"]
-stm32f100 = ["stm32f1/stm32f100", "device-selected"]
-stm32f101 = ["stm32f1/stm32f101", "device-selected"]
-stm32f103 = ["stm32f1/stm32f103", "device-selected", "has-can"]
-stm32f105 = ["stm32f1/stm32f107", "device-selected", "connectivity"]
-stm32f107 = ["stm32f1/stm32f107", "device-selected", "connectivity"]
+gd32f130 = ["stm32f1/stm32f103", "device-selected"]
 
 # Devices with 64 or 128 Kb ROM
 medium = []

@@ -88,26 +88,13 @@
 
 // If no target specified, print error message.
 #[cfg(not(any(
-    feature = "stm32f100",
-    feature = "stm32f101",
-    feature = "stm32f103",
-    feature = "stm32f105",
-    feature = "stm32f107",
+    feature = "gd32f130",
 )))]
 compile_error!("Target not found. A `--features <target-name>` is required.");
 
 // If any two or more targets are specified, print error message.
 #[cfg(any(
-    all(feature = "stm32f100", feature = "stm32f101"),
-    all(feature = "stm32f100", feature = "stm32f103"),
-    all(feature = "stm32f100", feature = "stm32f105"),
-    all(feature = "stm32f100", feature = "stm32f107"),
-    all(feature = "stm32f101", feature = "stm32f103"),
-    all(feature = "stm32f101", feature = "stm32f105"),
-    all(feature = "stm32f101", feature = "stm32f107"),
-    all(feature = "stm32f103", feature = "stm32f105"),
-    all(feature = "stm32f103", feature = "stm32f107"),
-    all(feature = "stm32f105", feature = "stm32f107"),
+    all(feature = "gd32f130", feature = "stm32f101"),
 ))]
 compile_error!(
     "Multiple targets specified. Only a single `--features <target-name>` can be specified."
@@ -116,27 +103,8 @@ compile_error!(
 #[cfg(feature = "device-selected")]
 use embedded_hal as hal;
 
-#[cfg(feature = "stm32f100")]
-pub use stm32f1::stm32f100 as pac;
-
-#[cfg(feature = "stm32f101")]
-pub use stm32f1::stm32f101 as pac;
-
-#[cfg(feature = "stm32f103")]
+#[cfg(feature = "gd32f130")]
 pub use stm32f1::stm32f103 as pac;
-
-#[cfg(any(feature = "stm32f105", feature = "stm32f107"))]
-pub use stm32f1::stm32f107 as pac;
-
-#[cfg(feature = "device-selected")]
-#[deprecated(since = "0.6.0", note = "please use `pac` instead")]
-#[doc(hidden)]
-pub use crate::pac as device;
-
-#[cfg(feature = "device-selected")]
-#[deprecated(since = "0.6.0", note = "please use `pac` instead")]
-#[doc(hidden)]
-pub use crate::pac as stm32;
 
 /*#[cfg(feature = "device-selected")]
 pub mod adc;
