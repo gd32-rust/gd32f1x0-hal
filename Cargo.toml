@@ -76,20 +76,14 @@ version = "1.0.90"
 [features]
 device-selected = []
 doc = []
+usart-single = []
+usart-dual = []
 rt = ["gd32f1/rt"]
 gd32f130 = ["gd32f1/gd32f1x0", "device-selected"]
-default = ["gd32f130"]
-
-# Devices with 64 or 128 Kb ROM
-medium = []
-# Devices with 256 or 512 Kb ROM
-high = ["medium"]
-# Devices with 768 Kb ROM or more
-xl = ["high"]
-# Connectivity line devices (`stm32f105xx` and `stm32f107xx`)
-connectivity = ["medium", "has-can"]
-# Devices with CAN interface
-has-can = []
+gd32f130x4 = ["gd32f130", "usart-single"]
+gd32f130x6 = ["gd32f130", "usart-dual"]
+gd32f130x8 = ["gd32f130", "usart-dual"]
+default = ["gd32f130x8"]
 
 [profile.dev]
 incremental = false

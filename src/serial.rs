@@ -6,20 +6,15 @@
 use core::fmt;
 use core::marker::PhantomData;
 use core::ops::Deref;
-use core::ptr;
-use core::sync::atomic::{self, Ordering};
 
-use crate::pac::{rcu::APB2EN, usart0, usart0::ctl1::STB_A, USART0, USART1};
+use crate::pac::{usart0, usart0::ctl1::STB_A, USART0, USART1};
 use core::convert::Infallible;
-use embedded_dma::{StaticReadBuffer, StaticWriteBuffer};
 use embedded_hal::serial::{Read, Write};
 
-use crate::gpio::gpioa::{PA10, PA2, PA3, PA9};
-use crate::gpio::gpiob::{PB10, PB11, PB6, PB7};
-use crate::gpio::gpioc::{PC10, PC11};
-use crate::gpio::gpiod::{PD5, PD6, PD8, PD9};
-use crate::gpio::{Alternate, Floating, Input, PushPull, AF1};
-use crate::rcc::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset, APB1, APB2};
+use crate::gpio::gpioa::{PA10, PA14, PA15, PA2, PA3, PA9};
+use crate::gpio::gpiob::{PB6, PB7};
+use crate::gpio::{Alternate, AF1};
+use crate::rcc::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset};
 use crate::time::{Bps, U32Ext};
 
 /// Serial error
@@ -101,9 +96,33 @@ pub trait TxPin<USART> {}
 pub trait RxPin<USART> {}
 
 impl TxPin<USART0> for PA9<Alternate<AF1>> {}
-impl TxPin<USART0> for PB6<Alternate<AF1>> {}
 impl RxPin<USART0> for PA10<Alternate<AF1>> {}
+impl TxPin<USART0> for PB6<Alternate<AF1>> {}
 impl RxPin<USART0> for PB7<Alternate<AF1>> {}
+
+#[cfg(feature = "usart-dual")]
+mod pins {
+    use super::*;
+    use crate::gpio::gpioa::PA8;
+    use crate::gpio::gpiob::PB0;
+
+    impl TxPin<USART1> for PA2<Alternate<AF1>> {}
+    impl RxPin<USART1> for PA3<Alternate<AF1>> {}
+    impl TxPin<USART1> for PA8<Alternate<AF1>> {}
+    impl RxPin<USART1> for PB0<Alternate<AF1>> {}
+    impl TxPin<USART1> for PA14<Alternate<AF1>> {}
+    impl RxPin<USART1> for PA15<Alternate<AF1>> {}
+}
+
+#[cfg(feature = "usart-single")]
+mod pins {
+    use super::*;
+
+    impl TxPin<USART0> for PA2<Alternate<AF1>> {}
+    impl RxPin<USART0> for PA3<Alternate<AF1>> {}
+    impl TxPin<USART0> for PA14<Alternate<AF1>> {}
+    impl RxPin<USART0> for PA15<Alternate<AF1>> {}
+}
 
 /// Serial abstraction
 pub struct Serial<USART, TXPIN, RXPIN> {

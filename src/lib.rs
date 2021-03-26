@@ -87,11 +87,15 @@
 #![deny(broken_intra_doc_links)]
 
 // If no target specified, print error message.
-#[cfg(not(any(feature = "gd32f130",)))]
+#[cfg(not(any(feature = "gd32f130x4", feature = "gd32f130x6", feature = "gd32f130x8")))]
 compile_error!("Target not found. A `--features <target-name>` is required.");
 
 // If any two or more targets are specified, print error message.
-#[cfg(any(all(feature = "gd32f130", feature = "stm32f101"),))]
+#[cfg(any(
+    all(feature = "gd32f130x4", feature = "gd32f130x6"),
+    all(feature = "gd32f130x4", feature = "gd32f130x8"),
+    all(feature = "gd32f130x6", feature = "gd32f130x8"),
+))]
 compile_error!(
     "Multiple targets specified. Only a single `--features <target-name>` can be specified."
 );
