@@ -192,303 +192,353 @@ impl InputPin for Pin<Output<OpenDrain>> {
     }
 }
 
+/// Generate core code for a GPIO port, not including alternate function support.
+macro_rules! gpio_core {
+    ($GPIOX:ident, $gpiox:ident, $pen:ident, [
+        $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
+    ]) => {
+        use super::*;
+        use crate::pac::{$gpiox, rcu::AHBEN, $GPIOX};
+
+        pub struct Parts {
+            pub config: Config,
+            $(
+                pub $pxi: $PXi<$MODE>,
+            )+
+        }
+
+        pub struct Config {
+            _config: (),
+        }
+
+        impl GpioExt for $GPIOX {
+            type Parts = Parts;
+
+            fn split(self, ahb: &mut AHBEN) -> Parts {
+                ahb.modify(|_, w| w.$pen().enabled());
+
+                Parts {
+                    config: Config { _config: () },
+                    $(
+                        $pxi: $PXi {
+                            mode: <$MODE>::new(),
+                        },
+                    )+
+                }
+            }
+        }
+
+        impl GpioRegExt for $gpiox::RegisterBlock {
+            unsafe fn is_low(&self, pin_index: u8) -> bool {
+                self.istat.read().bits() & (1 << pin_index) == 0
+            }
+
+            unsafe fn is_set_low(&self, pin_index: u8) -> bool {
+                self.octl.read().bits() & (1 << pin_index) == 0
+            }
+
+            unsafe fn set_low(&self, pin_index: u8) {
+                self.bc.write(|w| w.bits(1 << pin_index))
+            }
+
+            unsafe fn set_high(&self, pin_index: u8) {
+                self.bop.write(|w| w.bits(1 << pin_index))
+            }
+        }
+
+        /// Sets the input/output, pull-up/down and output mode of a pin
+        unsafe fn set_mode(
+            _config: &mut Config,
+            pin_index: u8,
+            ctl: Mode,
+            pud: PullMode,
+            output_mode: OutputMode,
+        ) {
+            let offset = 2 * pin_index;
+            let reg = &(*$GPIOX::ptr());
+            reg.pud
+                .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((pud as u32) << offset)));
+            reg.omode.modify(|r, w| {
+                w.bits((r.bits() & !(0b1 << pin_index)) | ((output_mode as u32) << pin_index))
+            });
+            reg.ctl
+                .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((ctl as u32) << offset)));
+        }
+
+        /// Sets the max slew rate of a pin.
+        unsafe fn set_speed(_config: &mut Config, pin_index: u8, speed: Speed) {
+            let offset = 2 * pin_index;
+            let reg = &(*$GPIOX::ptr());
+            reg.ospd
+                .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((speed as u32) << offset)));
+        }
+
+        // Struct for each pin
+        $(
+            pub struct $PXi<MODE> {
+                mode: MODE,
+            }
+
+            impl $PXi<Debugger> {
+                pub fn activate(self) -> $PXi<Input<Floating>> {
+                    $PXi { mode: Input::new() }
+                }
+            }
+
+            impl<MODE> $PXi<MODE>
+            where
+                MODE: Active,
+            {
+                /// Configures the pin to operate as a floating input.
+                #[inline]
+                pub fn into_floating_input(self, config: &mut Config) -> $PXi<Input<Floating>> {
+                    unsafe {
+                        set_mode(
+                            config,
+                            $i,
+                            Mode::Input,
+                            PullMode::Floating,
+                            OutputMode::PushPull,
+                        )
+                    };
+                    $PXi { mode: Input::new() }
+                }
+
+                /// Configures the pin to operate as a pulled down input.
+                #[inline]
+                pub fn into_pull_up_input(self, config: &mut Config) -> $PXi<Input<PullUp>> {
+                    unsafe {
+                        set_mode(
+                            config,
+                            $i,
+                            Mode::Input,
+                            PullMode::PullUp,
+                            OutputMode::PushPull,
+                        )
+                    };
+                    $PXi { mode: Input::new() }
+                }
+
+                /// Configures the pin to operate as a pulled down input.
+                #[inline]
+                pub fn into_pull_down_input(self, config: &mut Config) -> $PXi<Input<PullDown>> {
+                    unsafe {
+                        set_mode(
+                            config,
+                            $i,
+                            Mode::Input,
+                            PullMode::PullDown,
+                            OutputMode::PushPull,
+                        )
+                    };
+                    $PXi { mode: Input::new() }
+                }
+
+                /// Configures the pin to operate as an analog input or output.
+                #[inline]
+                pub fn into_analog(self, config: &mut Config) -> $PXi<Analog> {
+                    unsafe {
+                        set_mode(
+                            config,
+                            $i,
+                            Mode::Analog,
+                            PullMode::Floating,
+                            OutputMode::PushPull,
+                        )
+                    };
+                    $PXi { mode: Analog {} }
+                }
+
+                /// Configures the pin to operate as an open drain output.
+                #[inline]
+                pub fn into_open_drain_output(self, config: &mut Config) -> $PXi<Output<OpenDrain>> {
+                    unsafe {
+                        set_mode(
+                            config,
+                            $i,
+                            Mode::Output,
+                            PullMode::Floating,
+                            OutputMode::OpenDrain,
+                        )
+                    };
+                    $PXi {
+                        mode: Output::new(),
+                    }
+                }
+
+                /// Configures the pin to operate as an open drain output.
+                #[inline]
+                pub fn into_push_pull_output(self, config: &mut Config) -> $PXi<Output<PushPull>> {
+                    unsafe {
+                        set_mode(
+                            config,
+                            $i,
+                            Mode::Output,
+                            PullMode::Floating,
+                            OutputMode::PushPull,
+                        )
+                    };
+                    $PXi {
+                        mode: Output::new(),
+                    }
+                }
+
+                /// Erases the pin number and port from the type.
+                pub fn downgrade(self) -> Pin<MODE> {
+                    Pin {
+                        pin_index: $i,
+                        port: $GPIOX::ptr(),
+                        _mode: self.mode,
+                    }
+                }
+            }
+
+            impl<MODE> $PXi<Output<MODE>> {
+                /// Configures the max slew rate of the pin
+                pub fn set_speed(&mut self, config: &mut Config, speed: Speed) {
+                    unsafe { set_speed(config, $i, speed) };
+                }
+            }
+
+            impl<MODE> toggleable::Default for $PXi<Output<MODE>> {}
+
+            impl<MODE> OutputPin for $PXi<Output<MODE>> {
+                type Error = Infallible;
+
+                fn set_high(&mut self) -> Result<(), Self::Error> {
+                    Ok(unsafe { (*$GPIOX::ptr()).set_high($i) })
+                }
+
+                fn set_low(&mut self) -> Result<(), Self::Error> {
+                    Ok(unsafe { (*$GPIOX::ptr()).set_low($i) })
+                }
+            }
+
+            impl<MODE> StatefulOutputPin for $PXi<Output<MODE>> {
+                fn is_set_high(&self) -> Result<bool, Self::Error> {
+                    self.is_set_low().map(|b| !b)
+                }
+
+                fn is_set_low(&self) -> Result<bool, Self::Error> {
+                    Ok(unsafe { (*$GPIOX::ptr()).is_set_low($i) })
+                }
+            }
+
+            impl<MODE> InputPin for $PXi<Input<MODE>> {
+                type Error = Infallible;
+
+                fn is_high(&self) -> Result<bool, Self::Error> {
+                    self.is_low().map(|b| !b)
+                }
+
+                fn is_low(&self) -> Result<bool, Self::Error> {
+                    Ok(unsafe { (*$GPIOX::ptr()).is_low($i) })
+                }
+            }
+
+            impl InputPin for $PXi<Output<OpenDrain>> {
+                type Error = Infallible;
+
+                fn is_high(&self) -> Result<bool, Self::Error> {
+                    self.is_low().map(|b| !b)
+                }
+
+                fn is_low(&self) -> Result<bool, Self::Error> {
+                    Ok(unsafe { (*$GPIOX::ptr()).is_low($i) })
+                }
+            }
+        )+
+    }
+}
+
+/// Generate alternate function code for a GPIO port.
+macro_rules! gpio_af {
+    ($GPIOX:ident, $gpiox:ident, $pen:ident, [
+        $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
+    ]) => {
+        /// Configures the given pin to have the given alternate function mode
+        unsafe fn set_alternate_mode(
+            config: &mut Config,
+            pin_index: u8,
+            mode: u32,
+            pull_mode: PullMode,
+            output_mode: OutputMode,
+        ) {
+            let offset = (4 * pin_index) % 32;
+            let reg = &(*$GPIOX::ptr());
+            if pin_index < 8 {
+                reg.afsel0
+                    .modify(|r, w| w.bits((r.bits() & !(0b1111 << offset)) | (mode << offset)));
+            } else {
+                reg.afsel1
+                    .modify(|r, w| w.bits((r.bits() & !(0b1111 << offset)) | (mode << offset)));
+            }
+            set_mode(config, pin_index, Mode::Alternate, pull_mode, output_mode);
+        }
+
+        // Struct for each pin
+        $(
+            impl<MODE> $PXi<MODE>
+            where
+                MODE: Active,
+            {
+                /// Configures the pin to operate as an alternate function.
+                pub fn into_alternate<AFN: AF>(
+                    self,
+                    config: &mut Config,
+                    pull_mode: PullMode,
+                    output_mode: OutputMode,
+                ) -> $PXi<Alternate<AFN>> {
+                    unsafe { set_alternate_mode(config, $i, AFN::NUMBER, pull_mode, output_mode) };
+                    $PXi {
+                        mode: Alternate::new(),
+                    }
+                }
+            }
+
+            impl<AFN> $PXi<Alternate<AFN>> {
+                /// Configures the max slew rate of the pin
+                pub fn set_speed(&mut self, config: &mut Config, speed: Speed) {
+                    unsafe { set_speed(config, $i, speed) };
+                }
+            }
+        )+
+    }
+}
+
+/// Generate module for GPIO port with alternate functions.
 macro_rules! gpio {
     ($GPIOX:ident, $gpiox:ident, $pen:ident, [
         $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
     ]) => {
         /// GPIO
         pub mod $gpiox {
-            use super::*;
-            use crate::pac::{$gpiox, rcu::AHBEN, $GPIOX};
-
-            pub struct Parts {
-                pub config: Config,
+            gpio_core!($GPIOX, $gpiox, $pen, [
                 $(
-                    pub $pxi: $PXi<$MODE>,
+                    $PXi: ($pxi, $i, $MODE),
                 )+
-            }
+            ]);
+            gpio_af!($GPIOX, $gpiox, $pen, [
+                $(
+                    $PXi: ($pxi, $i, $MODE),
+                )+
+            ]);
+        }
+    }
+}
 
-            pub struct Config {
-                _config: (),
-            }
-
-            impl GpioExt for $GPIOX {
-                type Parts = Parts;
-
-                fn split(self, ahb: &mut AHBEN) -> Parts {
-                    ahb.modify(|_, w| w.$pen().enabled());
-
-                    Parts {
-                        config: Config { _config: () },
-                        $(
-                            $pxi: $PXi {
-                                mode: <$MODE>::new(),
-                            },
-                        )+
-                    }
-                }
-            }
-
-            impl GpioRegExt for $gpiox::RegisterBlock {
-                unsafe fn is_low(&self, pin_index: u8) -> bool {
-                    self.istat.read().bits() & (1 << pin_index) == 0
-                }
-
-                unsafe fn is_set_low(&self, pin_index: u8) -> bool {
-                    self.octl.read().bits() & (1 << pin_index) == 0
-                }
-
-                unsafe fn set_low(&self, pin_index: u8) {
-                    self.bc.write(|w| w.bits(1 << pin_index))
-                }
-
-                unsafe fn set_high(&self, pin_index: u8) {
-                    self.bop.write(|w| w.bits(1 << pin_index))
-                }
-            }
-
-            /// Configures the given pin to have the given alternate function mode
-            unsafe fn set_alternate_mode(
-                config: &mut Config,
-                pin_index: u8,
-                mode: u32,
-                pull_mode: PullMode,
-                output_mode: OutputMode,
-            ) {
-                let offset = (4 * pin_index) % 32;
-                let reg = &(*$GPIOX::ptr());
-                if pin_index < 8 {
-                    reg.afsel0
-                        .modify(|r, w| w.bits((r.bits() & !(0b1111 << offset)) | (mode << offset)));
-                } else {
-                    reg.afsel1
-                        .modify(|r, w| w.bits((r.bits() & !(0b1111 << offset)) | (mode << offset)));
-                }
-                set_mode(config, pin_index, Mode::Alternate, pull_mode, output_mode);
-            }
-
-            /// Sets the input/output, pull-up/down and output mode of a pin
-            unsafe fn set_mode(
-                _config: &mut Config,
-                pin_index: u8,
-                ctl: Mode,
-                pud: PullMode,
-                output_mode: OutputMode,
-            ) {
-                let offset = 2 * pin_index;
-                let reg = &(*$GPIOX::ptr());
-                reg.pud
-                    .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((pud as u32) << offset)));
-                reg.omode.modify(|r, w| {
-                    w.bits((r.bits() & !(0b1 << pin_index)) | ((output_mode as u32) << pin_index))
-                });
-                reg.ctl
-                    .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((ctl as u32) << offset)));
-            }
-
-            /// Sets the max slew rate of a pin.
-            unsafe fn set_speed(_config: &mut Config, pin_index: u8, speed: Speed) {
-                let offset = 2 * pin_index;
-                let reg = &(*$GPIOX::ptr());
-                reg.ospd
-                    .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((speed as u32) << offset)));
-            }
-
-            // Struct for each pin
-            $(
-                pub struct $PXi<MODE> {
-                    mode: MODE,
-                }
-
-                impl $PXi<Debugger> {
-                    pub fn activate(self) -> $PXi<Input<Floating>> {
-                        $PXi { mode: Input::new() }
-                    }
-                }
-
-                impl<MODE> $PXi<MODE>
-                where
-                    MODE: Active,
-                {
-                    /// Configures the pin to operate as a floating input.
-                    #[inline]
-                    pub fn into_floating_input(self, config: &mut Config) -> $PXi<Input<Floating>> {
-                        unsafe {
-                            set_mode(
-                                config,
-                                $i,
-                                Mode::Input,
-                                PullMode::Floating,
-                                OutputMode::PushPull,
-                            )
-                        };
-                        $PXi { mode: Input::new() }
-                    }
-
-                    /// Configures the pin to operate as a pulled down input.
-                    #[inline]
-                    pub fn into_pull_up_input(self, config: &mut Config) -> $PXi<Input<PullUp>> {
-                        unsafe {
-                            set_mode(
-                                config,
-                                $i,
-                                Mode::Input,
-                                PullMode::PullUp,
-                                OutputMode::PushPull,
-                            )
-                        };
-                        $PXi { mode: Input::new() }
-                    }
-
-                    /// Configures the pin to operate as a pulled down input.
-                    #[inline]
-                    pub fn into_pull_down_input(self, config: &mut Config) -> $PXi<Input<PullDown>> {
-                        unsafe {
-                            set_mode(
-                                config,
-                                $i,
-                                Mode::Input,
-                                PullMode::PullDown,
-                                OutputMode::PushPull,
-                            )
-                        };
-                        $PXi { mode: Input::new() }
-                    }
-
-                    /// Configures the pin to operate as an analog input or output.
-                    #[inline]
-                    pub fn into_analog(self, config: &mut Config) -> $PXi<Analog> {
-                        unsafe {
-                            set_mode(
-                                config,
-                                $i,
-                                Mode::Analog,
-                                PullMode::Floating,
-                                OutputMode::PushPull,
-                            )
-                        };
-                        $PXi { mode: Analog {} }
-                    }
-
-                    /// Configures the pin to operate as an open drain output.
-                    #[inline]
-                    pub fn into_open_drain_output(self, config: &mut Config) -> $PXi<Output<OpenDrain>> {
-                        unsafe {
-                            set_mode(
-                                config,
-                                $i,
-                                Mode::Output,
-                                PullMode::Floating,
-                                OutputMode::OpenDrain,
-                            )
-                        };
-                        $PXi {
-                            mode: Output::new(),
-                        }
-                    }
-
-                    /// Configures the pin to operate as an open drain output.
-                    #[inline]
-                    pub fn into_push_pull_output(self, config: &mut Config) -> $PXi<Output<PushPull>> {
-                        unsafe {
-                            set_mode(
-                                config,
-                                $i,
-                                Mode::Output,
-                                PullMode::Floating,
-                                OutputMode::PushPull,
-                            )
-                        };
-                        $PXi {
-                            mode: Output::new(),
-                        }
-                    }
-
-                    /// Configures the pin to operate as an alternate function.
-                    pub fn into_alternate<AFN: AF>(
-                        self,
-                        config: &mut Config,
-                        pull_mode: PullMode,
-                        output_mode: OutputMode,
-                    ) -> $PXi<Alternate<AFN>> {
-                        unsafe { set_alternate_mode(config, $i, AFN::NUMBER, pull_mode, output_mode) };
-                        $PXi {
-                            mode: Alternate::new(),
-                        }
-                    }
-
-                    /// Erases the pin number and port from the type.
-                    pub fn downgrade(self) -> Pin<MODE> {
-                        Pin {
-                            pin_index: $i,
-                            port: $GPIOX::ptr(),
-                            _mode: self.mode,
-                        }
-                    }
-                }
-
-                impl<MODE> $PXi<Output<MODE>> {
-                    /// Configures the max slew rate of the pin
-                    pub fn set_speed(&mut self, config: &mut Config, speed: Speed) {
-                        unsafe { set_speed(config, $i, speed) };
-                    }
-                }
-
-                impl<AFN> $PXi<Alternate<AFN>> {
-                    /// Configures the max slew rate of the pin
-                    pub fn set_speed(&mut self, config: &mut Config, speed: Speed) {
-                        unsafe { set_speed(config, $i, speed) };
-                    }
-                }
-
-                impl<MODE> toggleable::Default for $PXi<Output<MODE>> {}
-
-                impl<MODE> OutputPin for $PXi<Output<MODE>> {
-                    type Error = Infallible;
-
-                    fn set_high(&mut self) -> Result<(), Self::Error> {
-                        Ok(unsafe { (*$GPIOX::ptr()).set_high($i) })
-                    }
-
-                    fn set_low(&mut self) -> Result<(), Self::Error> {
-                        Ok(unsafe { (*$GPIOX::ptr()).set_low($i) })
-                    }
-                }
-
-                impl<MODE> StatefulOutputPin for $PXi<Output<MODE>> {
-                    fn is_set_high(&self) -> Result<bool, Self::Error> {
-                        self.is_set_low().map(|b| !b)
-                    }
-
-                    fn is_set_low(&self) -> Result<bool, Self::Error> {
-                        Ok(unsafe { (*$GPIOX::ptr()).is_set_low($i) })
-                    }
-                }
-
-                impl<MODE> InputPin for $PXi<Input<MODE>> {
-                    type Error = Infallible;
-
-                    fn is_high(&self) -> Result<bool, Self::Error> {
-                        self.is_low().map(|b| !b)
-                    }
-
-                    fn is_low(&self) -> Result<bool, Self::Error> {
-                        Ok(unsafe { (*$GPIOX::ptr()).is_low($i) })
-                    }
-                }
-
-                impl InputPin for $PXi<Output<OpenDrain>> {
-                    type Error = Infallible;
-
-                    fn is_high(&self) -> Result<bool, Self::Error> {
-                        self.is_low().map(|b| !b)
-                    }
-
-                    fn is_low(&self) -> Result<bool, Self::Error> {
-                        Ok(unsafe { (*$GPIOX::ptr()).is_low($i) })
-                    }
-                }
-            )+
+/// Generate module for GPIO port without alternate functions.
+macro_rules! gpio_noaf {
+    ($GPIOX:ident, $gpiox:ident, $pen:ident, [
+        $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
+    ]) => {
+        /// GPIO
+        pub mod $gpiox {
+            gpio_core!($GPIOX, $gpiox, $pen, [
+                $(
+                    $PXi: ($pxi, $i, $MODE),
+                )+
+            ]);
         }
     }
 }
@@ -548,4 +598,42 @@ gpio!(GPIOC, gpioc, pcen, [
     PC13: (pc13, 13, Input<Floating>),
     PC14: (pc14, 14, Input<Floating>),
     PC15: (pc15, 15, Input<Floating>),
+]);
+
+gpio_noaf!(GPIOD, gpiod, pden, [
+    PD0: (pd0, 0, Input<Floating>),
+    PD1: (pd1, 1, Input<Floating>),
+    PD2: (pd2, 2, Input<Floating>),
+    PD3: (pd3, 3, Input<Floating>),
+    PD4: (pd4, 4, Input<Floating>),
+    PD5: (pd5, 5, Input<Floating>),
+    PD6: (pd6, 6, Input<Floating>),
+    PD7: (pd7, 7, Input<Floating>),
+    PD8: (pd8, 8, Input<Floating>),
+    PD9: (pd9, 9, Input<Floating>),
+    PD10: (pd10, 10, Input<Floating>),
+    PD11: (pd11, 11, Input<Floating>),
+    PD12: (pd12, 12, Input<Floating>),
+    PD13: (pd13, 13, Input<Floating>),
+    PD14: (pd14, 14, Input<Floating>),
+    PD15: (pd15, 15, Input<Floating>),
+]);
+
+gpio_noaf!(GPIOF, gpiof, pfen, [
+    PF0: (pf0, 0, Input<Floating>),
+    PF1: (pf1, 1, Input<Floating>),
+    PF2: (pf2, 2, Input<Floating>),
+    PF3: (pf3, 3, Input<Floating>),
+    PF4: (pf4, 4, Input<Floating>),
+    PF5: (pf5, 5, Input<Floating>),
+    PF6: (pf6, 6, Input<Floating>),
+    PF7: (pf7, 7, Input<Floating>),
+    PF8: (pf8, 8, Input<Floating>),
+    PF9: (pf9, 9, Input<Floating>),
+    PF10: (pf10, 10, Input<Floating>),
+    PF11: (pf11, 11, Input<Floating>),
+    PF12: (pf12, 12, Input<Floating>),
+    PF13: (pf13, 13, Input<Floating>),
+    PF14: (pf14, 14, Input<Floating>),
+    PF15: (pf15, 15, Input<Floating>),
 ]);
