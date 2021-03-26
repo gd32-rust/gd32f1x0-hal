@@ -118,16 +118,23 @@ pub struct Tx<USART> {
 
 unsafe impl<USART> Send for Tx<USART> {}
 
-impl<TXPIN: TxPin<USART0>, RXPIN: RxPin<USART0>> Serial<USART0, TXPIN, RXPIN> {
+impl<
+        USART: RcuBus + Enable + Reset + Deref<Target = usart0::RegisterBlock>,
+        TXPIN: TxPin<USART>,
+        RXPIN: RxPin<USART>,
+    > Serial<USART, TXPIN, RXPIN>
+where
+    USART::Bus: GetBusFreq,
+{
     /// Configures the USART and creates a new Serial instance.
-    pub fn usart0(
-        usart: USART0,
+    pub fn usart(
+        usart: USART,
         pins: (TXPIN, RXPIN),
         config: Config,
         clocks: Clocks,
-        apb: &mut APB2,
+        bus: &mut USART::Bus,
     ) -> Self {
-        usart.enable_configure(config, clocks, apb);
+        usart.enable_configure(config, clocks, bus);
 
         // Enable transmitter, receiver and the USART as a whole.
         usart
@@ -138,16 +145,22 @@ impl<TXPIN: TxPin<USART0>, RXPIN: RxPin<USART0>> Serial<USART0, TXPIN, RXPIN> {
     }
 }
 
-impl<TXPIN: TxPin<USART0>> Serial<USART0, TXPIN, ()> {
+impl<
+        USART: RcuBus + Enable + Reset + Deref<Target = usart0::RegisterBlock>,
+        TXPIN: TxPin<USART>,
+    > Serial<USART, TXPIN, ()>
+where
+    USART::Bus: GetBusFreq,
+{
     /// Configures the USART and creates a new TX-only Serial instance.
-    pub fn usart0tx(
-        usart: USART0,
+    pub fn usart_tx(
+        usart: USART,
         txpin: TXPIN,
         config: Config,
         clocks: Clocks,
-        apb: &mut APB2,
+        bus: &mut USART::Bus,
     ) -> Self {
-        usart.enable_configure(config, clocks, apb);
+        usart.enable_configure(config, clocks, bus);
 
         // Enable transmitter and the USART as a whole.
         usart.ctl0.modify(|_, w| w.ten().enabled().uen().enabled());
@@ -159,16 +172,22 @@ impl<TXPIN: TxPin<USART0>> Serial<USART0, TXPIN, ()> {
     }
 }
 
-impl<RXPIN: RxPin<USART0>> Serial<USART0, (), RXPIN> {
+impl<
+        USART: RcuBus + Enable + Reset + Deref<Target = usart0::RegisterBlock>,
+        RXPIN: RxPin<USART>,
+    > Serial<USART, (), RXPIN>
+where
+    USART::Bus: GetBusFreq,
+{
     /// Configures the USART and creates a new RX-only Serial instance.
-    pub fn usart0tx(
-        usart: USART0,
+    pub fn usart_rx(
+        usart: USART,
         rxpin: RXPIN,
         config: Config,
         clocks: Clocks,
-        apb: &mut APB2,
+        bus: &mut USART::Bus,
     ) -> Self {
-        usart.enable_configure(config, clocks, apb);
+        usart.enable_configure(config, clocks, bus);
 
         // Enable receiver and the USART as a whole.
         usart.ctl0.modify(|_, w| w.ren().enabled().uen().enabled());
@@ -180,7 +199,7 @@ impl<RXPIN: RxPin<USART0>> Serial<USART0, (), RXPIN> {
     }
 }
 
-impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART0>, RXPIN: RxPin<USART0>>
+impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>, RXPIN: RxPin<USART>>
     Serial<USART, TXPIN, RXPIN>
 {
     /// Separates the serial struct into separate channel objects for sending (Tx) and receiving (Rx).
@@ -271,18 +290,26 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> Read<u8> for Rx<USART> {
 }
 
 trait UsartConfigExt {
-    fn enable_configure(&self, config: Config, clocks: Clocks, apb: &mut APB2);
+    type Bus;
+
+    fn enable_configure(&self, config: Config, clocks: Clocks, bus: &mut Self::Bus);
 }
 
-impl<USART: RcuBus + Deref<Target = usart0::RegisterBlock>> UsartConfigExt for USART {
+impl<USART: RcuBus + Enable + Reset + Deref<Target = usart0::RegisterBlock>> UsartConfigExt
+    for USART
+where
+    USART::Bus: GetBusFreq,
+{
+    type Bus = USART::Bus;
+
     /// Enable, reset and configure the USART.
-    fn enable_configure(&self, config: Config, clocks: Clocks, apb: &mut APB2) {
+    fn enable_configure(&self, config: Config, clocks: Clocks, bus: &mut Self::Bus) {
         // Enable clock for USART, and reset it.
-        USART0::enable(apb);
-        USART0::reset(apb);
+        USART::enable(bus);
+        USART::reset(bus);
 
         // Configure baud rate.
-        let baud_rate_ratio = <USART0 as RcuBus>::Bus::get_frequency(&clocks).0 / config.baudrate.0;
+        let baud_rate_ratio = <USART as RcuBus>::Bus::get_frequency(&clocks).0 / config.baudrate.0;
         assert!(baud_rate_ratio >= 16 && baud_rate_ratio <= 0xFFFF);
         self.baud.write(|w| unsafe { w.bits(baud_rate_ratio) });
 
