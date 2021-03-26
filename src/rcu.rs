@@ -1,4 +1,4 @@
-//! # Reset & Control Clock
+//! # Reset & Clock Unit
 
 use core::cmp;
 

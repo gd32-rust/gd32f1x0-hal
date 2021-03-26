@@ -30,7 +30,7 @@
 use core::ops;
 use cortex_m::peripheral::{DCB, DWT};
 
-use crate::rcc::Clocks;
+use crate::rcu::Clocks;
 
 /// Bits per second
 #[derive(Clone, Copy, PartialEq, Debug)]

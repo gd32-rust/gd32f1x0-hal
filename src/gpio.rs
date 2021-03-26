@@ -1,4 +1,4 @@
-use crate::rcc::AHB;
+use crate::rcu::AHB;
 use core::convert::Infallible;
 use core::marker::PhantomData;
 use embedded_hal::digital::v2::{toggleable, InputPin, OutputPin, StatefulOutputPin};
@@ -225,7 +225,7 @@ macro_rules! gpio_core {
     ]) => {
         use super::*;
         use crate::pac::{$gpiox, $GPIOX};
-        use crate::rcc::Enable;
+        use crate::rcu::Enable;
 
         pub struct Parts {
             pub config: Config,

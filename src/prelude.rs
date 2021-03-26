@@ -7,7 +7,7 @@ pub use crate::dma::ReadDma as _gd32_hal_dma_ReadDma;
 pub use crate::dma::WriteDma as _gd32_hal_dma_WriteDma;
 pub use crate::flash::FlashExt as _gd32_hal_flash_FlashExt;*/
 pub use crate::gpio::GpioExt as _gd32_hal_gpio_GpioExt;
-pub use crate::rcc::RcuExt as _gd32_hal_rcc_RcuExt;
+pub use crate::rcu::RcuExt as _gd32_hal_rcu_RcuExt;
 pub use crate::time::U32Ext as _gd32_hal_time_U32Ext;
 pub use embedded_hal::adc::OneShot as _embedded_hal_adc_OneShot;
 pub use embedded_hal::digital::v2::StatefulOutputPin as _embedded_hal_digital_StatefulOutputPin;

@@ -14,7 +14,7 @@ use embedded_hal::serial::{Read, Write};
 use crate::gpio::gpioa::{PA10, PA14, PA15, PA2, PA3, PA9};
 use crate::gpio::gpiob::{PB6, PB7};
 use crate::gpio::{Alternate, AF1};
-use crate::rcc::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset};
+use crate::rcu::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset};
 use crate::time::{Bps, U32Ext};
 
 /// Serial error
