@@ -15,7 +15,7 @@ use nb::block;
 
 use cortex_m_rt::entry;
 use embedded_hal::digital::v2::OutputPin;
-use stm32f1xx_hal::{pac, prelude::*, timer::Timer};
+use gd32f1x0_hal::{pac, prelude::*, timer::Timer};
 
 #[entry]
 fn main() -> ! {
@@ -26,19 +26,19 @@ fn main() -> ! {
 
     // Take ownership over the raw flash and rcc devices and convert them into the corresponding
     // HAL structs
-    let mut flash = dp.FLASH.constrain();
-    let mut rcc = dp.RCC.constrain();
+    let flash = dp.FMC;
+    let mut rcu = dp.RCU.constrain();
 
     // Freeze the configuration of all the clocks in the system and store the frozen frequencies in
     // `clocks`
-    let clocks = rcc.cfgr.freeze(&mut flash.acr);
+    let clocks = rcu.cfgr.freeze(&flash.ws);
 
     // Acquire the GPIOC peripheral
-    let mut gpioc = dp.GPIOC.split(&mut rcc.apb2);
+    let mut gpioc = dp.GPIOC.split(&mut rcu.ahb);
 
     // Configure gpio C pin 13 as a push-pull output. The `crh` register is passed to the function
     // in order to configure the port. For pins 0-7, crl should be passed instead.
-    let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.crh);
+    let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.config);
     // Configure the syst timer to trigger an update every second
     let mut timer = Timer::syst(cp.SYST, &clocks).start_count_down(1.hz());
 

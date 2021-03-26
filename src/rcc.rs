@@ -231,7 +231,7 @@ impl CFGR {
     /// let clocks = rcu.cfgr.freeze(&mut flash.acr);
     /// ```
 
-    pub fn freeze(self, ws: &mut WS) -> Clocks {
+    pub fn freeze(self, ws: &WS) -> Clocks {
         let pllsrculk = self.hse.unwrap_or(HSI / 2);
 
         let pllmul = self.sysclk.unwrap_or(pllsrculk) / pllsrculk;

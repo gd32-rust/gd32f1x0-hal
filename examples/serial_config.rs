@@ -11,62 +11,56 @@ use panic_halt as _;
 use nb::block;
 
 use cortex_m_rt::entry;
-use stm32f1xx_hal::{
+use gd32f1x0_hal::{
+    gpio::{OutputMode, PullMode},
     pac,
     prelude::*,
-    serial::{self, Serial},
+    serial::{Config, Serial, StopBits},
 };
 
 #[entry]
 fn main() -> ! {
-    // Get access to the device specific peripherals from the peripheral access crate
+    // Get access to the device specific peripherals from the peripheral access crate.
     let p = pac::Peripherals::take().unwrap();
 
-    // Take ownership over the raw flash and rcc devices and convert them into the corresponding
-    // HAL structs
-    let mut flash = p.FLASH.constrain();
-    let mut rcc = p.RCC.constrain();
+    // Take ownership of the RCU peripheral and convert it into the corresponding HAL struct.
+    let mut rcu = p.RCU.constrain();
 
     // Freeze the configuration of all the clocks in the system and store the frozen frequencies in
-    // `clocks`
-    let clocks = rcc.cfgr.freeze(&mut flash.acr);
+    // `clocks`.
+    let clocks = rcu.cfgr.freeze(&p.FMC.ws);
 
-    // Prepare the alternate function I/O registers
-    let mut afio = p.AFIO.constrain(&mut rcc.apb2);
+    // Prepare the GPIOA peripheral
+    let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
 
-    // Prepare the GPIOB peripheral
-    let mut gpiob = p.GPIOB.split(&mut rcc.apb2);
+    // USART0
+    // let tx = gpioa
+    //     .pa9
+    //     .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
+    // let rx = gpioa
+    //     .pa10
+    //     .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
 
     // USART1
-    // let tx = gpioa.pa9.into_alternate_push_pull(&mut gpioa.crh);
-    // let rx = gpioa.pa10;
+    // Configure pa2 and pa3 in alternate function mode for the USART.
+    let tx = gpioa
+        .pa2
+        .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
+    let rx = gpioa
+        .pa3
+        .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
 
-    // USART1
-    // let tx = gpiob.pb6.into_alternate_push_pull(&mut gpiob.crl);
-    // let rx = gpiob.pb7;
-
-    // USART2
-    // let tx = gpioa.pa2.into_alternate_push_pull(&mut gpioa.crl);
-    // let rx = gpioa.pa3;
-
-    // USART3
-    // Configure pb10 as a push_pull output, this will be the tx pin
-    let tx = gpiob.pb10.into_alternate_push_pull(&mut gpiob.crh);
-    // Take ownership over pb11
-    let rx = gpiob.pb11;
-
-    // Set up the usart device. Taks ownership over the USART register and tx/rx pins. The rest of
+    // Set up the usart device. Takes ownership of the USART registers and tx/rx pins. The rest of
     // the registers are used to enable and configure the device.
-    let serial = Serial::usart3(
-        p.USART3,
+    let serial = Serial::usart(
+        p.USART1,
         (tx, rx),
-        &mut afio.mapr,
-        serial::Config::default()
+        Config::default()
             .baudrate(9600.bps())
-            .stopbits(serial::StopBits::STOP2)
+            .stopbits(StopBits::STOP2)
             .parity_odd(),
         clocks,
-        &mut rcc.apb1,
+        &mut rcu.apb1,
     );
 
     // Split the serial struct into a receiving and a transmitting part
