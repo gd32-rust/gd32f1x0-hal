@@ -1,4 +1,3 @@
-use crate::pac::rcu::AHBEN;
 use crate::rcc::AHB;
 use core::convert::Infallible;
 use core::marker::PhantomData;
@@ -10,7 +9,7 @@ pub trait GpioExt {
     type Parts;
 
     /// Splits the GPIO block into independent pins and registers
-    fn split(self, ahb: &mut AHBEN) -> Self::Parts;
+    fn split(self, ahb: &mut AHB) -> Self::Parts;
 }
 
 /// Marker trait for active states.
@@ -194,11 +193,12 @@ impl InputPin for Pin<Output<OpenDrain>> {
 
 /// Generate core code for a GPIO port, not including alternate function support.
 macro_rules! gpio_core {
-    ($GPIOX:ident, $gpiox:ident, $pen:ident, [
+    ($GPIOX:ident, $gpiox:ident, [
         $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
     ]) => {
         use super::*;
-        use crate::pac::{$gpiox, rcu::AHBEN, $GPIOX};
+        use crate::pac::{$gpiox, $GPIOX};
+        use crate::rcc::Enable;
 
         pub struct Parts {
             pub config: Config,
@@ -214,8 +214,8 @@ macro_rules! gpio_core {
         impl GpioExt for $GPIOX {
             type Parts = Parts;
 
-            fn split(self, ahb: &mut AHBEN) -> Parts {
-                ahb.modify(|_, w| w.$pen().enabled());
+            fn split(self, ahb: &mut AHB) -> Parts {
+                $GPIOX::enable(ahb);
 
                 Parts {
                     config: Config { _config: () },
@@ -453,7 +453,7 @@ macro_rules! gpio_core {
 
 /// Generate alternate function code for a GPIO port.
 macro_rules! gpio_af {
-    ($GPIOX:ident, $gpiox:ident, $pen:ident, [
+    ($GPIOX:ident, $gpiox:ident, [
         $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
     ]) => {
         /// Configures the given pin to have the given alternate function mode
@@ -508,17 +508,17 @@ macro_rules! gpio_af {
 
 /// Generate module for GPIO port with alternate functions.
 macro_rules! gpio {
-    ($GPIOX:ident, $gpiox:ident, $pen:ident, [
+    ($GPIOX:ident, $gpiox:ident, [
         $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
     ]) => {
         /// GPIO
         pub mod $gpiox {
-            gpio_core!($GPIOX, $gpiox, $pen, [
+            gpio_core!($GPIOX, $gpiox, [
                 $(
                     $PXi: ($pxi, $i, $MODE),
                 )+
             ]);
-            gpio_af!($GPIOX, $gpiox, $pen, [
+            gpio_af!($GPIOX, $gpiox, [
                 $(
                     $PXi: ($pxi, $i, $MODE),
                 )+
@@ -529,12 +529,12 @@ macro_rules! gpio {
 
 /// Generate module for GPIO port without alternate functions.
 macro_rules! gpio_noaf {
-    ($GPIOX:ident, $gpiox:ident, $pen:ident, [
+    ($GPIOX:ident, $gpiox:ident, [
         $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
     ]) => {
         /// GPIO
         pub mod $gpiox {
-            gpio_core!($GPIOX, $gpiox, $pen, [
+            gpio_core!($GPIOX, $gpiox, [
                 $(
                     $PXi: ($pxi, $i, $MODE),
                 )+
@@ -543,7 +543,7 @@ macro_rules! gpio_noaf {
     }
 }
 
-gpio!(GPIOA, gpioa, paen, [
+gpio!(GPIOA, gpioa, [
     PA0: (pa0, 0, Input<Floating>),
     PA1: (pa1, 1, Input<Floating>),
     PA2: (pa2, 2, Input<Floating>),
@@ -562,7 +562,7 @@ gpio!(GPIOA, gpioa, paen, [
     PA15: (pa15, 15, Input<Floating>),
 ]);
 
-gpio!(GPIOB, gpiob, pben, [
+gpio!(GPIOB, gpiob, [
     PB0: (pb0, 0, Input<Floating>),
     PB1: (pb1, 1, Input<Floating>),
     PB2: (pb2, 2, Input<Floating>),
@@ -581,7 +581,7 @@ gpio!(GPIOB, gpiob, pben, [
     PB15: (pb15, 15, Input<Floating>),
 ]);
 
-gpio!(GPIOC, gpioc, pcen, [
+gpio!(GPIOC, gpioc, [
     PC0: (pc0, 0, Input<Floating>),
     PC1: (pc1, 1, Input<Floating>),
     PC2: (pc2, 2, Input<Floating>),
@@ -600,7 +600,7 @@ gpio!(GPIOC, gpioc, pcen, [
     PC15: (pc15, 15, Input<Floating>),
 ]);
 
-gpio_noaf!(GPIOD, gpiod, pden, [
+gpio_noaf!(GPIOD, gpiod, [
     PD0: (pd0, 0, Input<Floating>),
     PD1: (pd1, 1, Input<Floating>),
     PD2: (pd2, 2, Input<Floating>),
@@ -619,7 +619,7 @@ gpio_noaf!(GPIOD, gpiod, pden, [
     PD15: (pd15, 15, Input<Floating>),
 ]);
 
-gpio_noaf!(GPIOF, gpiof, pfen, [
+gpio_noaf!(GPIOF, gpiof, [
     PF0: (pf0, 0, Input<Floating>),
     PF1: (pf1, 1, Input<Floating>),
     PF2: (pf2, 2, Input<Floating>),
