@@ -79,13 +79,22 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Config {
-        let baudrate = 115_200_u32.bps();
         Config {
-            baudrate,
+            baudrate: 115_200_u32.bps(),
             parity: Parity::ParityNone,
             stopbits: StopBits::STOP1,
         }
     }
+}
+
+/// Interrupt event
+pub enum Event {
+    /// New data has been received
+    Rbne,
+    /// New data can be sent
+    Tbe,
+    /// Idle line state detected
+    Idle,
 }
 
 pub trait TxPin<USART> {}
@@ -232,6 +241,56 @@ where
 impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN> Serial<USART, TXPIN, RXPIN> {
     pub fn release(self) -> (USART, (TXPIN, RXPIN)) {
         (self.usart, self.pins)
+    }
+
+    /// Enable an interrupt event.
+    pub fn listen(&mut self, event: Event) {
+        match event {
+            Event::Rbne => self.usart.ctl0.modify(|_, w| w.rbneie().enabled()),
+            Event::Tbe => self.usart.ctl0.modify(|_, w| w.tbeie().enabled()),
+            Event::Idle => self.usart.ctl0.modify(|_, w| w.idleie().enabled()),
+        }
+    }
+
+    /// Disable an interrupt event.
+    pub fn unlisten(&mut self, event: Event) {
+        match event {
+            Event::Rbne => self.usart.ctl0.modify(|_, w| w.rbneie().disabled()),
+            Event::Tbe => self.usart.ctl0.modify(|_, w| w.tbeie().disabled()),
+            Event::Idle => self.usart.ctl0.modify(|_, w| w.idleie().disabled()),
+        }
+    }
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>> Rx<USART> {
+    /// Enable the RBNE interrupt.
+    pub fn listen(&mut self) {
+        unsafe { &*self.usart }
+            .ctl0
+            .modify(|_, w| w.rbneie().enabled());
+    }
+
+    /// Disable the RBNE interrupt.
+    pub fn unlisten(&mut self) {
+        unsafe { &*self.usart }
+            .ctl0
+            .modify(|_, w| w.rbneie().disabled());
+    }
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>> Tx<USART> {
+    /// Enable the TBE interrupt.
+    pub fn listen(&mut self) {
+        unsafe { &*self.usart }
+            .ctl0
+            .modify(|_, w| w.tbeie().enabled());
+    }
+
+    /// Disable the TBE interrupt.
+    pub fn unlisten(&mut self) {
+        unsafe { &*self.usart }
+            .ctl0
+            .modify(|_, w| w.tbeie().disabled());
     }
 }
 
