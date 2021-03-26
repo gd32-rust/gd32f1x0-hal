@@ -96,9 +96,6 @@ compile_error!(
     "Multiple targets specified. Only a single `--features <target-name>` can be specified."
 );
 
-#[cfg(feature = "device-selected")]
-use embedded_hal as hal;
-
 #[cfg(feature = "gd32f130")]
 pub use gd32f1::gd32f1x0 as pac;
 
@@ -119,9 +116,9 @@ pub mod delay;
 #[cfg(feature = "device-selected")]
 pub mod dma;
 #[cfg(feature = "device-selected")]
-pub mod flash;
+pub mod flash;*/
 #[cfg(feature = "device-selected")]
-pub mod gpio;*/
+pub mod gpio_fresh;
 /*#[cfg(feature = "device-selected")]
 pub mod i2c;
 #[cfg(feature = "device-selected")]
