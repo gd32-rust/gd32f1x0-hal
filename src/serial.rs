@@ -143,6 +143,20 @@ where
 
         Self { usart, pins }
     }
+
+    /// Separates the serial struct into separate channel objects for sending (Tx) and receiving (Rx).
+    pub fn split(self) -> (Tx<USART>, Rx<USART>) {
+        (
+            Tx {
+                usart: &*self.usart,
+                _instance: PhantomData,
+            },
+            Rx {
+                usart: &*self.usart,
+                _instance: PhantomData,
+            },
+        )
+    }
 }
 
 impl<
@@ -199,24 +213,6 @@ where
     }
 }
 
-impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>, RXPIN: RxPin<USART>>
-    Serial<USART, TXPIN, RXPIN>
-{
-    /// Separates the serial struct into separate channel objects for sending (Tx) and receiving (Rx).
-    pub fn split(self) -> (Tx<USART>, Rx<USART>) {
-        (
-            Tx {
-                usart: &*self.usart,
-                _instance: PhantomData,
-            },
-            Rx {
-                usart: &*self.usart,
-                _instance: PhantomData,
-            },
-        )
-    }
-}
-
 impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN> Serial<USART, TXPIN, RXPIN> {
     pub fn release(self) -> (USART, (TXPIN, RXPIN)) {
         (self.usart, self.pins)
@@ -270,7 +266,7 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> fmt::Write for Tx<USART> {
     }
 }
 
-// Implement readin trait if the USART has an RX pin assigned.
+// Implement reading trait if the USART has an RX pin assigned.
 impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN: RxPin<USART>> Read<u8>
     for Serial<USART, TXPIN, RXPIN>
 {
