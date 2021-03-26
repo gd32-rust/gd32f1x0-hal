@@ -57,18 +57,45 @@ impl AF for AF0 {
 
 /// Alternate function 1
 pub struct AF1;
+impl AF for AF1 {
+    const NUMBER: u32 = 1;
+}
+
 /// Alternate function 2
 pub struct AF2;
+impl AF for AF2 {
+    const NUMBER: u32 = 2;
+}
+
 /// Alternate function 3
 pub struct AF3;
+impl AF for AF3 {
+    const NUMBER: u32 = 3;
+}
+
 /// Alternate function 4
 pub struct AF4;
+impl AF for AF4 {
+    const NUMBER: u32 = 4;
+}
+
 /// Alternate function 5
 pub struct AF5;
+impl AF for AF5 {
+    const NUMBER: u32 = 5;
+}
+
 /// Alternate function 6
 pub struct AF6;
+impl AF for AF6 {
+    const NUMBER: u32 = 6;
+}
+
 /// Alternate function 7
 pub struct AF7;
+impl AF for AF7 {
+    const NUMBER: u32 = 7;
+}
 
 /// Alternate function mode (type state)
 pub struct Alternate<AFN> {
