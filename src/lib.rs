@@ -124,9 +124,9 @@ pub mod flash;*/
 #[cfg(feature = "device-selected")]
 pub mod gpio;
 /*#[cfg(feature = "device-selected")]
-pub mod i2c;
+pub mod i2c;*/
 #[cfg(feature = "device-selected")]
-pub mod prelude;*/
+pub mod prelude;
 /*#[cfg(feature = "device-selected")]
 pub mod pwm;
 #[cfg(feature = "device-selected")]
