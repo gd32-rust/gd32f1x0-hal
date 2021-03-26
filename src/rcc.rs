@@ -4,7 +4,10 @@ use core::cmp;
 
 use crate::pac::{
     fmc::{ws::WSCNT_A, WS},
-    rcu::{self, cfg0::{PLLSEL_A, SCS_A, USBDPSC_A}},
+    rcu::{
+        self,
+        cfg0::{PLLSEL_A, SCS_A, USBDPSC_A},
+    },
     RCU,
 };
 use cast::u32;
@@ -349,7 +352,7 @@ impl CFGR {
         if let Some(pllmul_bits) = pllmul_bits {
             // enable PLL and wait for it to be ready
 
-            rcu.cfg0.modify(|_, w| 
+            rcu.cfg0.modify(|_, w| {
                 w.pllmf()
                     .bits(pllmul_bits)
                     .pllsel()
@@ -358,7 +361,7 @@ impl CFGR {
                     } else {
                         PLLSEL_A::IRC8M_2
                     })
-            );
+            });
 
             rcu.ctl0.modify(|_, w| w.pllen().on());
 
