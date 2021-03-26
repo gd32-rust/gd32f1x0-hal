@@ -1,6 +1,8 @@
 use crate::pac::rcu::AHBEN;
 use crate::rcc::AHB;
+use core::convert::Infallible;
 use core::marker::PhantomData;
+use embedded_hal::digital::v2::{toggleable, InputPin, OutputPin, StatefulOutputPin};
 
 /// Extension trait to split a GPIO peripheral in independent pins and registers
 pub trait GpioExt {
@@ -102,33 +104,97 @@ pub enum OutputMode {
     OpenDrain = 0b1,
 }
 
+trait GpioRegExt {
+    unsafe fn is_low(&self, pin_index: u8) -> bool;
+    unsafe fn is_set_low(&self, pin_index: u8) -> bool;
+    unsafe fn set_low(&self, pin_index: u8);
+    unsafe fn set_high(&self, pin_index: u8);
+}
+
 // These impls are needed because a macro can not brace initialise a ty token
 impl<MODE> Input<MODE> {
-    const fn _new() -> Self {
+    const fn new() -> Self {
         Self { _mode: PhantomData }
     }
 }
 impl<MODE> Output<MODE> {
-    const fn _new() -> Self {
+    const fn new() -> Self {
         Self { _mode: PhantomData }
     }
 }
 impl<AFN> Alternate<AFN> {
-    const fn _new() -> Self {
+    const fn new() -> Self {
         Self { _af: PhantomData }
     }
 }
 impl Debugger {
-    const fn _new() -> Self {
+    const fn new() -> Self {
         Self {}
+    }
+}
+
+/// Erased GPIO pin on some port.
+#[derive(Debug)]
+pub struct Pin<MODE> {
+    pin_index: u8,
+    port: *const dyn GpioRegExt,
+    _mode: MODE,
+}
+
+unsafe impl<MODE> Sync for Pin<MODE> {}
+unsafe impl<MODE> Send for Pin<MODE> {}
+
+impl<MODE> toggleable::Default for Pin<Output<MODE>> {}
+
+impl<MODE> OutputPin for Pin<Output<MODE>> {
+    type Error = Infallible;
+
+    fn set_high(&mut self) -> Result<(), Self::Error> {
+        unsafe { Ok((*self.port).set_high(self.pin_index)) }
+    }
+
+    fn set_low(&mut self) -> Result<(), Self::Error> {
+        unsafe { Ok((*self.port).set_low(self.pin_index)) }
+    }
+}
+
+impl<MODE> StatefulOutputPin for Pin<Output<MODE>> {
+    fn is_set_high(&self) -> Result<bool, Self::Error> {
+        self.is_set_low().map(|b| !b)
+    }
+
+    fn is_set_low(&self) -> Result<bool, Self::Error> {
+        unsafe { Ok((*self.port).is_set_low(self.pin_index)) }
+    }
+}
+
+impl<MODE> InputPin for Pin<Input<MODE>> {
+    type Error = Infallible;
+
+    fn is_high(&self) -> Result<bool, Self::Error> {
+        self.is_low().map(|b| !b)
+    }
+
+    fn is_low(&self) -> Result<bool, Self::Error> {
+        unsafe { Ok((*self.port).is_low(self.pin_index)) }
+    }
+}
+
+impl InputPin for Pin<Output<OpenDrain>> {
+    type Error = Infallible;
+
+    fn is_high(&self) -> Result<bool, Self::Error> {
+        self.is_low().map(|b| !b)
+    }
+
+    fn is_low(&self) -> Result<bool, Self::Error> {
+        unsafe { Ok((*self.port).is_low(self.pin_index)) }
     }
 }
 
 pub mod gpioa {
     use super::*;
-    use crate::pac::{rcu::AHBEN, GPIOA};
-    use core::convert::Infallible;
-    use embedded_hal::digital::v2::{toggleable, InputPin, OutputPin, StatefulOutputPin};
+    use crate::pac::{gpioa, rcu::AHBEN, GPIOA};
 
     pub struct Parts {
         pub config: Config,
@@ -147,29 +213,35 @@ pub mod gpioa {
 
             Parts {
                 pa0: PA0 {
-                    _mode: <Input<Floating>>::_new(),
+                    mode: <Input<Floating>>::new(),
                 },
                 config: Config { _config: () },
             }
         }
     }
 
-    pub struct PA0<MODE> {
-        _mode: MODE,
-    }
+    impl GpioRegExt for gpioa::RegisterBlock {
+        unsafe fn is_low(&self, pin_index: u8) -> bool {
+            self.istat.read().bits() & (1 << pin_index) == 0
+        }
 
-    impl PA0<Debugger> {
-        pub fn activate(self) -> PA0<Input<Floating>> {
-            PA0 {
-                _mode: Input::_new(),
-            }
+        unsafe fn is_set_low(&self, pin_index: u8) -> bool {
+            self.octl.read().bits() & (1 << pin_index) == 0
+        }
+
+        unsafe fn set_low(&self, pin_index: u8) {
+            self.bc.write(|w| w.bits(1 << pin_index))
+        }
+
+        unsafe fn set_high(&self, pin_index: u8) {
+            self.bop.write(|w| w.bits(1 << pin_index))
         }
     }
 
     /// Configures the given pin to have the given alternate function mode
     unsafe fn set_alternate_mode(
         config: &mut Config,
-        pin_index: usize,
+        pin_index: u8,
         mode: u32,
         pull_mode: PullMode,
         output_mode: OutputMode,
@@ -189,7 +261,7 @@ pub mod gpioa {
     /// Sets the input/output, pull-up/down and output mode of a pin
     unsafe fn set_mode(
         _config: &mut Config,
-        pin_index: usize,
+        pin_index: u8,
         ctl: Mode,
         pud: PullMode,
         output_mode: OutputMode,
@@ -206,11 +278,21 @@ pub mod gpioa {
     }
 
     /// Sets the max slew rate of a pin.
-    unsafe fn set_speed(_config: &mut Config, pin_index: usize, speed: Speed) {
+    unsafe fn set_speed(_config: &mut Config, pin_index: u8, speed: Speed) {
         let offset = 2 * pin_index;
         let reg = &(*GPIOA::ptr());
         reg.ospd
             .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((speed as u32) << offset)));
+    }
+
+    pub struct PA0<MODE> {
+        mode: MODE,
+    }
+
+    impl PA0<Debugger> {
+        pub fn activate(self) -> PA0<Input<Floating>> {
+            PA0 { mode: Input::new() }
+        }
     }
 
     impl<MODE> PA0<MODE>
@@ -229,9 +311,7 @@ pub mod gpioa {
                     OutputMode::PushPull,
                 )
             };
-            PA0 {
-                _mode: Input::_new(),
-            }
+            PA0 { mode: Input::new() }
         }
 
         /// Configures the pin to operate as a pulled down input.
@@ -246,9 +326,7 @@ pub mod gpioa {
                     OutputMode::PushPull,
                 )
             };
-            PA0 {
-                _mode: Input::_new(),
-            }
+            PA0 { mode: Input::new() }
         }
 
         /// Configures the pin to operate as a pulled down input.
@@ -263,9 +341,7 @@ pub mod gpioa {
                     OutputMode::PushPull,
                 )
             };
-            PA0 {
-                _mode: Input::_new(),
-            }
+            PA0 { mode: Input::new() }
         }
 
         /// Configures the pin to operate as an analog input or output.
@@ -280,7 +356,7 @@ pub mod gpioa {
                     OutputMode::PushPull,
                 )
             };
-            PA0 { _mode: Analog {} }
+            PA0 { mode: Analog {} }
         }
 
         /// Configures the pin to operate as an open drain output.
@@ -296,7 +372,7 @@ pub mod gpioa {
                 )
             };
             PA0 {
-                _mode: Output::_new(),
+                mode: Output::new(),
             }
         }
 
@@ -313,7 +389,7 @@ pub mod gpioa {
                 )
             };
             PA0 {
-                _mode: Output::_new(),
+                mode: Output::new(),
             }
         }
 
@@ -326,7 +402,16 @@ pub mod gpioa {
         ) -> PA0<Alternate<AFN>> {
             unsafe { set_alternate_mode(config, 0, AFN::NUMBER, pull_mode, output_mode) };
             PA0 {
-                _mode: Alternate::_new(),
+                mode: Alternate::new(),
+            }
+        }
+
+        /// Erases the pin number and port from the type.
+        pub fn downgrade(self) -> Pin<MODE> {
+            Pin {
+                pin_index: 0,
+                port: GPIOA::ptr(),
+                _mode: self.mode,
             }
         }
     }
@@ -351,17 +436,11 @@ pub mod gpioa {
         type Error = Infallible;
 
         fn set_high(&mut self) -> Result<(), Self::Error> {
-            unsafe {
-                let peripheral = &(*GPIOA::ptr());
-                Ok(peripheral.bop.write(|w| w.bits(1 << 0)))
-            }
+            Ok(unsafe { (*GPIOA::ptr()).set_high(0) })
         }
 
         fn set_low(&mut self) -> Result<(), Self::Error> {
-            unsafe {
-                let peripheral = &(*GPIOA::ptr());
-                Ok(peripheral.bc.write(|w| w.bits(1 << 0)))
-            }
+            Ok(unsafe { (*GPIOA::ptr()).set_low(0) })
         }
     }
 
@@ -371,10 +450,7 @@ pub mod gpioa {
         }
 
         fn is_set_low(&self) -> Result<bool, Self::Error> {
-            unsafe {
-                let peripheral = &(*GPIOA::ptr());
-                Ok(peripheral.octl.read().bits() & (1 << 0) == 0)
-            }
+            Ok(unsafe { (*GPIOA::ptr()).is_set_low(0) })
         }
     }
 
@@ -386,10 +462,7 @@ pub mod gpioa {
         }
 
         fn is_low(&self) -> Result<bool, Self::Error> {
-            unsafe {
-                let peripheral = &(*GPIOA::ptr());
-                Ok(peripheral.istat.read().bits() & (1 << 0) == 0)
-            }
+            Ok(unsafe { (*GPIOA::ptr()).is_low(0) })
         }
     }
 
@@ -401,10 +474,7 @@ pub mod gpioa {
         }
 
         fn is_low(&self) -> Result<bool, Self::Error> {
-            unsafe {
-                let peripheral = &(*GPIOA::ptr());
-                Ok(peripheral.istat.read().bits() & (1 << 0) == 0)
-            }
+            Ok(unsafe { (*GPIOA::ptr()).is_low(0) })
         }
     }
 }
