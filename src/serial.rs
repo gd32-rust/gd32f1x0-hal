@@ -184,6 +184,14 @@ where
             pins: (txpin, ()),
         }
     }
+
+    /// Erase the pin.
+    pub fn downgrade_tx(self) -> Tx<USART> {
+        Tx {
+            usart: &*self.usart,
+            _instance: PhantomData,
+        }
+    }
 }
 
 impl<
@@ -209,6 +217,14 @@ where
         Self {
             usart,
             pins: ((), rxpin),
+        }
+    }
+
+    /// Erase the pin.
+    pub fn downgrade_rx(self) -> Rx<USART> {
+        Rx {
+            usart: &*self.usart,
+            _instance: PhantomData,
         }
     }
 }
