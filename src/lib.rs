@@ -132,10 +132,10 @@ pub mod qei;*/
 #[cfg(feature = "device-selected")]
 pub mod rcc;
 /*#[cfg(feature = "device-selected")]
-pub mod rtc;
+pub mod rtc;*/
 #[cfg(feature = "device-selected")]
 pub mod serial;
-#[cfg(feature = "device-selected")]
+/*#[cfg(feature = "device-selected")]
 pub mod spi;*/
 #[cfg(feature = "device-selected")]
 pub mod time;
