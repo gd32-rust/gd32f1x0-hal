@@ -14,18 +14,18 @@ use panic_halt as _;
 use rtic::app;
 
 use embedded_hal::digital::v2::OutputPin;
-use stm32f1xx_hal::{
-    gpio::{gpioc::PC13, Output, PushPull, State},
+use gd32f1x0_hal::{
+    gpio::{gpioc::PC13, Output, PushPull},
     pac,
     prelude::*,
     timer::{CountDownTimer, Event, Timer},
 };
 
-#[app(device = stm32f1xx_hal::pac, peripherals = true)]
+#[app(device = gd32f1x0_hal::pac, peripherals = true)]
 const APP: () = {
     struct Resources {
         led: PC13<Output<PushPull>>,
-        timer_handler: CountDownTimer<pac::TIM1>,
+        timer_handler: CountDownTimer<pac::TIMER0>,
 
         #[init(false)]
         led_state: bool,
@@ -35,24 +35,22 @@ const APP: () = {
     fn init(cx: init::Context) -> init::LateResources {
         // Take ownership over the raw flash and rcc devices and convert them into the corresponding
         // HAL structs
-        let mut flash = cx.device.FLASH.constrain();
-        let mut rcc = cx.device.RCC.constrain();
+        let mut rcu = cx.device.RCU.constrain();
 
         // Freeze the configuration of all the clocks in the system and store the frozen frequencies
         // in `clocks`
-        let clocks = rcc.cfgr.freeze(&mut flash.acr);
+        let clocks = rcu.cfgr.freeze(&cx.device.FMC.ws);
 
         // Acquire the GPIOC peripheral
-        let mut gpioc = cx.device.GPIOC.split(&mut rcc.apb2);
+        let mut gpioc = cx.device.GPIOC.split(&mut rcu.ahb);
 
         // Configure gpio C pin 13 as a push-pull output. The `crh` register is passed to the
         // function in order to configure the port. For pins 0-7, crl should be passed instead
-        let led = gpioc
-            .pc13
-            .into_push_pull_output_with_state(&mut gpioc.crh, State::High);
-        // Configure the syst timer to trigger an update every second and enables interrupt
+        let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.config);
+        led.set_high().unwrap();
+        // Configure TIMER0 to trigger an update every second and enables interrupt
         let mut timer =
-            Timer::tim1(cx.device.TIM1, &clocks, &mut rcc.apb2).start_count_down(1.hz());
+            Timer::timer0(cx.device.TIMER0, &clocks, &mut rcu.apb2).start_count_down(1.hz());
         timer.listen(Event::Update);
 
         // Init the static resources to use them later through RTIC
@@ -74,7 +72,7 @@ const APP: () = {
         }
     }
 
-    #[task(binds = TIM1_UP, priority = 1, resources = [led, timer_handler, led_state])]
+    #[task(binds = TIMER0_BRK_UP_TRG_COM, priority = 1, resources = [led, timer_handler, led_state])]
     fn tick(cx: tick::Context) {
         // Depending on the application, you could want to delegate some of the work done here to
         // the idle task if you want to minimize the latency of interrupts with same priority (if

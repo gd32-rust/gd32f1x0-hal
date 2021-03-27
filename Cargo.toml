@@ -118,7 +118,7 @@ required-features = ["medium"]
 
 [[example]]
 name = "timer-interrupt-rtic"
-required-features = ["rt", "medium"]
+required-features = ["rt"]
 
 [[example]]
 name = "exti"
