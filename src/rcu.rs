@@ -621,8 +621,8 @@ ahb_bus! {
     CRC => (crcen),
     DMA => (dmaen),
     GPIOA => (paen),
-    GPIOB => (paen),
-    GPIOC => (paen),
-    GPIOD => (paen),
-    GPIOF => (paen),
+    GPIOB => (pben),
+    GPIOC => (pcen),
+    GPIOD => (pden),
+    GPIOF => (pfen),
 }
