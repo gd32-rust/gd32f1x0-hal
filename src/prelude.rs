@@ -15,3 +15,5 @@ pub use embedded_hal::digital::v2::OutputPin as _embedded_hal_digital_OutputPin;
 pub use embedded_hal::digital::v2::StatefulOutputPin as _embedded_hal_digital_StatefulOutputPin;
 pub use embedded_hal::digital::v2::ToggleableOutputPin as _embedded_hal_digital_ToggleableOutputPin;
 pub use embedded_hal::prelude::*;
+pub use embedded_hal::watchdog::Watchdog as _embedded_watchdog_Watchdog;
+pub use embedded_hal::watchdog::WatchdogEnable as _embedded_watchdog_WatchdogEnable;
