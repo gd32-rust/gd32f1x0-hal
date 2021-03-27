@@ -10,29 +10,34 @@ use nb::block;
 
 use cortex_m_rt::entry;
 use embedded_hal::digital::v2::OutputPin;
-use stm32f1xx_hal::{pac, prelude::*, timer::Timer};
+use gd32f1x0_hal::{pac, prelude::*, timer::Timer};
 
 #[entry]
 fn main() -> ! {
     let cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
 
-    let mut flash = dp.FLASH.constrain();
-    let mut rcc = dp.RCC.constrain();
+    let mut rcu = dp.RCU.constrain();
 
-    let clocks = rcc.cfgr.freeze(&mut flash.acr);
+    let clocks = rcu.cfgr.freeze(&dp.FMC.ws);
 
     // Acquire the GPIO peripherals
-    let mut gpioa = dp.GPIOA.split(&mut rcc.apb2);
-    let mut gpioc = dp.GPIOC.split(&mut rcc.apb2);
+    let mut gpioa = dp.GPIOA.split(&mut rcu.ahb);
+    let mut gpioc = dp.GPIOC.split(&mut rcu.ahb);
 
     // Configure the syst timer to trigger an update every second
     let mut timer = Timer::syst(cp.SYST, &clocks).start_count_down(1.hz());
 
     // Create an array of LEDS to blink
     let mut leds = [
-        gpioc.pc13.into_push_pull_output(&mut gpioc.crh).downgrade(),
-        gpioa.pa1.into_push_pull_output(&mut gpioa.crl).downgrade(),
+        gpioc
+            .pc13
+            .into_push_pull_output(&mut gpioc.config)
+            .downgrade(),
+        gpioa
+            .pa1
+            .into_push_pull_output(&mut gpioa.config)
+            .downgrade(),
     ];
 
     // Wait for the timer to trigger an update and change the state of the LED

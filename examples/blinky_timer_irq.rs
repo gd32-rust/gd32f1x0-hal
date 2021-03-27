@@ -12,11 +12,9 @@
 
 use panic_halt as _;
 
-use stm32f1xx_hal as hal;
-
-use crate::hal::{
+use gd32f1x0_hal::{
     gpio::{gpioc, Output, PushPull},
-    pac::{interrupt, Interrupt, Peripherals, TIM2},
+    pac::{interrupt, Interrupt, Peripherals, TIMER1},
     prelude::*,
     timer::{CountDownTimer, Event, Timer},
 };
@@ -39,14 +37,14 @@ type LEDPIN = gpioc::PC13<Output<PushPull>>;
 static G_LED: Mutex<RefCell<Option<LEDPIN>>> = Mutex::new(RefCell::new(None));
 
 // Make timer interrupt registers globally available
-static G_TIM: Mutex<RefCell<Option<CountDownTimer<TIM2>>>> = Mutex::new(RefCell::new(None));
+static G_TIM: Mutex<RefCell<Option<CountDownTimer<TIMER1>>>> = Mutex::new(RefCell::new(None));
 
 // Define an interupt handler, i.e. function to call when interrupt occurs.
-// This specific interrupt will "trip" when the timer TIM2 times out
+// This specific interrupt will "trip" when the timer TIMER1 times out
 #[interrupt]
-fn TIM2() {
+fn TIMER1() {
     static mut LED: Option<LEDPIN> = None;
-    static mut TIM: Option<CountDownTimer<TIM2>> = None;
+    static mut TIM: Option<CountDownTimer<TIMER1>> = None;
 
     let led = LED.get_or_insert_with(|| {
         cortex_m::interrupt::free(|cs| {
@@ -63,6 +61,7 @@ fn TIM2() {
     });
 
     let _ = led.toggle();
+    // TODO: Shouldn't this just return?
     let _ = tim.wait();
 }
 
@@ -70,24 +69,19 @@ fn TIM2() {
 fn main() -> ! {
     let dp = Peripherals::take().unwrap();
 
-    let mut rcc = dp.RCC.constrain();
-    let mut flash = dp.FLASH.constrain();
-    let clocks = rcc
-        .cfgr
-        .sysclk(8.mhz())
-        .pclk1(8.mhz())
-        .freeze(&mut flash.acr);
+    let mut rcu = dp.RCU.constrain();
+    let clocks = rcu.cfgr.sysclk(8.mhz()).pclk1(8.mhz()).freeze(&dp.FMC.ws);
 
     // Configure PC13 pin to blink LED
-    let mut gpioc = dp.GPIOC.split(&mut rcc.apb2);
-    let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.crh);
+    let mut gpioc = dp.GPIOC.split(&mut rcu.ahb);
+    let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.config);
     let _ = led.set_high(); // Turn off
 
     // Move the pin into our global storage
     cortex_m::interrupt::free(|cs| *G_LED.borrow(cs).borrow_mut() = Some(led));
 
     // Set up a timer expiring after 1s
-    let mut timer = Timer::tim2(dp.TIM2, &clocks, &mut rcc.apb1).start_count_down(1.hz());
+    let mut timer = Timer::timer1(dp.TIMER1, &clocks, &mut rcu.apb1).start_count_down(1.hz());
 
     // Generate an interrupt when the timer expires
     timer.listen(Event::Update);
@@ -96,7 +90,7 @@ fn main() -> ! {
     cortex_m::interrupt::free(|cs| *G_TIM.borrow(cs).borrow_mut() = Some(timer));
 
     unsafe {
-        cortex_m::peripheral::NVIC::unmask(Interrupt::TIM2);
+        cortex_m::peripheral::NVIC::unmask(Interrupt::TIMER1);
     }
 
     loop {
