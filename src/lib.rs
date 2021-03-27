@@ -119,9 +119,9 @@ pub mod serial;
 pub mod spi;*/
 #[cfg(feature = "device-selected")]
 pub mod time;
-/*#[cfg(feature = "device-selected")]
+#[cfg(feature = "device-selected")]
 pub mod timer;
-#[cfg(all(
+/*#[cfg(all(
     feature = "stm32-usbd",
     any(feature = "stm32f102", feature = "stm32f103")
 ))]
