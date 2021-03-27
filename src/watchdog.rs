@@ -1,69 +1,67 @@
 //! Watchdog peripherals
 
 use crate::{
-    hal::watchdog::{Watchdog, WatchdogEnable},
-    pac::{DBGMCU as DBG, IWDG},
+    pac::{DBG, FWDGT},
     time::MilliSeconds,
 };
+use embedded_hal::watchdog::{Watchdog, WatchdogEnable};
 
-/// Wraps the Independent Watchdog (IWDG) peripheral
-pub struct IndependentWatchdog {
-    iwdg: IWDG,
+/// Wraps the Free Watchdog (FWDGT) peripheral
+pub struct FreeWatchdog {
+    fwdgt: FWDGT,
 }
 
 const LSI_KHZ: u32 = 40;
-const MAX_PR: u8 = 8;
-const MAX_RL: u16 = 0xFFF;
-const KR_ACCESS: u16 = 0x5555;
-const KR_RELOAD: u16 = 0xAAAA;
-const KR_START: u16 = 0xCCCC;
+const MAX_PRESCALER: u8 = 8;
+const MAX_RELOAD: u16 = 0xFFF;
 
-impl IndependentWatchdog {
+impl FreeWatchdog {
     /// Wrap and start the watchdog
-    pub fn new(iwdg: IWDG) -> Self {
-        IndependentWatchdog { iwdg }
+    pub fn new(fwdgt: FWDGT) -> Self {
+        FreeWatchdog { fwdgt }
     }
 
-    /// Debug independent watchdog stopped when core is halted
+    /// Debug free watchdog stopped when core is halted
     pub fn stop_on_debug(&self, dbg: &DBG, stop: bool) {
-        dbg.cr.modify(|_, w| w.dbg_iwdg_stop().bit(stop));
+        dbg.ctl0.modify(|_, w| w.fwdgt_hold().bit(stop));
     }
 
     fn setup(&self, timeout_ms: u32) {
-        let mut pr = 0;
-        while pr < MAX_PR && Self::timeout_period(pr, MAX_RL) < timeout_ms {
-            pr += 1;
+        let mut prescaler = 0;
+        while prescaler < MAX_PRESCALER && Self::timeout_period(prescaler, MAX_RELOAD) < timeout_ms
+        {
+            prescaler += 1;
         }
 
-        let max_period = Self::timeout_period(pr, MAX_RL);
-        let max_rl = u32::from(MAX_RL);
-        let rl = (timeout_ms * max_rl / max_period).min(max_rl) as u16;
+        let max_period = Self::timeout_period(prescaler, MAX_RELOAD);
+        let max_reload = u32::from(MAX_RELOAD);
+        let reload = (timeout_ms * max_reload / max_period).min(max_reload) as u16;
 
-        self.access_registers(|iwdg| {
-            iwdg.pr.modify(|_, w| w.pr().bits(pr));
-            iwdg.rlr.modify(|_, w| w.rl().bits(rl));
+        self.access_registers(|fwdgt| {
+            fwdgt.psc.modify(|_, w| w.psc().bits(prescaler));
+            fwdgt.rld.modify(|_, w| w.rld().bits(reload));
         });
     }
 
-    fn is_pr_updating(&self) -> bool {
-        self.iwdg.sr.read().pvu().bit()
+    fn is_prescaler_updating(&self) -> bool {
+        self.fwdgt.stat.read().pud().is_ongoing()
     }
 
     /// Returns the interval in ms
     pub fn interval(&self) -> MilliSeconds {
-        while self.is_pr_updating() {}
+        while self.is_prescaler_updating() {}
 
-        let pr = self.iwdg.pr.read().pr().bits();
-        let rl = self.iwdg.rlr.read().rl().bits();
-        let ms = Self::timeout_period(pr, rl);
+        let prescaler = self.fwdgt.psc.read().psc().bits();
+        let reload = self.fwdgt.rld.read().rld().bits();
+        let ms = Self::timeout_period(prescaler, reload);
         MilliSeconds(ms)
     }
 
-    /// pr: Prescaler divider bits, rl: reload value
+    /// prescaler: Prescaler divider bits, reload: reload value
     ///
     /// Returns ms
-    fn timeout_period(pr: u8, rl: u16) -> u32 {
-        let divider: u32 = match pr {
+    fn timeout_period(prescaler: u8, reload: u16) -> u32 {
+        let divider: u32 = match prescaler {
             0b000 => 4,
             0b001 => 8,
             0b010 => 16,
@@ -72,34 +70,34 @@ impl IndependentWatchdog {
             0b101 => 128,
             0b110 => 256,
             0b111 => 256,
-            _ => panic!("Invalid IWDG prescaler divider"),
+            _ => panic!("Invalid FWDGT prescaler divider"),
         };
-        (u32::from(rl) + 1) * divider / LSI_KHZ
+        (u32::from(reload) + 1) * divider / LSI_KHZ
     }
 
-    fn access_registers<A, F: FnMut(&IWDG) -> A>(&self, mut f: F) -> A {
+    fn access_registers<A, F: FnMut(&FWDGT) -> A>(&self, mut f: F) -> A {
         // Unprotect write access to registers
-        self.iwdg.kr.write(|w| unsafe { w.key().bits(KR_ACCESS) });
-        let a = f(&self.iwdg);
+        self.fwdgt.ctl.write(|w| w.cmd().enable());
+        let a = f(&self.fwdgt);
 
         // Protect again
-        self.iwdg.kr.write(|w| unsafe { w.key().bits(KR_RELOAD) });
+        self.fwdgt.ctl.write(|w| w.cmd().reset());
         a
     }
 }
 
-impl WatchdogEnable for IndependentWatchdog {
+impl WatchdogEnable for FreeWatchdog {
     type Time = MilliSeconds;
 
     fn start<T: Into<Self::Time>>(&mut self, period: T) {
         self.setup(period.into().0);
 
-        self.iwdg.kr.write(|w| unsafe { w.key().bits(KR_START) });
+        self.fwdgt.ctl.write(|w| w.cmd().start());
     }
 }
 
-impl Watchdog for IndependentWatchdog {
+impl Watchdog for FreeWatchdog {
     fn feed(&mut self) {
-        self.iwdg.kr.write(|w| unsafe { w.key().bits(KR_RELOAD) });
+        self.fwdgt.ctl.write(|w| w.cmd().reset());
     }
 }

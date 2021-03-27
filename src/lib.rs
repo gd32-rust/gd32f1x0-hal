@@ -149,6 +149,6 @@ pub mod timer;
     feature = "stm32-usbd",
     any(feature = "stm32f102", feature = "stm32f103")
 ))]
-pub mod usb;
+pub mod usb;*/
 #[cfg(feature = "device-selected")]
-pub mod watchdog;*/
+pub mod watchdog;
