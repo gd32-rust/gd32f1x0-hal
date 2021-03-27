@@ -58,10 +58,7 @@ impl From<DebugHold> for TIMER14_HOLD_A {
 }
 
 impl Timer<SYST> {
-    pub fn syst<T>(mut syst: SYST, clocks: &Clocks) -> Self
-    where
-        T: Into<Hertz>,
-    {
+    pub fn syst(mut syst: SYST, clocks: &Clocks) -> Self {
         syst.set_clock_source(SystClkSource::Core);
         Self {
             timer: syst,
