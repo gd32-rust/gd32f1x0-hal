@@ -5,7 +5,7 @@ use embedded_hal::digital::v2::{toggleable, InputPin, OutputPin, StatefulOutputP
 
 /// Extension trait to split a GPIO peripheral in independent pins and registers
 pub trait GpioExt {
-    /// The to split the GPIO into
+    /// Type to split the GPIO into
     type Parts;
 
     /// Splits the GPIO block into independent pins and registers
@@ -218,7 +218,7 @@ impl InputPin for Pin<Output<OpenDrain>> {
     }
 }
 
-/// Generate core code for a GPIO port, not including alternate function support.
+/// Generates core code for a GPIO port, not including alternate function support.
 macro_rules! gpio_core {
     ($GPIOX:ident, $gpiox:ident, [
         $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
@@ -227,6 +227,7 @@ macro_rules! gpio_core {
         use crate::pac::{$gpiox, $GPIOX};
         use crate::rcu::Enable;
 
+        /// The pins and overall configuration of the GPIO port.
         pub struct Parts {
             pub config: Config,
             $(
@@ -234,6 +235,8 @@ macro_rules! gpio_core {
             )+
         }
 
+        /// Dummy type representing the configuration of the GPIO port. It must be passed to methods
+        /// which reconfigure a pin on the port.
         pub struct Config {
             _config: (),
         }
@@ -411,6 +414,7 @@ macro_rules! gpio_core {
                 }
 
                 /// Erases the pin number and port from the type.
+                #[inline]
                 pub fn downgrade(self) -> Pin<MODE> {
                     Pin {
                         pin_index: $i,
@@ -478,7 +482,8 @@ macro_rules! gpio_core {
     }
 }
 
-/// Generate alternate function code for a GPIO port.
+/// Generates alternate function code for a GPIO port. This is a separate macro because not all ports
+/// support it.
 macro_rules! gpio_af {
     ($GPIOX:ident, $gpiox:ident, [
         $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
@@ -533,7 +538,7 @@ macro_rules! gpio_af {
     }
 }
 
-/// Generate module for GPIO port with alternate functions.
+/// Generates module for GPIO port with alternate functions.
 macro_rules! gpio {
     ($GPIOX:ident, $gpiox:ident, [
         $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
@@ -554,7 +559,7 @@ macro_rules! gpio {
     }
 }
 
-/// Generate module for GPIO port without alternate functions.
+/// Generates module for GPIO port without alternate functions.
 macro_rules! gpio_noaf {
     ($GPIOX:ident, $gpiox:ident, [
         $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+

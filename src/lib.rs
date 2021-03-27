@@ -1,6 +1,6 @@
-//! # HAL for the STM32F1 family of microcontrollers
+//! # HAL for the GD32F1x0 family of microcontrollers
 //!
-//! This is an implementation of the [`embedded-hal`] traits for the STM32F1 family of
+//! This is an implementation of the [`embedded-hal`] traits for the GD32F1x0 family of
 //! microcontrollers.
 //!
 //! [`embedded-hal`]: https://crates.io/crates/embedded-hal
@@ -11,58 +11,34 @@
 //!
 //! A detailed usage guide can be found in the [README]
 //!
-//! supported microcontrollers are:
+//! ## Variants
 //!
-//! - stm32f103
-//! - stm32f101
-//! - stm32f100
-//! - stm32f105
-//! - stm32f107
-//!
-//! ## Usage
-//!
-//! This crate supports multiple microcontrollers in the
-//! stm32f1 family. Which specific microcontroller you want to build for has to be
-//! specified with a feature, for example `stm32f103`.
+//! This crate supports multiple microcontrollers in the GD32F1x0 family. Which specific
+//! microcontroller you want to build for has to be specified with a feature, for example
+//! `gd32f130x8`.
 //!
 //! If no microcontroller is specified, the crate will not compile.
 //!
 //! The currently supported variants are
 //!
-//! - `stm32f100`
-//! - `stm32f101`
-//! - `stm32f103`
-//! - `stm32f105`
-//! - `stm32f107`
-//!
-//! You may also need to specify the density of the device with `medium`, `high` or `xl`
-//! to enable certain peripherals. Generally the density can be determined by the 2nd character
-//! after the number in the device name (i.e. For STM32F103C6U, the 6 indicates a low-density
-//! device) but check the datasheet or CubeMX to be sure.
-//! * 4, 6 => low density, no feature required
-//! * 8, B => `medium` feature
-//! * C, D, E => `high` feature
-//! * F, G => `xl` feature
+//! - `gd32f130x4` (e.g. GD32F130F4, GD32F130G4, ...)
+//! - `gd32f130x6` (e.g. GD32F130F6, GD32F130G6, ...)
+//! - `gd32f130x8` (e.g. GD32F130F8, GD32F130G8, ...)
 //!
 //! ## Commonly used setup
-//! Almost all peripherals require references to some registers in `RCC` and `AFIO`. The following
+//! Almost all peripherals require references to some registers in `RCU`. The following
 //! code shows how to set up those registers
 //!
 //! ```rust
 //! // Get access to the device specific peripherals from the peripheral access crate
 //! let dp = pac::Peripherals::take().unwrap();
 //!
-//! // Take ownership over the raw flash and rcc devices and convert them into the corresponding
-//! // HAL structs
-//! let mut flash = dp.FLASH.constrain();
-//! let mut rcc = dp.RCC.constrain();
+//! // Take ownership over the raw RCU device and convert it into the corresponding HAL struct.
+//! let mut rcu = dp.RCU.constrain();
 //!
 //! // Freeze the configuration of all the clocks in the system and store the frozen frequencies in
 //! // `clocks`
-//! let clocks = rcc.cfgr.freeze(&mut flash.acr);
-//!
-//! // Prepare the alternate function I/O registers
-//! let mut afio = dp.AFIO.constrain(&mut rcc.apb2);
+//! let clocks = rcu.cfgr.freeze(&dp.FMC.ws);
 //! ```
 //!
 //! ## Usage examples
@@ -80,8 +56,8 @@
 //! panic-halt = "0.2.0"
 //! ```
 //!
-//! [examples]: https://github.com/stm32-rs/stm32f1xx-hal/tree/v0.7.0/examples
-//! [README]: https://github.com/stm32-rs/stm32f1xx-hal/tree/v0.7.0
+//! [examples]: https://github.com/qwandor/gd32f1x0-hal/tree/main/examples
+//! [README]: https://github.com/qwandor/gd32f1x0-hal
 
 #![no_std]
 #![deny(broken_intra_doc_links)]
