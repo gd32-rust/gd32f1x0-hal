@@ -1,6 +1,6 @@
 on:
   push:
-    branches: [ staging, trying, master ]
+    branches: [main]
   pull_request:
 
 name: Continuous integration
@@ -11,16 +11,14 @@ jobs:
     strategy:
       matrix:
         mcu:
-          - stm32f100
-          - stm32f101
-          - stm32f103
-          - stm32f105
-          - stm32f107
+          - gd32f130x4
+          - gd32f130x6
+          - gd32f130x8
         rust:
           - stable
         include:
           - rust: nightly
-            mcu: stm32f103
+            mcu: gd32f130x8
             experimental: true
 
     steps:
