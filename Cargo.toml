@@ -1,5 +1,5 @@
 [package]
-authors = ["Jorge Aparicio <jorge@japaric.io>", "Daniel Egger <daniel@eggers-club.de>"]
+authors = ["Andrew Walbran <qwandor@gmail.com>"]
 categories = ["embedded", "hardware-support", "no-std"]
 description = "HAL for the GD32F1x0 family of microcontrollers"
 keywords = ["arm", "cortex-m", "gd32", "hal"]
@@ -9,7 +9,7 @@ repository = "https://github.com/qwandor/gd32f1x0-hal"
 documentation = "https://docs.rs/gd2f1x0-hal"
 readme = "README.md"
 edition = "2018"
-version = "0.7.0"
+version = "0.1.0"
 
 [package.metadata.docs.rs]
 features = ["gd32f130", "rt"]
