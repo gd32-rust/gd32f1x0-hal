@@ -1,6 +1,6 @@
 use crate::gpio::{
     gpioa::{PA10, PA11, PA8, PA9},
-    Alternate, AF1,
+    Alternate, AF2,
 };
 use crate::pac::{timer0, TIMER0};
 use crate::time::Hertz;
@@ -43,19 +43,18 @@ pub trait Pins<TIMER> {
     fn uses_channel(&self, channel: Channel) -> bool;
 }
 
-// TODO: Check which AF is correct
 pub type Timer0Pins = (
-    Option<PA8<Alternate<AF1>>>,
-    Option<PA9<Alternate<AF1>>>,
-    Option<PA10<Alternate<AF1>>>,
-    Option<PA11<Alternate<AF1>>>,
+    Option<PA8<Alternate<AF2>>>,
+    Option<PA9<Alternate<AF2>>>,
+    Option<PA10<Alternate<AF2>>>,
+    Option<PA11<Alternate<AF2>>>,
 );
 
 pub type Timer0Channels = (
-    Option<PwmChannel<TIMER0, PA8<Alternate<AF1>>>>,
-    Option<PwmChannel<TIMER0, PA9<Alternate<AF1>>>>,
-    Option<PwmChannel<TIMER0, PA10<Alternate<AF1>>>>,
-    Option<PwmChannel<TIMER0, PA11<Alternate<AF1>>>>,
+    Option<PwmChannel<TIMER0, PA8<Alternate<AF2>>>>,
+    Option<PwmChannel<TIMER0, PA9<Alternate<AF2>>>>,
+    Option<PwmChannel<TIMER0, PA10<Alternate<AF2>>>>,
+    Option<PwmChannel<TIMER0, PA11<Alternate<AF2>>>>,
 );
 
 impl Pins<TIMER0> for Timer0Pins {
