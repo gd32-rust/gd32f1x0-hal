@@ -70,6 +70,30 @@ where
     }
 }
 
+impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannel<TIMER, PIN> {
+    type Duty = u16;
+
+    fn disable(&mut self) {
+        unsafe { &*self.timer }.disable_channel(self.channel);
+    }
+
+    fn enable(&mut self) {
+        unsafe { &*self.timer }.enable_channel(self.channel);
+    }
+
+    fn get_duty(&self) -> u16 {
+        unsafe { &*self.timer }.get_duty(self.channel)
+    }
+
+    fn get_max_duty(&self) -> u16 {
+        unsafe { &*self.timer }.get_max_duty()
+    }
+
+    fn set_duty(&mut self, duty: u16) {
+        unsafe { &*self.timer }.set_duty(self.channel, duty);
+    }
+}
+
 impl Timer<TIMER0> {
     pub fn pwm<PINS, T>(self, pins: PINS, freq: T) -> Pwm<TIMER0, PINS>
     where
@@ -194,72 +218,6 @@ where
     }
 }
 
-impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannel<TIMER, PIN> {
-    type Duty = u16;
-
-    fn disable(&mut self) {
-        unsafe { &*self.timer }.disable_channel(self.channel);
-    }
-
-    fn enable(&mut self) {
-        unsafe { &*self.timer }.enable_channel(self.channel);
-    }
-
-    fn get_duty(&self) -> u16 {
-        unsafe { &*self.timer }.get_duty(self.channel)
-    }
-
-    fn get_max_duty(&self) -> u16 {
-        unsafe { &*self.timer }.get_max_duty()
-    }
-
-    fn set_duty(&mut self, duty: u16) {
-        unsafe { &*self.timer }.set_duty(self.channel, duty);
-    }
-}
-
-impl TimerRegExt for timer0::RegisterBlock {
-    fn disable_channel(&self, channel: Channel) {
-        match channel {
-            Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().disabled()),
-            Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().disabled()),
-            Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().disabled()),
-            Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().disabled()),
-        }
-    }
-
-    fn enable_channel(&self, channel: Channel) {
-        match channel {
-            Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().enabled()),
-            Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().enabled()),
-            Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().enabled()),
-            Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().enabled()),
-        }
-    }
-
-    fn get_duty(&self, channel: Channel) -> u16 {
-        match channel {
-            Channel::C0 => self.ch0cv.read().ch0val().bits(),
-            Channel::C1 => self.ch1cv.read().ch1val().bits(),
-            Channel::C2 => self.ch2cv.read().ch2val().bits(),
-            Channel::C3 => self.ch3cv.read().ch3val().bits(),
-        }
-    }
-
-    fn set_duty(&self, channel: Channel, duty: u16) {
-        match channel {
-            Channel::C0 => self.ch0cv.write(|w| w.ch0val().bits(duty)),
-            Channel::C1 => self.ch1cv.write(|w| w.ch1val().bits(duty)),
-            Channel::C2 => self.ch2cv.write(|w| w.ch2val().bits(duty)),
-            Channel::C3 => self.ch3cv.write(|w| w.ch3val().bits(duty)),
-        }
-    }
-
-    fn get_max_duty(&self) -> u16 {
-        self.car.read().car().bits()
-    }
-}
-
 impl<PINS> embedded_hal::Pwm for Pwm<TIMER0, PINS>
 where
     PINS: Pins<TIMER0>,
@@ -306,5 +264,47 @@ where
     {
         self.timer
             .configure_prescaler_reload(period.into(), self.clock);
+    }
+}
+
+impl TimerRegExt for timer0::RegisterBlock {
+    fn disable_channel(&self, channel: Channel) {
+        match channel {
+            Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().disabled()),
+            Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().disabled()),
+            Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().disabled()),
+            Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().disabled()),
+        }
+    }
+
+    fn enable_channel(&self, channel: Channel) {
+        match channel {
+            Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().enabled()),
+            Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().enabled()),
+            Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().enabled()),
+            Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().enabled()),
+        }
+    }
+
+    fn get_duty(&self, channel: Channel) -> u16 {
+        match channel {
+            Channel::C0 => self.ch0cv.read().ch0val().bits(),
+            Channel::C1 => self.ch1cv.read().ch1val().bits(),
+            Channel::C2 => self.ch2cv.read().ch2val().bits(),
+            Channel::C3 => self.ch3cv.read().ch3val().bits(),
+        }
+    }
+
+    fn set_duty(&self, channel: Channel, duty: u16) {
+        match channel {
+            Channel::C0 => self.ch0cv.write(|w| w.ch0val().bits(duty)),
+            Channel::C1 => self.ch1cv.write(|w| w.ch1val().bits(duty)),
+            Channel::C2 => self.ch2cv.write(|w| w.ch2val().bits(duty)),
+            Channel::C3 => self.ch3cv.write(|w| w.ch3val().bits(duty)),
+        }
+    }
+
+    fn get_max_duty(&self) -> u16 {
+        self.car.read().car().bits()
     }
 }
