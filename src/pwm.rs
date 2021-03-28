@@ -32,6 +32,7 @@ pub struct Pwm<TIMER, PINS> {
 
 pub struct PwmChannel<TIMER, PIN> {
     channel: Channel,
+    timer: *const dyn TimerRegExt,
     _pin: PIN,
     _timer: PhantomData<TIMER>,
 }
@@ -130,34 +131,38 @@ where
     }
 }
 
-impl<P0, P1, P2, P3, TIMER> Pwm<TIMER, (Option<P0>, Option<P1>, Option<P2>, Option<P3>)> {
+impl<P0, P1, P2, P3> Pwm<TIMER0, (Option<P0>, Option<P1>, Option<P2>, Option<P3>)> {
     /// Split the timer into separate PWM channels.
     pub fn split(
         self,
     ) -> (
-        Option<PwmChannel<TIMER, P0>>,
-        Option<PwmChannel<TIMER, P1>>,
-        Option<PwmChannel<TIMER, P2>>,
-        Option<PwmChannel<TIMER, P3>>,
+        Option<PwmChannel<TIMER0, P0>>,
+        Option<PwmChannel<TIMER0, P1>>,
+        Option<PwmChannel<TIMER0, P2>>,
+        Option<PwmChannel<TIMER0, P3>>,
     ) {
         (
             self.pins.0.map(|pin| PwmChannel {
                 channel: Channel::C0,
+                timer: TIMER0::ptr(),
                 _pin: pin,
                 _timer: PhantomData,
             }),
             self.pins.1.map(|pin| PwmChannel {
                 channel: Channel::C1,
+                timer: TIMER0::ptr(),
                 _pin: pin,
                 _timer: PhantomData,
             }),
             self.pins.2.map(|pin| PwmChannel {
                 channel: Channel::C2,
+                timer: TIMER0::ptr(),
                 _pin: pin,
                 _timer: PhantomData,
             }),
             self.pins.3.map(|pin| PwmChannel {
                 channel: Channel::C3,
+                timer: TIMER0::ptr(),
                 _pin: pin,
                 _timer: PhantomData,
             }),
@@ -189,27 +194,27 @@ where
     }
 }
 
-impl<PIN> embedded_hal::PwmPin for PwmChannel<TIMER0, PIN> {
+impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannel<TIMER, PIN> {
     type Duty = u16;
 
     fn disable(&mut self) {
-        unsafe { &*TIMER0::ptr() }.disable_channel(self.channel);
+        unsafe { &*self.timer }.disable_channel(self.channel);
     }
 
     fn enable(&mut self) {
-        unsafe { &*TIMER0::ptr() }.enable_channel(self.channel);
+        unsafe { &*self.timer }.enable_channel(self.channel);
     }
 
     fn get_duty(&self) -> u16 {
-        unsafe { &*TIMER0::ptr() }.get_duty(self.channel)
+        unsafe { &*self.timer }.get_duty(self.channel)
     }
 
     fn get_max_duty(&self) -> u16 {
-        unsafe { &*TIMER0::ptr() }.get_max_duty()
+        unsafe { &*self.timer }.get_max_duty()
     }
 
     fn set_duty(&mut self, duty: u16) {
-        unsafe { &*TIMER0::ptr() }.set_duty(self.channel, duty);
+        unsafe { &*self.timer }.set_duty(self.channel, duty);
     }
 }
 
