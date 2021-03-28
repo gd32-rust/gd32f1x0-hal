@@ -4,8 +4,8 @@ use cast::u32;
 use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
 
-use crate::hal::blocking::delay::{DelayMs, DelayUs};
-use crate::rcc::Clocks;
+use crate::rcu::Clocks;
+use embedded_hal::blocking::delay::{DelayMs, DelayUs};
 
 /// System timer (SysTick) as a delay provider
 pub struct Delay {
@@ -50,11 +50,13 @@ impl DelayUs<u32> for Delay {
         // The SysTick Reload Value register supports values between 1 and 0x00FFFFFF.
         const MAX_RVR: u32 = 0x00FF_FFFF;
 
-        let mut total_rvr = us * (self.clocks.sysclk().0 / 1_000_000);
+        let mut total_ticks = us
+            .wrapping_mul(self.clocks.hclk().0)
+            .wrapping_div(1_000_000);
 
-        while total_rvr != 0 {
-            let current_rvr = if total_rvr <= MAX_RVR {
-                total_rvr
+        while total_ticks != 0 {
+            let current_rvr = if total_ticks <= MAX_RVR {
+                total_ticks
             } else {
                 MAX_RVR
             };
@@ -64,7 +66,7 @@ impl DelayUs<u32> for Delay {
             self.syst.enable_counter();
 
             // Update the tracking variable while we are waiting...
-            total_rvr -= current_rvr;
+            total_ticks -= current_rvr;
 
             while !self.syst.has_wrapped() {}
 
