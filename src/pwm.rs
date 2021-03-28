@@ -40,27 +40,25 @@ pub struct PwmChannel<TIMER, PIN> {
 }
 
 pub trait Pins<TIMER> {
-    type Channels;
-
     fn uses_channel(&self, channel: Channel) -> bool;
 }
 
 // TODO: Check which AF is correct
-impl Pins<TIMER0>
-    for (
-        Option<PA8<Alternate<AF1>>>,
-        Option<PA9<Alternate<AF1>>>,
-        Option<PA10<Alternate<AF1>>>,
-        Option<PA11<Alternate<AF1>>>,
-    )
-{
-    type Channels = (
-        Option<PwmChannel<TIMER0, PA8<Alternate<AF1>>>>,
-        Option<PwmChannel<TIMER0, PA9<Alternate<AF1>>>>,
-        Option<PwmChannel<TIMER0, PA10<Alternate<AF1>>>>,
-        Option<PwmChannel<TIMER0, PA11<Alternate<AF1>>>>,
-    );
+pub type Timer0Pins = (
+    Option<PA8<Alternate<AF1>>>,
+    Option<PA9<Alternate<AF1>>>,
+    Option<PA10<Alternate<AF1>>>,
+    Option<PA11<Alternate<AF1>>>,
+);
 
+pub type Timer0Channels = (
+    Option<PwmChannel<TIMER0, PA8<Alternate<AF1>>>>,
+    Option<PwmChannel<TIMER0, PA9<Alternate<AF1>>>>,
+    Option<PwmChannel<TIMER0, PA10<Alternate<AF1>>>>,
+    Option<PwmChannel<TIMER0, PA11<Alternate<AF1>>>>,
+);
+
+impl Pins<TIMER0> for Timer0Pins {
     fn uses_channel(&self, channel: Channel) -> bool {
         match channel {
             Channel::C0 => self.0.is_some(),
@@ -132,25 +130,9 @@ where
     }
 }
 
-impl
-    Pwm<
-        TIMER0,
-        (
-            Option<PA8<Alternate<AF1>>>,
-            Option<PA9<Alternate<AF1>>>,
-            Option<PA10<Alternate<AF1>>>,
-            Option<PA11<Alternate<AF1>>>,
-        ),
-    >
-{
-    pub fn split(
-        self,
-    ) -> (
-        Option<PwmChannel<TIMER0, PA8<Alternate<AF1>>>>,
-        Option<PwmChannel<TIMER0, PA9<Alternate<AF1>>>>,
-        Option<PwmChannel<TIMER0, PA10<Alternate<AF1>>>>,
-        Option<PwmChannel<TIMER0, PA11<Alternate<AF1>>>>,
-    ) {
+impl Pwm<TIMER0, Timer0Pins> {
+    /// Split the timer into separate PWM channels.
+    pub fn split(self) -> Timer0Channels {
         (
             self.pins.0.map(|pin| PwmChannel {
                 channel: Channel::C0,
