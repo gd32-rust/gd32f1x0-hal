@@ -158,6 +158,30 @@ impl Pwm<TIMER0, Timer0Pins> {
     }
 }
 
+impl<PINS> Pwm<TIMER0, PINS>
+where
+    PINS: Pins<TIMER0>,
+{
+    /// Stop the timer and release it and the pins to be used for something else.
+    pub fn stop(self) -> (Timer<TIMER0>, PINS) {
+        self.timer.chctl2.reset();
+        self.timer.chctl0_output().reset();
+        self.timer.chctl1_output().reset();
+        self.timer.ch0cv.reset();
+        self.timer.ch1cv.reset();
+        self.timer.ch2cv.reset();
+        self.timer.ch3cv.reset();
+        self.timer.cchp.reset();
+        (
+            Timer {
+                timer: self.timer,
+                clock: self.clock,
+            },
+            self.pins,
+        )
+    }
+}
+
 impl<PIN> embedded_hal::PwmPin for PwmChannel<TIMER0, PIN> {
     type Duty = u16;
 
