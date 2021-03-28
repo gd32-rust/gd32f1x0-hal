@@ -9,7 +9,7 @@ use panic_halt as _;
 use cortex_m::asm;
 use cortex_m_rt::entry;
 use gd32f1x0_hal::{
-    gpio::{OutputMode, PullMode},
+    gpio::{gpioa::PA11, OutputMode, PullMode},
     pac,
     prelude::*,
     pwm::Channel,
@@ -40,7 +40,7 @@ fn main() -> ! {
         .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
     // If you don't want to use all channels, just leave some out
     // let c4 = gpioa.pa3.into_alternate_push_pull(&mut gpioa.crl);
-    let pins = (Some(c1), Some(c2), Some(c3), None);
+    let pins = (Some(c1), Some(c2), Some(c3), None::<PA11<_>>);
 
     // TIM3
     // let c1 = gpioa.pa6.into_alternate_push_pull(&mut gpioa.crl);

@@ -24,10 +24,7 @@ trait TimerRegExt {
     fn get_max_duty(&self) -> u16;
 }
 
-pub struct Pwm<TIMER, PINS>
-where
-    PINS: Pins<TIMER>,
-{
+pub struct Pwm<TIMER, PINS> {
     clock: Hertz,
     pins: PINS,
     timer: TIMER,
@@ -39,25 +36,29 @@ pub struct PwmChannel<TIMER, PIN> {
     _timer: PhantomData<TIMER>,
 }
 
+pub struct Ch0;
+pub struct Ch1;
+pub struct Ch2;
+pub struct Ch3;
+
+pub trait Pin<TIMER, CHANNEL> {}
+
 pub trait Pins<TIMER> {
     fn uses_channel(&self, channel: Channel) -> bool;
 }
 
-pub type Timer0Pins = (
-    Option<PA8<Alternate<AF2>>>,
-    Option<PA9<Alternate<AF2>>>,
-    Option<PA10<Alternate<AF2>>>,
-    Option<PA11<Alternate<AF2>>>,
-);
+impl Pin<TIMER0, Ch0> for PA8<Alternate<AF2>> {}
+impl Pin<TIMER0, Ch1> for PA9<Alternate<AF2>> {}
+impl Pin<TIMER0, Ch2> for PA10<Alternate<AF2>> {}
+impl Pin<TIMER0, Ch3> for PA11<Alternate<AF2>> {}
 
-pub type Timer0Channels = (
-    Option<PwmChannel<TIMER0, PA8<Alternate<AF2>>>>,
-    Option<PwmChannel<TIMER0, PA9<Alternate<AF2>>>>,
-    Option<PwmChannel<TIMER0, PA10<Alternate<AF2>>>>,
-    Option<PwmChannel<TIMER0, PA11<Alternate<AF2>>>>,
-);
-
-impl Pins<TIMER0> for Timer0Pins {
+impl<P0, P1, P2, P3, TIMER> Pins<TIMER> for (Option<P0>, Option<P1>, Option<P2>, Option<P3>)
+where
+    P0: Pin<TIMER, Ch0>,
+    P1: Pin<TIMER, Ch1>,
+    P2: Pin<TIMER, Ch2>,
+    P3: Pin<TIMER, Ch3>,
+{
     fn uses_channel(&self, channel: Channel) -> bool {
         match channel {
             Channel::C0 => self.0.is_some(),
@@ -129,9 +130,16 @@ where
     }
 }
 
-impl Pwm<TIMER0, Timer0Pins> {
+impl<P0, P1, P2, P3, TIMER> Pwm<TIMER, (Option<P0>, Option<P1>, Option<P2>, Option<P3>)> {
     /// Split the timer into separate PWM channels.
-    pub fn split(self) -> Timer0Channels {
+    pub fn split(
+        self,
+    ) -> (
+        Option<PwmChannel<TIMER, P0>>,
+        Option<PwmChannel<TIMER, P1>>,
+        Option<PwmChannel<TIMER, P2>>,
+        Option<PwmChannel<TIMER, P3>>,
+    ) {
         (
             self.pins.0.map(|pin| PwmChannel {
                 channel: Channel::C0,
