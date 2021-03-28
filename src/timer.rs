@@ -171,6 +171,15 @@ impl Cancel for CountDownTimer<SYST> {
 
 impl Periodic for CountDownTimer<SYST> {}
 
+/// Helper methods used by other parts of the HAL, such as PWM.
+pub(crate) trait TimerExt {
+    /// Resets the counter by triggering an update event, disabling the interrupt while doing so.
+    fn reset_counter(&mut self);
+    /// Configures the timer with an appropriate prescaler and reload value to count down at the
+    /// given timeout frequency, assuming it is using the given clock frequency.
+    fn configure_prescaler_reload(&mut self, timeout: Hertz, clock: Hertz);
+}
+
 macro_rules! hal {
     ($TIMERX:ident: ($timerX:ident, $APBx:ident, $dbg_ctlX:ident, $timerX_hold:ident$(,$master_timerbase:ident)*)) => {
         impl Timer<$TIMERX> {
@@ -288,12 +297,25 @@ macro_rules! hal {
 
             /// Resets the counter
             pub fn reset(&mut self) {
-                // Sets the UPS bit to prevent an interrupt from being triggered by
-                // the UPG bit
-                self.timer.ctl0.modify(|_, w| w.ups().counter_only());
+                self.timer.reset_counter();
+            }
+        }
 
-                self.timer.swevg.write(|w| w.upg().set_bit());
-                self.timer.ctl0.modify(|_, w| w.ups().any_event());
+        impl TimerExt for $TIMERX {
+            fn reset_counter(&mut self) {
+                // Sets the UPS bit to prevent an interrupt from being triggered by the UPG bit.
+                self.ctl0.modify(|_, w| w.ups().counter_only());
+
+                self.swevg.write(|w| w.upg().set_bit());
+                self.ctl0.modify(|_, w| w.ups().any_event());
+            }
+
+            fn configure_prescaler_reload(&mut self, timeout: Hertz, clock: Hertz) {
+                // Calculate prescaler and reload values.
+                let (prescaler, auto_reload_value) = compute_prescaler_reload(timeout, clock);
+                self.psc.write(|w| w.psc().bits(prescaler));
+                // TODO: Support 32-bit counters
+                self.car.write(|w| w.car().bits(auto_reload_value.into()));
             }
         }
 
@@ -307,14 +329,9 @@ macro_rules! hal {
                 // Pause counter.
                 self.timer.ctl0.modify(|_, w| w.cen().disabled());
 
-                // Calculate prescaler and reload values.
-                let (psc, car) = compute_prescaler_reload(timeout.into(), self.clock);
-                self.timer.psc.write(|w| w.psc().bits(psc));
-                // TODO: Support 32-bit counters
-                self.timer.car.write(|w| w.car().bits(car.into()));
-
+                self.timer.configure_prescaler_reload(timeout.into(), self.clock);
                 // Trigger an update event to load the prescaler value to the clock
-                self.reset();
+                self.timer.reset_counter();
 
                 // Start counter.
                 self.timer.ctl0.modify(|_, w| w.cen().enabled());
