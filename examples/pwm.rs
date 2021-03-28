@@ -8,35 +8,39 @@ use panic_halt as _;
 
 use cortex_m::asm;
 use cortex_m_rt::entry;
-use stm32f1xx_hal::{
+use gd32f1x0_hal::{
+    gpio::{OutputMode, PullMode},
     pac,
     prelude::*,
     pwm::Channel,
     time::U32Ext,
-    timer::{Tim2NoRemap, Timer},
+    timer::Timer,
 };
 
 #[entry]
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
-    let mut flash = p.FLASH.constrain();
-    let mut rcc = p.RCC.constrain();
+    let mut rcu = p.RCU.constrain();
 
-    let clocks = rcc.cfgr.freeze(&mut flash.acr);
+    let clocks = rcu.cfgr.freeze(&p.FMC.ws);
 
-    let mut afio = p.AFIO.constrain(&mut rcc.apb2);
+    let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
+    // let mut gpiob = p.GPIOB.split(&mut rcu.ahb);
 
-    let mut gpioa = p.GPIOA.split(&mut rcc.apb2);
-    // let mut gpiob = p.GPIOB.split(&mut rcc.apb2);
-
-    // TIM2
-    let c1 = gpioa.pa0.into_alternate_push_pull(&mut gpioa.crl);
-    let c2 = gpioa.pa1.into_alternate_push_pull(&mut gpioa.crl);
-    let c3 = gpioa.pa2.into_alternate_push_pull(&mut gpioa.crl);
+    // TIMER0
+    let c1 = gpioa
+        .pa8
+        .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
+    let c2 = gpioa
+        .pa9
+        .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
+    let c3 = gpioa
+        .pa10
+        .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
     // If you don't want to use all channels, just leave some out
     // let c4 = gpioa.pa3.into_alternate_push_pull(&mut gpioa.crl);
-    let pins = (c1, c2, c3);
+    let pins = (Some(c1), Some(c2), Some(c3), None);
 
     // TIM3
     // let c1 = gpioa.pa6.into_alternate_push_pull(&mut gpioa.crl);
@@ -50,11 +54,7 @@ fn main() -> ! {
     // let c3 = gpiob.pb8.into_alternate_push_pull(&mut gpiob.crh);
     // let c4 = gpiob.pb9.into_alternate_push_pull(&mut gpiob.crh);
 
-    let mut pwm = Timer::tim2(p.TIM2, &clocks, &mut rcc.apb1).pwm::<Tim2NoRemap, _, _, _>(
-        pins,
-        &mut afio.mapr,
-        1.khz(),
-    );
+    let mut pwm = Timer::timer0(p.TIMER0, &clocks, &mut rcu.apb2).pwm(pins, 1.khz());
 
     // Enable clock on each of the channels
     pwm.enable(Channel::C1);
@@ -94,7 +94,7 @@ fn main() -> ! {
     asm::bkpt();
 
     // Extract the PwmChannel for C3
-    let mut pwm_channel = pwm.split().2;
+    let mut pwm_channel = pwm.split().2.unwrap();
 
     // Use the PwmChannel object to set C3 to be full strength
     pwm_channel.set_duty(max);
