@@ -82,8 +82,6 @@ pub use gd32f1::gd32f1x0 as pac;
 /*#[cfg(feature = "device-selected")]
 pub mod adc;
 #[cfg(feature = "device-selected")]
-pub mod afio;*/
-/*#[cfg(feature = "device-selected")]
 pub mod backup_domain;
 #[cfg(feature = "device-selected")]
 pub mod bb;
