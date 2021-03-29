@@ -8,7 +8,7 @@ use cast::u32;
 use crate::flash::ACR;
 use crate::time::Hertz;
 
-use crate::backup_domain::BackupDomain;
+//use crate::backup_domain::BackupDomain;
 
 /// Extension trait that constrains the `RCC` peripheral
 pub trait RccExt {
@@ -453,7 +453,7 @@ pub struct BKP {
     _0: (),
 }
 
-impl BKP {
+/*impl BKP {
     /// Enables write access to the registers in the backup domain
     pub fn constrain(self, bkp: crate::pac::BKP, apb1: &mut APB1, pwr: &mut PWR) -> BackupDomain {
         // Enable the backup interface by setting PWREN and BKPEN
@@ -465,7 +465,7 @@ impl BKP {
 
         BackupDomain { _regs: bkp }
     }
-}
+}*/
 
 /// Frozen clock frequencies
 ///

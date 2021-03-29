@@ -138,11 +138,11 @@ pub use crate::pac as device;
 #[doc(hidden)]
 pub use crate::pac as stm32;
 
-#[cfg(feature = "device-selected")]
+/*#[cfg(feature = "device-selected")]
 pub mod adc;
 #[cfg(feature = "device-selected")]
-pub mod afio;
-#[cfg(feature = "device-selected")]
+pub mod afio;*/
+/*#[cfg(feature = "device-selected")]
 pub mod backup_domain;
 #[cfg(feature = "device-selected")]
 pub mod bb;
@@ -153,32 +153,32 @@ pub mod crc;
 #[cfg(feature = "device-selected")]
 pub mod delay;
 #[cfg(feature = "device-selected")]
-pub mod dma;
+pub mod dma;*/
 #[cfg(feature = "device-selected")]
 pub mod flash;
-#[cfg(feature = "device-selected")]
-pub mod gpio;
-#[cfg(feature = "device-selected")]
+/*#[cfg(feature = "device-selected")]
+pub mod gpio;*/
+/*#[cfg(feature = "device-selected")]
 pub mod i2c;
 #[cfg(feature = "device-selected")]
-pub mod prelude;
-#[cfg(feature = "device-selected")]
+pub mod prelude;*/
+/*#[cfg(feature = "device-selected")]
 pub mod pwm;
 #[cfg(feature = "device-selected")]
 pub mod pwm_input;
 #[cfg(feature = "device-selected")]
-pub mod qei;
+pub mod qei;*/
 #[cfg(feature = "device-selected")]
 pub mod rcc;
-#[cfg(feature = "device-selected")]
+/*#[cfg(feature = "device-selected")]
 pub mod rtc;
 #[cfg(feature = "device-selected")]
 pub mod serial;
 #[cfg(feature = "device-selected")]
-pub mod spi;
+pub mod spi;*/
 #[cfg(feature = "device-selected")]
 pub mod time;
-#[cfg(feature = "device-selected")]
+/*#[cfg(feature = "device-selected")]
 pub mod timer;
 #[cfg(all(
     feature = "stm32-usbd",
@@ -186,4 +186,4 @@ pub mod timer;
 ))]
 pub mod usb;
 #[cfg(feature = "device-selected")]
-pub mod watchdog;
+pub mod watchdog;*/
