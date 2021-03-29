@@ -1,12 +1,12 @@
 [package]
 authors = ["Jorge Aparicio <jorge@japaric.io>", "Daniel Egger <daniel@eggers-club.de>"]
 categories = ["embedded", "hardware-support", "no-std"]
-description = "HAL for the STM32F1xx family of microcontrollers"
-keywords = ["arm", "cortex-m", "stm32", "hal"]
+description = "HAL for the GD32F1x0 family of microcontrollers"
+keywords = ["arm", "cortex-m", "gd32", "hal"]
 license = "MIT OR Apache-2.0"
-name = "stm32f1xx-hal"
-repository = "https://github.com/stm32-rs/stm32f1xx-hal"
-documentation = "https://docs.rs/stm32f1xx-hal"
+name = "gd32f1x0-hal"
+repository = "https://github.com/qwandor/gd32f1x0-hal"
+documentation = "https://docs.rs/gd2f1x0-hal"
 readme = "README.md"
 edition = "2018"
 version = "0.7.0"
