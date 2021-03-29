@@ -177,6 +177,10 @@ Licensed under either of
 
 at your option.
 
+## Disclaimer
+
+This is not an officially supported Google product.
+
 ### Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
