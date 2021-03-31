@@ -33,6 +33,8 @@ pub struct Adc {
     pub sample_time: SampleTime,
     align: Align,
     clocks: Clocks,
+    /// The value read from the Vref channel. This is used to scale readings appropriately.
+    vref_value: u16,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -131,6 +133,7 @@ impl Adc {
             sample_time: SampleTime::default(),
             align: Align::default(),
             clocks,
+            vref_value: 0, // This will be overwritten by `read_vref` below.
         };
         ADC::enable(apb2);
         s.power_down();
@@ -142,6 +145,9 @@ impl Adc {
         // Wait for the ADC to stabilise before starting calibration.
         delay(s.clocks.sysclk().0 / s.clocks.adcclk().0 * ADC_CALIBRATION_CYCLES);
         s.calibrate();
+
+        // Read Vref so that it can be used to scale other readings.
+        s.read_vref();
 
         s
     }
@@ -288,9 +294,11 @@ impl Adc {
 
     /// Reads the internal reference voltage which is connected to channel 17 of the ADC.
     ///
-    /// This should always be 1.2 V, so is useful for converting other ADC inputs to voltages.
+    /// This both returns the value and stores it for converting other channel readings to voltages.
+    /// Vref should always be 1.2 V.
     pub fn read_vref(&mut self) -> u16 {
-        self.read_aux(VRef::channel())
+        self.vref_value = self.read_aux(VRef::channel());
+        self.vref_value
     }
 
     /// Reads the internal temperature sensor.
@@ -299,19 +307,18 @@ impl Adc {
     /// the temperature in °C, assuming typical calibration values.
     pub fn read_temperature(&mut self) -> u16 {
         let vtemp_value = self.read_aux(VTemp::channel());
-        let vref_value = self.read_vref();
-        Self::calculate_temperature(vtemp_value, vref_value)
+        self.calculate_temperature(vtemp_value)
     }
 
-    /// Given an ADC reading and the ADC reading for Vref, calculate the actual voltage.
-    pub fn calculate_voltage(value: u16, vref_value:u16) -> u16 {
-        (value as u32 * VREF / vref_value as u32) as u16
+    /// Given an ADC reading, calculate the actual voltage based on the previous reading of Vref.
+    pub fn calculate_voltage(&self, value: u16) -> u16 {
+        (value as u32 * VREF / self.vref_value as u32) as u16
     }
 
-    /// Calculates the temperature in °C from the given raw ADC readings, assuming typical
+    /// Calculates the temperature in °C from the given raw ADC reading, assuming typical
     /// calibration values.
-    pub fn calculate_temperature(vtemp_value: u16, vref_value: u16) -> u16 {
-        let vtemp = Self::calculate_voltage(vtemp_value, vref_value);
+    pub fn calculate_temperature(&self, vtemp_value: u16) -> u16 {
+        let vtemp = self.calculate_voltage(vtemp_value);
         (VTEMP_25 - vtemp) * 10 / VTEMP_SLOPE + 25
     }
 
@@ -330,10 +337,8 @@ impl Adc {
             self.rb.ctl1.modify(|_, w| w.vbaten().disabled());
         }
 
-        let vref = self.read_vref();
-
         // Vbat/2 is connected to ADC channel 18, so we need to double it again.
-        Self::calculate_voltage(value, vref) * 2
+        self.calculate_voltage(value) * 2
     }
 
     /// Reads the temperature sensor or Vref on channel 16 or 17.
@@ -422,6 +427,7 @@ where
 
     fn read(&mut self, _pin: &mut PIN) -> nb::Result<WORD, Self::Error> {
         let res = self.convert(PIN::channel());
+        // TODO: Should this also be scaled based on Vref?
         Ok(res.into())
     }
 }
