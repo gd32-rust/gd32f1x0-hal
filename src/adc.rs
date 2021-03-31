@@ -18,10 +18,13 @@ use gd32f1::gd32f1x0::adc::{
 const ADC_CALIBRATION_CYCLES: u32 = 14;
 
 /// Typical Vtemp at 25°C, in mV.
-const VTEMP_25: u32 = 1430;
+const VTEMP_25: u16 = 1430;
 
 /// Typical dV/°C for Vtemp.
-const VTEMP_SLOPE: u32 = 43;
+const VTEMP_SLOPE: u16 = 43;
+
+/// The reference voltage in mV, i.e. 1.2 V.
+const VREF: u32 = 1200;
 
 /// ADC configuration
 pub struct Adc {
@@ -297,9 +300,19 @@ impl Adc {
     pub fn read_temperature(&mut self) -> u16 {
         let vtemp_value = self.read_aux(VTemp::channel());
         let vref_value = self.read_vref();
-        let vtemp = vtemp_value as u32 * 1200 / vref_value as u32;
+        Self::calculate_temperature(vtemp_value, vref_value)
+    }
 
-        ((VTEMP_25 - vtemp) * 10 / VTEMP_SLOPE + 25) as u16
+    /// Given an ADC reading and the ADC reading for Vref, calculate the actual voltage.
+    pub fn calculate_voltage(value: u16, vref_value:u16) -> u16 {
+        (value as u32 * VREF / vref_value as u32) as u16
+    }
+
+    /// Calculates the temperature in °C from the given raw ADC readings, assuming typical
+    /// calibration values.
+    pub fn calculate_temperature(vtemp_value: u16, vref_value: u16) -> u16 {
+        let vtemp = Self::calculate_voltage(vtemp_value, vref_value);
+        (VTEMP_25 - vtemp) * 10 / VTEMP_SLOPE + 25
     }
 
     /// Reads the backup battery voltage from channel 18 of the ADC.
@@ -317,8 +330,10 @@ impl Adc {
             self.rb.ctl1.modify(|_, w| w.vbaten().disabled());
         }
 
+        let vref = self.read_vref();
+
         // Vbat/2 is connected to ADC channel 18, so we need to double it again.
-        value * 2
+        Self::calculate_voltage(value, vref) * 2
     }
 
     /// Reads the temperature sensor or Vref on channel 16 or 17.
