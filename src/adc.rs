@@ -18,10 +18,10 @@ use gd32f1::gd32f1x0::adc::{
 const ADC_CALIBRATION_CYCLES: u32 = 14;
 
 /// Typical Vtemp at 25°C, in mV.
-const VTEMP_25: u16 = 1430;
+const VTEMP_25: u32 = 1430;
 
 /// Typical dV/°C for Vtemp.
-const VTEMP_SLOPE: u16 = 43;
+const VTEMP_SLOPE: u32 = 43;
 
 /// ADC configuration
 pub struct Adc {
@@ -297,9 +297,9 @@ impl Adc {
     pub fn read_temperature(&mut self) -> u16 {
         let vtemp_value = self.read_aux(VTemp::channel());
         let vref_value = self.read_vref();
-        let vtemp = vtemp_value * 1200 / vref_value;
+        let vtemp = vtemp_value as u32 * 1200 / vref_value as u32;
 
-        (VTEMP_25 - vtemp) * 10 / VTEMP_SLOPE + 25
+        ((VTEMP_25 - vtemp) * 10 / VTEMP_SLOPE + 25) as u16
     }
 
     /// Reads the backup battery voltage from channel 18 of the ADC.
