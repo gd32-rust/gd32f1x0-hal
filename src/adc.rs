@@ -23,11 +23,6 @@ const VTEMP_25: u16 = 1430;
 /// Typical dV/°C for Vtemp.
 const VTEMP_SLOPE: u16 = 43;
 
-/// Continuous mode
-pub struct Continuous;
-/// Scan mode
-pub struct Scan;
-
 /// ADC configuration
 pub struct Adc {
     rb: ADC,
