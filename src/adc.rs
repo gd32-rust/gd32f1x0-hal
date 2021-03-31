@@ -1,5 +1,7 @@
 //! # API for the Analog to Digital converter
 
+use core::convert::Infallible;
+
 use crate::gpio::Analog;
 use crate::gpio::{gpioa, gpiob, gpioc};
 use crate::pac::ADC;
@@ -424,7 +426,7 @@ where
     WORD: From<u16>,
     PIN: Channel<ADC, ID = u8>,
 {
-    type Error = ();
+    type Error = Infallible;
 
     fn read(&mut self, _pin: &mut PIN) -> nb::Result<WORD, Self::Error> {
         let res = self.convert(PIN::channel());
