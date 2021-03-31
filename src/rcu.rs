@@ -370,8 +370,9 @@ impl CFGR {
         // set prescalers and clock source
         #[cfg(feature = "gd32f130")]
         rcu.cfg0.modify(|_, w| unsafe {
-            w.adcpsc().bits(apre_bits);
-            w.apb2psc()
+            w.adcpsc()
+                .bits(apre_bits)
+                .apb2psc()
                 .bits(ppre2_bits)
                 .apb1psc()
                 .bits(ppre1_bits)
@@ -388,6 +389,7 @@ impl CFGR {
                     SCS_A::IRC8M
                 })
         });
+        rcu.cfg2.modify(|_, w| w.adcsel().apb2().usart0sel().apb2());
 
         Clocks {
             hclk: Hertz(hclk),
