@@ -279,31 +279,13 @@ impl Adc {
         self.set_channel_sample_time(C::channel(), sample_time);
     }
 
-    /// ADC Set a Regular Channel Conversion Sequence
-    ///
-    /// Define a sequence of channels to be converted as a regular group.
-    // TODO: Use pin rather than channel number somehow.
-    pub fn set_regular_sequence(&mut self, channels: &[u8]) {
-        self.set_regular_sequence_channels(channels);
-    }
-
-    /// Sets ADC continuous conversion
-    ///
-    /// When continuous conversion is enabled conversion does not stop at the last selected group
-    /// channel but continues again from the first selected group channel.
-    pub fn set_continuous_mode(&mut self, continuous: CTN_A) {
-        self.rb.ctl1.modify(|_, w| w.ctn().variant(continuous));
-    }
-
-    /// Sets ADC discontinuous mode
-    ///
-    /// It can be used to convert a short sequence of conversions (up to 8) which is a part of the
-    /// regular sequence of conversions.
-    pub fn set_discontinuous_mode(&mut self, channels_count: Option<u8>) {
-        self.rb.ctl0.modify(|_, w| match channels_count {
-            Some(count) => w.disrc().enabled().disnum().bits(count),
-            None => w.disrc().disabled(),
-        });
+    /// Configures the ADC for a regular channel conversion sequence.
+    pub fn with_regular_sequence(mut self, sequence: Sequence) -> SequenceAdc {
+        self.set_regular_sequence_channels(sequence.channels());
+        SequenceAdc {
+            adc: self,
+            sequence,
+        }
     }
 
     /// Reads the internal reference voltage which is connected to channel 17 of the ADC.
@@ -431,6 +413,69 @@ where
     fn read(&mut self, _pin: &mut PIN) -> nb::Result<WORD, Self::Error> {
         let res = self.convert(PIN::channel());
         Ok(res.into())
+    }
+}
+
+/// ADC configured to convert a regular sequence of channels.
+pub struct SequenceAdc {
+    adc: Adc,
+    sequence: Sequence,
+}
+
+impl SequenceAdc {
+    /// Sets ADC continuous conversion
+    ///
+    /// When continuous conversion is enabled conversion does not stop at the last selected group
+    /// channel but continues again from the first selected group channel.
+    pub fn set_continuous_mode(&mut self, continuous: CTN_A) {
+        self.adc.rb.ctl1.modify(|_, w| w.ctn().variant(continuous));
+    }
+
+    /// Sets ADC discontinuous mode
+    ///
+    /// It can be used to convert a short sequence of conversions (up to 8) which is a part of the
+    /// regular sequence of conversions.
+    pub fn set_discontinuous_mode(&mut self, channels_count: Option<u8>) {
+        self.adc.rb.ctl0.modify(|_, w| match channels_count {
+            Some(count) => w.disrc().enabled().disnum().bits(count),
+            None => w.disrc().disabled(),
+        });
+    }
+
+    /// Resets the ADC to one-shot mode, and releases the sequence that was previously configured.
+    pub fn release(mut self) -> (Adc, Sequence) {
+        // Reset configuration
+        self.adc.rb.ctl0.modify(|_, w| w.disnum().bits(0));
+        self.adc.setup_oneshot();
+        (self.adc, self.sequence)
+    }
+}
+
+/// A sequence of up to 16 channels for the ADC to convert.
+#[derive(Debug, Default)]
+pub struct Sequence {
+    length: usize,
+    channels: [u8; 16],
+}
+
+impl Sequence {
+    /// Adds the given ADC pin to the list of channels.
+    pub fn add_pin<PIN: Channel<ADC, ID = u8>>(&mut self, pin: PIN) -> Result<(), PIN> {
+        if self.length >= self.channels.len() {
+            return Err(pin);
+        }
+        self.channels[self.length] = PIN::channel();
+        self.length += 1;
+        Ok(())
+    }
+
+    /// Returns the number of channels
+    pub fn len(&self) -> usize {
+        self.length
+    }
+
+    fn channels(&self) -> &[u8] {
+        &self.channels[0..self.length]
     }
 }
 
