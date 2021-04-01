@@ -123,6 +123,8 @@ If no microcontroller is specified, the crate will not compile.
 - `gd32f130x6` (e.g. GD32F130F6, GD32F130G6, ...)
 - `gd32f130x8` (e.g. GD32F130F8, GD32F130G8, ...)
 
+The GD32F150/GD32F170/GD32F190 series are not yet supported, but should be in the future.
+
 ## Trying out the examples
 
 You may need to give `cargo` permission to call `gdb` from the working directory.
@@ -167,6 +169,10 @@ gd32f1x0-hal = { version = "0.1.0", features = ["gd32f130x8", "rt"] }
 
 The documentation can be found at [docs.rs](https://docs.rs/stm32f1xx-hal/).
 
+## Disclaimer
+
+This is not an officially supported Google product.
+
 ## License
 
 Licensed under either of
@@ -177,12 +183,10 @@ Licensed under either of
 
 at your option.
 
-## Disclaimer
-
-This is not an officially supported Google product.
-
 ### Contribution
 
-Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
-dual licensed as above, without any additional terms or conditions.
+Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the
+work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any
+additional terms or conditions.
+
+See the [contributing guide](CONTRIBUTING.md) for more details.
