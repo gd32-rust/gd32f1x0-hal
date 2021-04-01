@@ -1,3 +1,7 @@
+// Copyright 2021 The gd32f1x0-hal authors.
+//
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! # API for the Analog to Digital converter
 
 use core::convert::Infallible;

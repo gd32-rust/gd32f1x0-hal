@@ -1,3 +1,7 @@
+// Copyright 2021 The gd32f1x0-hal authors.
+//
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 /*pub use crate::adc::ChannelTimeSequence as _gd32_hal_adc_ChannelTimeSequence;
 pub use crate::afio::AfioExt as _gd32_hal_afio_AfioExt;
 pub use crate::crc::CrcExt as _gd32_hal_crc_CrcExt;

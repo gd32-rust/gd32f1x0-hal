@@ -1,3 +1,7 @@
+// Copyright 2021 The gd32f1x0-hal authors.
+//
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 use crate::pac::{
     dbg::ctl0::TIMER0_HOLD_A, dbg::ctl1::TIMER14_HOLD_A, DBG, TIMER0, TIMER1, TIMER13, TIMER14,
     TIMER15, TIMER16, TIMER2, TIMER5,

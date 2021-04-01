@@ -1,3 +1,7 @@
+// Copyright 2021 The gd32f1x0-hal authors.
+//
+// SPDX-License-Identifier: MIT OR Apache-2.0
+
 //! # HAL for the GD32F1x0 family of microcontrollers
 //!
 //! This is an implementation of the [`embedded-hal`] traits for the GD32F1x0 family of
