@@ -199,7 +199,7 @@ macro_rules! dma {
                     unsafe { &(*DMA::ptr()).intc }
                 }
 
-                fn get_ndtr(&self) -> u16 {
+                fn get_cnt(&self) -> u16 {
                     unsafe { &(*DMA::ptr()).$chXcnt }.read().cnt().bits()
                 }
             }
@@ -368,7 +368,7 @@ macro_rules! dma {
                 where
                     BUFFER: AsRef<[T]>,
                 {
-                    let pending = self.payload.channel.get_ndtr() as usize;
+                    let pending = self.payload.channel.get_cnt() as usize;
 
                     let slice = self.buffer.as_ref();
                     let capacity = slice.len();
