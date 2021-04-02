@@ -115,284 +115,283 @@ pub struct R;
 /// Write transfer
 pub struct W;
 
-#[allow(clippy::manual_non_exhaustive)]
-pub struct Channels((), pub C0);
+macro_rules! dma {
+    {$($CX:ident: (
+            $htfifX:ident,
+            $ftfifX:ident,
+            $htfifcX:ident,
+            $ftfifcX:ident,
+            $gicX:ident,
+            $chXctl:ident,
+            $chXcnt:ident,
+            $chXmaddr:ident,
+            $chXpaddr:ident,
+    ),)+} => {
+        pub struct Channels((), $(pub $CX),+);
 
-/// A singleton that represents a single DMA channel (channel X in this case)
-///
-/// This singleton has exclusive access to the registers of the DMA channel X
-pub struct C0 {
-    _0: (),
-}
+        $(
+            /// A singleton that represents a single DMA channel (channel X in this case)
+            ///
+            /// This singleton has exclusive access to the registers of the DMA channel X
+            pub struct $CX {
+                _0: (),
+            }
 
-impl C0 {
-    /// Associated peripheral `address`
-    ///
-    /// `inc` indicates whether the address will be incremented after every byte transfer
-    pub fn set_peripheral_address(&mut self, address: u32, inc: bool) {
-        self.chpaddr().write(|w| unsafe { w.paddr().bits(address) });
-        self.chctl().modify(|_, w| w.pnaga().bit(inc));
-    }
+            impl $CX {
+                /// Associated peripheral `address`
+                ///
+                /// `inc` indicates whether the address will be incremented after every byte transfer
+                pub fn set_peripheral_address(&mut self, address: u32, inc: bool) {
+                    unsafe { &(*DMA::ptr()).$chXpaddr }.write(|w| unsafe { w.paddr().bits(address) });
+                    unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.pnaga().bit(inc));
+                }
 
-    /// `address` where from/to data will be read/write
-    ///
-    /// `inc` indicates whether the address will be incremented after every byte transfer
-    pub fn set_memory_address(&mut self, address: u32, inc: bool) {
-        self.chmaddr().write(|w| unsafe { w.maddr().bits(address) });
-        self.chctl().modify(|_, w| w.mnaga().bit(inc));
-    }
+                /// `address` where from/to data will be read/write
+                ///
+                /// `inc` indicates whether the address will be incremented after every byte transfer
+                pub fn set_memory_address(&mut self, address: u32, inc: bool) {
+                    unsafe { &(*DMA::ptr()).$chXmaddr }.write(|w| unsafe { w.maddr().bits(address) });
+                    unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.mnaga().bit(inc));
+                }
 
-    /// Number of bytes to transfer
-    pub fn set_transfer_length(&mut self, len: usize) {
-        self.chcnt()
-            .write(|w| w.cnt().bits(cast::u16(len).unwrap()));
-    }
+                /// Number of bytes to transfer
+                pub fn set_transfer_length(&mut self, len: usize) {
+                    unsafe { &(*DMA::ptr()).$chXcnt }
+                        .write(|w| w.cnt().bits(cast::u16(len).unwrap()));
+                }
 
-    /// Starts the DMA transfer
-    pub fn start(&mut self) {
-        self.chctl().modify(|_, w| w.chen().enabled());
-    }
+                /// Starts the DMA transfer
+                pub fn start(&mut self) {
+                    unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.chen().enabled());
+                }
 
-    /// Stops the DMA transfer
-    pub fn stop(&mut self) {
-        self.intc().write(|w| w.gic0().clear());
-        self.chctl().modify(|_, w| w.chen().disabled());
-    }
+                /// Stops the DMA transfer
+                pub fn stop(&mut self) {
+                    self.intc().write(|w| w.$gicX().clear());
+                    unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.chen().disabled());
+                }
 
-    /// Returns `true` if there's a transfer in progress
-    pub fn in_progress(&self) -> bool {
-        self.intf().ftfif0().is_not_complete()
-    }
+                /// Returns `true` if there's a transfer in progress
+                pub fn in_progress(&self) -> bool {
+                    self.intf().$ftfifX().is_not_complete()
+                }
 
-    pub fn listen(&mut self, event: Event) {
-        match event {
-            Event::HalfTransfer => self.chctl().modify(|_, w| w.htfie().enabled()),
-            Event::TransferComplete => self.chctl().modify(|_, w| w.ftfie().enabled()),
-        }
-    }
+                pub fn listen(&mut self, event: Event) {
+                    match event {
+                        Event::HalfTransfer => unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.htfie().enabled()),
+                        Event::TransferComplete => unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.ftfie().enabled()),
+                    }
+                }
 
-    pub fn unlisten(&mut self, event: Event) {
-        match event {
-            Event::HalfTransfer => self.chctl().modify(|_, w| w.htfie().disabled()),
-            Event::TransferComplete => self.chctl().modify(|_, w| w.ftfie().disabled()),
-        }
-    }
+                pub fn unlisten(&mut self, event: Event) {
+                    match event {
+                        Event::HalfTransfer => unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.htfie().disabled()),
+                        Event::TransferComplete => unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.ftfie().disabled()),
+                    }
+                }
 
-    fn chctl(&mut self) -> &dma::CH0CTL0 {
-        unsafe { &(*DMA::ptr()).ch0ctl0 }
-    }
+                fn intf(&self) -> dma::intf::R {
+                    // NOTE(unsafe) atomic read with no side effects
+                    unsafe { (*DMA::ptr()).intf.read() }
+                }
 
-    fn chcnt(&mut self) -> &dma::CH0CNT {
-        unsafe { &(*DMA::ptr()).ch0cnt }
-    }
+                fn intc(&self) -> &dma::INTC {
+                    unsafe { &(*DMA::ptr()).intc }
+                }
 
-    fn chmaddr(&mut self) -> &dma::CH0MADDR {
-        unsafe { &(*DMA::ptr()).ch0maddr }
-    }
-
-    fn chpaddr(&mut self) -> &dma::CH0PADDR {
-        unsafe { &(*DMA::ptr()).ch0paddr }
-    }
-
-    fn intf(&self) -> dma::intf::R {
-        // NOTE(unsafe) atomic read with no side effects
-        unsafe { (*DMA::ptr()).intf.read() }
-    }
-
-    fn intc(&self) -> &dma::INTC {
-        unsafe { &(*DMA::ptr()).intc }
-    }
-
-    fn get_ndtr(&self) -> u16 {
-        // NOTE(unsafe) atomic read with no side effects
-        unsafe { &(*DMA::ptr()) }.ch0cnt.read().cnt().bits()
-    }
-}
-
-impl<B, PAYLOAD> CircBuffer<B, RxDma<PAYLOAD, C0>>
-where
-    RxDma<PAYLOAD, C0>: TransferPayload,
-{
-    /// Peeks into the readable half of the buffer
-    pub fn peek<R, F>(&mut self, f: F) -> Result<R, Error>
-    where
-        F: FnOnce(&B, Half) -> R,
-    {
-        let half_being_read = self.readable_half()?;
-
-        let buf = match half_being_read {
-            Half::First => &self.buffer[0],
-            Half::Second => &self.buffer[1],
-        };
-
-        // XXX does this need a compiler barrier?
-        let ret = f(buf, half_being_read);
-
-        let intf = self.payload.channel.intf();
-        let first_half_is_done = intf.htfif0().is_half();
-        let second_half_is_done = intf.ftfif0().is_complete();
-
-        if (half_being_read == Half::First && second_half_is_done)
-            || (half_being_read == Half::Second && first_half_is_done)
-        {
-            Err(Error::Overrun)
-        } else {
-            Ok(ret)
-        }
-    }
-
-    /// Returns the `Half` of the buffer that can be read
-    pub fn readable_half(&mut self) -> Result<Half, Error> {
-        let intf = self.payload.channel.intf();
-        let first_half_is_done = intf.htfif0().is_half();
-        let second_half_is_done = intf.ftfif0().is_complete();
-
-        if first_half_is_done && second_half_is_done {
-            return Err(Error::Overrun);
-        }
-
-        let last_read_half = self.readable_half;
-
-        Ok(match last_read_half {
-            Half::First => {
-                if second_half_is_done {
-                    self.payload.channel.intc().write(|w| w.ftfifc0().clear());
-
-                    self.readable_half = Half::Second;
-                    Half::Second
-                } else {
-                    last_read_half
+                fn get_ndtr(&self) -> u16 {
+                    unsafe { &(*DMA::ptr()).$chXcnt }.read().cnt().bits()
                 }
             }
-            Half::Second => {
-                if first_half_is_done {
-                    self.payload.channel.intc().write(|w| w.htfifc0().clear());
 
-                    self.readable_half = Half::First;
-                    Half::First
-                } else {
-                    last_read_half
+            impl<B, PAYLOAD> CircBuffer<B, RxDma<PAYLOAD, $CX>>
+            where
+                RxDma<PAYLOAD, $CX>: TransferPayload,
+            {
+                /// Peeks into the readable half of the buffer
+                pub fn peek<R, F>(&mut self, f: F) -> Result<R, Error>
+                where
+                    F: FnOnce(&B, Half) -> R,
+                {
+                    let half_being_read = self.readable_half()?;
+
+                    let buf = match half_being_read {
+                        Half::First => &self.buffer[0],
+                        Half::Second => &self.buffer[1],
+                    };
+
+                    // XXX does this need a compiler barrier?
+                    let ret = f(buf, half_being_read);
+
+                    let intf = self.payload.channel.intf();
+                    let first_half_is_done = intf.$htfifX().is_half();
+                    let second_half_is_done = intf.$ftfifX().is_complete();
+
+                    if (half_being_read == Half::First && second_half_is_done)
+                        || (half_being_read == Half::Second && first_half_is_done)
+                    {
+                        Err(Error::Overrun)
+                    } else {
+                        Ok(ret)
+                    }
+                }
+
+                /// Returns the `Half` of the buffer that can be read
+                pub fn readable_half(&mut self) -> Result<Half, Error> {
+                    let intf = self.payload.channel.intf();
+                    let first_half_is_done = intf.$htfifX().is_half();
+                    let second_half_is_done = intf.$ftfifX().is_complete();
+
+                    if first_half_is_done && second_half_is_done {
+                        return Err(Error::Overrun);
+                    }
+
+                    let last_read_half = self.readable_half;
+
+                    Ok(match last_read_half {
+                        Half::First => {
+                            if second_half_is_done {
+                                self.payload.channel.intc().write(|w| w.$ftfifcX().clear());
+
+                                self.readable_half = Half::Second;
+                                Half::Second
+                            } else {
+                                last_read_half
+                            }
+                        }
+                        Half::Second => {
+                            if first_half_is_done {
+                                self.payload.channel.intc().write(|w| w.$htfifcX().clear());
+
+                                self.readable_half = Half::First;
+                                Half::First
+                            } else {
+                                last_read_half
+                            }
+                        }
+                    })
+                }
+
+                /// Stops the transfer and returns the underlying buffer and RxDma
+                pub fn stop(mut self) -> (&'static mut [B; 2], RxDma<PAYLOAD, $CX>) {
+                    self.payload.stop();
+
+                    (self.buffer, self.payload)
                 }
             }
-        })
-    }
 
-    /// Stops the transfer and returns the underlying buffer and RxDma
-    pub fn stop(mut self) -> (&'static mut [B; 2], RxDma<PAYLOAD, C0>) {
-        self.payload.stop();
+            impl<BUFFER, PAYLOAD, MODE> Transfer<MODE, BUFFER, RxDma<PAYLOAD, $CX>>
+            where
+                RxDma<PAYLOAD, $CX>: TransferPayload,
+            {
+                pub fn is_done(&self) -> bool {
+                    !self.payload.channel.in_progress()
+                }
 
-        (self.buffer, self.payload)
-    }
-}
+                pub fn wait(mut self) -> (BUFFER, RxDma<PAYLOAD, $CX>) {
+                    while !self.is_done() {}
 
-impl<BUFFER, PAYLOAD, MODE> Transfer<MODE, BUFFER, RxDma<PAYLOAD, C0>>
-where
-    RxDma<PAYLOAD, C0>: TransferPayload,
-{
-    pub fn is_done(&self) -> bool {
-        !self.payload.channel.in_progress()
-    }
+                    atomic::compiler_fence(Ordering::Acquire);
 
-    pub fn wait(mut self) -> (BUFFER, RxDma<PAYLOAD, C0>) {
-        while !self.is_done() {}
+                    self.payload.stop();
 
-        atomic::compiler_fence(Ordering::Acquire);
+                    // we need a read here to make the Acquire fence effective
+                    // we do *not* need this if `dma.stop` does a RMW operation
+                    unsafe {
+                        ptr::read_volatile(&0);
+                    }
 
-        self.payload.stop();
+                    // we need a fence here for the same reason we need one in `Transfer.wait`
+                    atomic::compiler_fence(Ordering::Acquire);
 
-        // we need a read here to make the Acquire fence effective
-        // we do *not* need this if `dma.stop` does a RMW operation
-        unsafe {
-            ptr::read_volatile(&0);
+                    // `Transfer` needs to have a `Drop` implementation, because we accept
+                    // managed buffers that can free their memory on drop. Because of that
+                    // we can't move out of the `Transfer`'s fields, so we use `ptr::read`
+                    // and `mem::forget`.
+                    //
+                    // NOTE(unsafe) There is no panic branch between getting the resources
+                    // and forgetting `self`.
+                    unsafe {
+                        let buffer = ptr::read(&self.buffer);
+                        let payload = ptr::read(&self.payload);
+                        mem::forget(self);
+                        (buffer, payload)
+                    }
+                }
+            }
+
+            impl<BUFFER, PAYLOAD, MODE> Transfer<MODE, BUFFER, TxDma<PAYLOAD, $CX>>
+            where
+                TxDma<PAYLOAD, $CX>: TransferPayload,
+            {
+                pub fn is_done(&self) -> bool {
+                    !self.payload.channel.in_progress()
+                }
+
+                pub fn wait(mut self) -> (BUFFER, TxDma<PAYLOAD, $CX>) {
+                    while !self.is_done() {}
+
+                    atomic::compiler_fence(Ordering::Acquire);
+
+                    self.payload.stop();
+
+                    // we need a read here to make the Acquire fence effective
+                    // we do *not* need this if `dma.stop` does a RMW operation
+                    unsafe {
+                        ptr::read_volatile(&0);
+                    }
+
+                    // we need a fence here for the same reason we need one in `Transfer.wait`
+                    atomic::compiler_fence(Ordering::Acquire);
+
+                    // `Transfer` needs to have a `Drop` implementation, because we accept
+                    // managed buffers that can free their memory on drop. Because of that
+                    // we can't move out of the `Transfer`'s fields, so we use `ptr::read`
+                    // and `mem::forget`.
+                    //
+                    // NOTE(unsafe) There is no panic branch between getting the resources
+                    // and forgetting `self`.
+                    unsafe {
+                        let buffer = ptr::read(&self.buffer);
+                        let payload = ptr::read(&self.payload);
+                        mem::forget(self);
+                        (buffer, payload)
+                    }
+                }
+            }
+
+            impl<BUFFER, PAYLOAD> Transfer<W, BUFFER, RxDma<PAYLOAD, $CX>>
+            where
+                RxDma<PAYLOAD, $CX>: TransferPayload,
+            {
+                pub fn peek<T>(&self) -> &[T]
+                where
+                    BUFFER: AsRef<[T]>,
+                {
+                    let pending = self.payload.channel.get_ndtr() as usize;
+
+                    let slice = self.buffer.as_ref();
+                    let capacity = slice.len();
+
+                    &slice[..(capacity - pending)]
+                }
+            }
+        )+
+
+        impl DmaExt for DMA {
+            type Channels = Channels;
+
+            fn split(self, ahb: &mut AHB) -> Channels {
+                DMA::enable(ahb);
+
+                // reset the DMA control registers (stops all on-going transfers)
+                $(
+                    self.$chXctl.reset();
+                )+
+
+                Channels((), $($CX { _0: () }),+)
+            }
         }
-
-        // we need a fence here for the same reason we need one in `Transfer.wait`
-        atomic::compiler_fence(Ordering::Acquire);
-
-        // `Transfer` needs to have a `Drop` implementation, because we accept
-        // managed buffers that can free their memory on drop. Because of that
-        // we can't move out of the `Transfer`'s fields, so we use `ptr::read`
-        // and `mem::forget`.
-        //
-        // NOTE(unsafe) There is no panic branch between getting the resources
-        // and forgetting `self`.
-        unsafe {
-            let buffer = ptr::read(&self.buffer);
-            let payload = ptr::read(&self.payload);
-            mem::forget(self);
-            (buffer, payload)
-        }
-    }
-}
-
-impl<BUFFER, PAYLOAD, MODE> Transfer<MODE, BUFFER, TxDma<PAYLOAD, C0>>
-where
-    TxDma<PAYLOAD, C0>: TransferPayload,
-{
-    pub fn is_done(&self) -> bool {
-        !self.payload.channel.in_progress()
-    }
-
-    pub fn wait(mut self) -> (BUFFER, TxDma<PAYLOAD, C0>) {
-        while !self.is_done() {}
-
-        atomic::compiler_fence(Ordering::Acquire);
-
-        self.payload.stop();
-
-        // we need a read here to make the Acquire fence effective
-        // we do *not* need this if `dma.stop` does a RMW operation
-        unsafe {
-            ptr::read_volatile(&0);
-        }
-
-        // we need a fence here for the same reason we need one in `Transfer.wait`
-        atomic::compiler_fence(Ordering::Acquire);
-
-        // `Transfer` needs to have a `Drop` implementation, because we accept
-        // managed buffers that can free their memory on drop. Because of that
-        // we can't move out of the `Transfer`'s fields, so we use `ptr::read`
-        // and `mem::forget`.
-        //
-        // NOTE(unsafe) There is no panic branch between getting the resources
-        // and forgetting `self`.
-        unsafe {
-            let buffer = ptr::read(&self.buffer);
-            let payload = ptr::read(&self.payload);
-            mem::forget(self);
-            (buffer, payload)
-        }
-    }
-}
-
-impl<BUFFER, PAYLOAD> Transfer<W, BUFFER, RxDma<PAYLOAD, C0>>
-where
-    RxDma<PAYLOAD, C0>: TransferPayload,
-{
-    pub fn peek<T>(&self) -> &[T]
-    where
-        BUFFER: AsRef<[T]>,
-    {
-        let pending = self.payload.channel.get_ndtr() as usize;
-
-        let slice = self.buffer.as_ref();
-        let capacity = slice.len();
-
-        &slice[..(capacity - pending)]
-    }
-}
-
-impl DmaExt for DMA {
-    type Channels = Channels;
-
-    fn split(self, ahb: &mut AHB) -> Channels {
-        DMA::enable(ahb);
-
-        // reset the DMA control registers (stops all on-going transfers)
-
-        self.ch0ctl0.reset();
-
-        Channels((), C0 { _0: () })
     }
 }
 
@@ -451,4 +450,42 @@ where
     Self: core::marker::Sized + TransferPayload,
 {
     fn write(self, buffer: B) -> Transfer<R, B, Self>;
+}
+
+dma! {
+    C0: (
+        htfif0, ftfif0,
+        htfifc0, ftfifc0, gic0,
+        ch0ctl0, ch0cnt, ch0maddr, ch0paddr,
+    ),
+    C1: (
+        htfif1, ftfif1,
+        htfifc1, ftfifc1, gic1,
+        ch1ctl0, ch1cnt, ch1maddr, ch1paddr,
+    ),
+    C2: (
+        htfif2, ftfif2,
+        htfifc2, ftfifc2, gic2,
+        ch2ctl0, ch2cnt, ch2maddr, ch2paddr,
+    ),
+    C3: (
+        htfif3, ftfif3,
+        htfifc3, ftfifc3, gic3,
+        ch3ctl0, ch3cnt, ch3maddr, ch3paddr,
+    ),
+    C4: (
+        htfif4, ftfif4,
+        htfifc4, ftfifc4, gic4,
+        ch4ctl0, ch4cnt, ch4maddr, ch4paddr,
+    ),
+    C5: (
+        htfif5, ftfif5,
+        htfifc5, ftfifc5, gic5,
+        ch5ctl0, ch5cnt, ch5maddr, ch5paddr,
+    ),
+    C6: (
+        htfif6, ftfif6,
+        htfifc6, ftfifc6, gic6,
+        ch6ctl0, ch6cnt, ch6maddr, ch6paddr,
+    ),
 }
