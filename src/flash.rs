@@ -55,6 +55,7 @@ pub enum FlashSize {
     Sz768K = 768,
     Sz1M = 1024,
 }
+
 impl FlashSize {
     const fn kbytes(self) -> u32 {
         SZ_1K as u32 * self as u32
@@ -67,39 +68,36 @@ pub struct FlashWriter<'a> {
     flash_sz: FlashSize,
     verify: bool,
 }
+
 impl<'a> FlashWriter<'a> {
     fn unlock(&mut self) -> Result<()> {
         // Wait for any ongoing operations
-        while self.fmc.sr.sr().read().bsy().bit_is_set() {}
+        while self.fmc.stat.stat().read().busy().is_active() {}
 
         // NOTE(unsafe) write Keys to the key register. This is safe because the
         // only side effect of these writes is to unlock the fmc control
         // register, which is the intent of this function. Do not rearrange the
         // order of these writes or the control register will be permanently
         // locked out until reset.
-        unsafe {
-            self.fmc.keyr.keyr().write(|w| w.key().bits(KEY1));
-        }
-        unsafe {
-            self.fmc.keyr.keyr().write(|w| w.key().bits(KEY2));
-        }
+        self.fmc.key.keyr().write(|w| w.key().bits(KEY1));
+        self.fmc.key.keyr().write(|w| w.key().bits(KEY2));
 
         // Verify success
-        match self.fmc.cr.cr().read().lock().bit_is_clear() {
+        match self.fmc.ctl.ctl().read().lk().is_unlocked() {
             true => Ok(()),
             false => Err(Error::UnlockError),
         }
     }
 
     fn lock(&mut self) -> Result<()> {
-        //Wait for ongoing flash operations
-        while self.fmc.sr.sr().read().bsy().bit_is_set() {}
+        // Wait for ongoing flash operations
+        while self.fmc.stat.stat().read().busy().is_active() {}
 
         // Set lock bit
-        self.fmc.cr.cr().modify(|_, w| w.lock().set_bit());
+        self.fmc.ctl.ctl().modify(|_, w| w.lk().lock());
 
         // Verify success
-        match self.fmc.cr.cr().read().lock().bit_is_set() {
+        match self.fmc.ctl.ctl().read().lk().is_locked() {
             true => Ok(()),
             false => Err(Error::LockError),
         }
@@ -133,37 +131,35 @@ impl<'a> FlashWriter<'a> {
         self.unlock()?;
 
         // Set Page Erase
-        self.fmc.cr.cr().modify(|_, w| w.per().set_bit());
+        self.fmc.ctl.ctl().modify(|_, w| w.per().page_erase());
 
         // Write address bits
         // NOTE(unsafe) This sets the page address in the Address Register.
         // The side-effect of this write is that the page will be erased when we
-        // set the STRT bit in the CR below. The address is validated by the
+        // set the STRT bit in the CTL below. The address is validated by the
         // call to self.valid_address() above.
-        unsafe {
-            self.fmc
-                .ar
-                .ar()
-                .write(|w| w.far().bits(FLASH_START + start_offset));
-        }
+        self.fmc
+            .addr
+            .addr()
+            .write(|w| w.addr().bits(FLASH_START + start_offset));
 
         // Start Operation
-        self.fmc.cr.cr().modify(|_, w| w.strt().set_bit());
+        self.fmc.ctl.ctl().modify(|_, w| w.start().start());
 
         // Wait for operation to finish
-        while self.fmc.sr.sr().read().bsy().bit_is_set() {}
+        while self.fmc.stat.stat().read().busy().is_active() {}
 
         // Check for errors
-        let sr = self.fmc.sr.sr().read();
+        let stat = self.fmc.stat.stat().read();
 
         // Remove Page Erase Operation bit
-        self.fmc.cr.cr().modify(|_, w| w.per().clear_bit());
+        self.fmc.ctl.ctl().modify(|_, w| w.per().clear_bit());
 
         // Re-lock flash
         self.lock()?;
 
-        if sr.wrprterr().bit_is_set() {
-            self.fmc.sr.sr().modify(|_, w| w.wrprterr().clear_bit());
+        if stat.wperr().is_error() {
+            self.fmc.stat.stat().modify(|_, w| w.wperr().clear());
             Err(Error::EraseError)
         } else {
             if self.verify {
@@ -235,9 +231,9 @@ impl<'a> FlashWriter<'a> {
             let write_address = (FLASH_START + offset + idx as u32) as *mut u16;
 
             // Set Page Programming to 1
-            self.fmc.cr.cr().modify(|_, w| w.pg().set_bit());
+            self.fmc.ctl.ctl().modify(|_, w| w.pg().set_bit());
 
-            while self.fmc.sr.sr().read().bsy().bit_is_set() {}
+            while self.fmc.stat.stat().read().busy().is_active() {}
 
             // Flash is written 16 bits at a time, so combine two bytes to get a
             // half-word
@@ -247,19 +243,19 @@ impl<'a> FlashWriter<'a> {
             unsafe { core::ptr::write_volatile(write_address, hword) };
 
             // Wait for write
-            while self.fmc.sr.sr().read().bsy().bit_is_set() {}
+            while self.fmc.stat.stat().read().busy().is_active() {}
 
             // Set Page Programming to 0
-            self.fmc.cr.cr().modify(|_, w| w.pg().clear_bit());
+            self.fmc.ctl.ctl().modify(|_, w| w.pg().clear_bit());
 
             // Check for errors
-            if self.fmc.sr.sr().read().pgerr().bit_is_set() {
-                self.fmc.sr.sr().modify(|_, w| w.pgerr().clear_bit());
+            if self.fmc.stat.stat().read().pgerr().bit_is_set() {
+                self.fmc.stat.stat().modify(|_, w| w.pgerr().clear_bit());
 
                 self.lock()?;
                 return Err(Error::ProgrammingError);
-            } else if self.fmc.sr.sr().read().wrprterr().bit_is_set() {
-                self.fmc.sr.sr().modify(|_, w| w.wrprterr().clear_bit());
+            } else if self.fmc.stat.stat().read().wperr().is_error() {
+                self.fmc.stat.stat().modify(|_, w| w.wperr().clear());
 
                 self.lock()?;
                 return Err(Error::WriteError);
@@ -303,43 +299,43 @@ pub trait FlashExt {
 impl FlashExt for FMC {
     fn constrain(self) -> Parts {
         Parts {
-            acr: ACR { _0: () },
-            ar: AR { _0: () },
-            cr: CR { _0: () },
-            keyr: KEYR { _0: () },
-            _obr: OBR { _0: () },
-            _optkeyr: OPTKEYR { _0: () },
-            sr: SR { _0: () },
-            _wrpr: WRPR { _0: () },
+            ws: WS { _0: () },
+            addr: ADDR { _0: () },
+            ctl: CTL { _0: () },
+            key: KEY { _0: () },
+            _obstat: OBSTAT { _0: () },
+            _obkey: OBKEY { _0: () },
+            stat: STAT { _0: () },
+            _wp: WP { _0: () },
         }
     }
 }
 
 /// Constrained FMC peripheral
 pub struct Parts {
-    /// Opaque ACR register
-    pub acr: ACR,
+    /// Opaque WS register
+    pub ws: WS,
 
-    /// Opaque AR register
-    pub(crate) ar: AR,
+    /// Opaque ADDR register
+    pub(crate) addr: ADDR,
 
-    /// Opaque CR register
-    pub(crate) cr: CR,
+    /// Opaque CTL register
+    pub(crate) ctl: CTL,
 
-    /// Opaque KEYR register
-    pub(crate) keyr: KEYR,
+    /// Opaque KEY register
+    pub(crate) key: KEY,
 
-    /// Opaque OBR register
-    pub(crate) _obr: OBR,
+    /// Opaque OBSTAT register
+    pub(crate) _obstat: OBSTAT,
 
     /// Opaque OPTKEYR register
-    pub(crate) _optkeyr: OPTKEYR,
+    pub(crate) _obkey: OBKEY,
 
-    /// Opaque SR register
-    pub(crate) sr: SR,
+    /// Opaque STAT register
+    pub(crate) stat: STAT,
 
-    /// Opaque WRPR register
-    pub(crate) _wrpr: WRPR,
+    /// Opaque WP register
+    pub(crate) _wp: WP,
 }
 impl Parts {
     pub fn writer(&mut self, sector_sz: SectorSize, flash_sz: FlashSize) -> FlashWriter {
@@ -352,106 +348,102 @@ impl Parts {
     }
 }
 
-/// Opaque ACR register
-pub struct ACR {
+/// Opaque WS register
+pub struct WS {
     _0: (),
 }
 
 #[allow(dead_code)]
-impl ACR {
-    pub(crate) fn acr(&mut self) -> &fmc::ACR {
+impl WS {
+    pub(crate) fn ws(&mut self) -> &fmc::WS {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).acr }
+        unsafe { &(*FMC::ptr()).ws }
     }
 }
 
-/// Opaque AR register
-pub struct AR {
+/// Opaque ADDR register
+pub struct ADDR {
     _0: (),
 }
 
-#[allow(dead_code)]
-impl AR {
-    pub(crate) fn ar(&mut self) -> &fmc::AR {
+impl ADDR {
+    pub(crate) fn addr(&mut self) -> &fmc::ADDR {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).ar }
+        unsafe { &(*FMC::ptr()).addr }
     }
 }
 
-/// Opaque CR register
-pub struct CR {
+/// Opaque CTL register
+pub struct CTL {
     _0: (),
 }
 
-#[allow(dead_code)]
-impl CR {
-    pub(crate) fn cr(&mut self) -> &fmc::CR {
+impl CTL {
+    pub(crate) fn ctl(&mut self) -> &fmc::CTL {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).cr }
+        unsafe { &(*FMC::ptr()).ctl }
     }
 }
 
-/// Opaque KEYR register
-pub struct KEYR {
+/// Opaque KEY register
+pub struct KEY {
     _0: (),
 }
 
-#[allow(dead_code)]
-impl KEYR {
-    pub(crate) fn keyr(&mut self) -> &fmc::KEYR {
+impl KEY {
+    pub(crate) fn keyr(&mut self) -> &fmc::KEY {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).keyr }
+        unsafe { &(*FMC::ptr()).key }
     }
 }
 
-/// Opaque OBR register
-pub struct OBR {
+/// Opaque OBSTAT register
+pub struct OBSTAT {
     _0: (),
 }
 
 #[allow(dead_code)]
-impl OBR {
-    pub(crate) fn obr(&mut self) -> &fmc::OBR {
+impl OBSTAT {
+    pub(crate) fn obstat(&mut self) -> &fmc::OBSTAT {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).obr }
+        unsafe { &(*FMC::ptr()).obstat }
     }
 }
 
-/// Opaque OPTKEYR register
-pub struct OPTKEYR {
+/// Opaque OBKEY register
+pub struct OBKEY {
     _0: (),
 }
 
 #[allow(dead_code)]
-impl OPTKEYR {
-    pub(crate) fn optkeyr(&mut self) -> &fmc::OPTKEYR {
+impl OBKEY {
+    pub(crate) fn optkeyr(&mut self) -> &fmc::OBKEY {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).optkeyr }
+        unsafe { &(*FMC::ptr()).obkey }
     }
 }
 
-/// Opaque SR register
-pub struct SR {
+/// Opaque STAT register
+pub struct STAT {
     _0: (),
 }
 
-#[allow(dead_code)]
-impl SR {
-    pub(crate) fn sr(&mut self) -> &fmc::SR {
+impl STAT {
+    pub(crate) fn stat(&mut self) -> &fmc::STAT {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).sr }
+        unsafe { &(*FMC::ptr()).stat }
     }
 }
 
-/// Opaque WRPR register
-pub struct WRPR {
+/// Opaque WP register
+pub struct WP {
     _0: (),
 }
 
 #[allow(dead_code)]
-impl WRPR {
-    pub(crate) fn wrpr(&mut self) -> &fmc::WRPR {
+impl WP {
+    pub(crate) fn wp(&mut self) -> &fmc::WP {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).wrpr }
+        unsafe { &(*FMC::ptr()).wp }
     }
 }
