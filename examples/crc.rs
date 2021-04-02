@@ -8,14 +8,14 @@ use panic_halt as _;
 
 use cortex_m_rt::entry;
 use cortex_m_semihosting::hprintln;
-use stm32f1xx_hal::{pac, prelude::*};
+use gd32f1x0_hal::{pac, prelude::*};
 
 #[entry]
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
-    let mut rcc = p.RCC.constrain();
-    let mut crc = p.CRC.new(&mut rcc.ahb);
+    let mut rcu = p.RCU.constrain();
+    let mut crc = p.CRC.new(&mut rcu.ahb);
 
     crc.reset();
     crc.write(0x12345678);

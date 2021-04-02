@@ -90,9 +90,9 @@ pub mod backup_domain;
 #[cfg(feature = "device-selected")]
 pub mod bb;
 #[cfg(all(feature = "device-selected", feature = "has-can"))]
-pub mod can;
+pub mod can;*/
 #[cfg(feature = "device-selected")]
-pub mod crc;*/
+pub mod crc;
 #[cfg(feature = "device-selected")]
 pub mod delay;
 #[cfg(feature = "device-selected")]

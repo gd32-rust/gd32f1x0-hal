@@ -1,7 +1,7 @@
 //! CRC
 
 use crate::pac::CRC;
-use crate::rcc::{Enable, AHB};
+use crate::rcu::{Enable, AHB};
 
 /// Extension trait to constrain the CRC peripheral
 pub trait CrcExt {
@@ -23,16 +23,16 @@ pub struct Crc {
 
 impl Crc {
     pub fn read(&self) -> u32 {
-        self.crc.dr.read().bits()
+        self.crc.data.read().bits()
     }
 
     pub fn write(&mut self, val: u32) {
-        self.crc.dr.write(|w| w.dr().bits(val))
+        self.crc.data.write(|w| w.data().bits(val))
     }
 
     pub fn reset(&self) {
-        self.crc.cr.write(|w| w.reset().set_bit());
-        // calling CRC::dr::write() just after CRC::cr::reset() will not work as expected, and
+        self.crc.ctl.write(|w| w.rst().reset());
+        // calling CRC::dr::write() just after CRC::ctl::reset() will not work as expected, and
         // inserting single nop() seems to solve the problem.
         cortex_m::asm::nop();
     }

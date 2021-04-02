@@ -2,8 +2,7 @@
 //
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
-/*
-pub use crate::crc::CrcExt as _gd32_hal_crc_CrcExt;*/
+pub use crate::crc::CrcExt as _gd32_hal_crc_CrcExt;
 pub use crate::dma::CircReadDma as _gd32_hal_dma_CircReadDma;
 pub use crate::dma::DmaExt as _gd32_hal_dma_DmaExt;
 pub use crate::dma::ReadDma as _gd32_hal_dma_ReadDma;
