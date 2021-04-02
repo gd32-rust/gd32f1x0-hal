@@ -115,6 +115,23 @@ pub struct R;
 /// Write transfer
 pub struct W;
 
+#[allow(dead_code)]
+#[derive(Copy, Clone, Debug)]
+pub(crate) enum Priority {
+    Low = 0,
+    Medium = 1,
+    High = 2,
+    VeryHigh = 3,
+}
+
+#[allow(dead_code)]
+#[derive(Copy, Clone, Debug)]
+pub(crate) enum Width {
+    Bits8 = 0,
+    Bits16 = 1,
+    Bits32 = 2,
+}
+
 macro_rules! dma {
     {$($CX:ident: (
             $htfifX:ident,
@@ -187,6 +204,33 @@ macro_rules! dma {
                     match event {
                         Event::HalfTransfer => unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.htfie().disabled()),
                         Event::TransferComplete => unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.ftfie().disabled()),
+                    }
+                }
+
+                /// Configures the DMA channel to transfer data from a peripheral to memory.
+                #[allow(dead_code)]
+                pub(crate) fn configure_from_peripheral(
+                    &mut self,
+                    priority: Priority,
+                    memory_width: Width,
+                    peripheral_width: Width,
+                    circular: bool,
+                ) {
+                    unsafe {
+                        (*DMA::ptr()).$chXctl.modify(|_, w| {
+                            w.m2m()
+                                .disabled()
+                                .dir()
+                                .from_peripheral()
+                                .prio()
+                                .bits(priority as u8)
+                                .mwidth()
+                                .bits(memory_width as u8)
+                                .pwidth()
+                                .bits(peripheral_width as u8)
+                                .cmen()
+                                .bit(circular)
+                        });
                     }
                 }
 

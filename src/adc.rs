@@ -4,13 +4,21 @@
 
 //! # API for the Analog to Digital converter
 
-use core::convert::Infallible;
-
+use crate::dma::{
+    CircBuffer, CircReadDma, Priority, ReadDma, Receive, RxDma, Transfer, TransferPayload, Width,
+    C0, W,
+};
 use crate::gpio::Analog;
 use crate::gpio::{gpioa, gpiob, gpioc};
 use crate::pac::ADC;
 use crate::rcu::{Clocks, Enable, Reset, APB2};
+use core::{
+    convert::Infallible,
+    marker::PhantomData,
+    sync::atomic::{self, Ordering},
+};
 use cortex_m::asm::delay;
+use embedded_dma::StaticWriteBuffer;
 use embedded_hal::adc::{Channel, OneShot};
 use gd32f1::gd32f1x0::adc::{
     ctl1::{CTN_A, DAL_A},
@@ -420,6 +428,30 @@ impl Adc {
 
         self.rb.rdata.read().rdata().bits()
     }
+
+    /// Configure the ADC to read from the given pin with DMA.
+    pub fn with_dma<PIN>(mut self, pins: PIN, dma_ch: C0) -> AdcDma<PIN, Continuous>
+    where
+        PIN: Channel<ADC, ID = u8>,
+    {
+        self.rb.ctl0.modify(|_, w| w.disrc().disabled());
+        self.rb
+            .ctl1
+            .modify(|_, w| w.dal().variant(self.align.into()));
+        self.set_channel_sample_time(PIN::channel(), self.sample_time);
+        self.set_regular_sequence_channels(&[PIN::channel()]);
+        self.rb.ctl1.modify(|_, w| w.dma().enabled());
+
+        let payload = AdcPayload {
+            adc: self,
+            pins,
+            _mode: PhantomData,
+        };
+        RxDma {
+            payload,
+            channel: dma_ch,
+        }
+    }
 }
 
 impl<WORD, PIN> OneShot<ADC, WORD, PIN> for Adc
@@ -468,6 +500,38 @@ impl SequenceAdc {
         self.adc.rb.ctl0.modify(|_, w| w.disnum().bits(0));
         self.adc.setup_oneshot();
         (self.adc, self.sequence)
+    }
+
+    /// Configure the ADC to run with DMA. Before calling this make sure to set the
+    pub fn with_scan_dma(self, dma_ch: C0) -> AdcDma<Sequence, Scan> {
+        self.adc.rb.ctl1.modify(|_, w| {
+            w.adcon()
+                .disabled()
+                .dma()
+                .disabled()
+                .ctn()
+                .single()
+                .dal()
+                .variant(self.adc.align.into())
+        });
+        self.adc
+            .rb
+            .ctl0
+            .modify(|_, w| w.sm().enabled().disrc().disabled());
+        self.adc
+            .rb
+            .ctl1
+            .modify(|_, w| w.dma().enabled().adcon().enabled());
+
+        let payload = AdcPayload {
+            adc: self.adc,
+            pins: self.sequence,
+            _mode: PhantomData,
+        };
+        RxDma {
+            payload,
+            channel: dma_ch,
+        }
     }
 }
 
@@ -544,3 +608,137 @@ adc_pins!(ADC,
     VRef => 17,
     VBat => 18,
 );
+
+pub struct AdcPayload<PINS, MODE> {
+    adc: Adc,
+    pins: PINS,
+    _mode: PhantomData<MODE>,
+}
+
+pub type AdcDma<PINS, MODE> = RxDma<AdcPayload<PINS, MODE>, C0>;
+
+impl<PINS, MODE> Receive for AdcDma<PINS, MODE> {
+    type RxChannel = C0;
+    type TransmittedWord = u16;
+}
+
+/// Continuous mode
+pub struct Continuous;
+/// Scan mode
+pub struct Scan;
+
+impl<PINS> TransferPayload for AdcDma<PINS, Continuous> {
+    fn start(&mut self) {
+        self.channel.start();
+        self.payload.adc.rb.ctl1.modify(|_, w| w.ctn().continuous());
+        // TODO: Is this a reliable way to trigger?
+        self.payload.adc.rb.ctl1.modify(|_, w| w.adcon().enabled());
+    }
+
+    fn stop(&mut self) {
+        self.channel.stop();
+        self.payload.adc.rb.ctl1.modify(|_, w| w.ctn().single());
+    }
+}
+
+impl TransferPayload for AdcDma<Sequence, Scan> {
+    fn start(&mut self) {
+        self.channel.start();
+        self.payload.adc.rb.ctl1.modify(|_, w| w.adcon().enabled());
+    }
+
+    fn stop(&mut self) {
+        self.channel.stop();
+    }
+}
+
+impl<PINS> AdcDma<PINS, Continuous>
+where
+    Self: TransferPayload,
+{
+    pub fn split(mut self) -> (Adc, PINS, C0) {
+        self.stop();
+
+        let AdcDma { payload, channel } = self;
+        payload.adc.rb.ctl1.modify(|_, w| w.dma().disabled());
+        payload.adc.rb.ctl0.modify(|_, w| w.disrc().enabled());
+
+        (payload.adc, payload.pins, channel)
+    }
+}
+
+impl AdcDma<Sequence, Scan>
+where
+    Self: TransferPayload,
+{
+    pub fn split(mut self) -> (Adc, Sequence, C0) {
+        self.stop();
+
+        let AdcDma { payload, channel } = self;
+        payload.adc.rb.ctl1.modify(|_, w| w.dma().disabled());
+        payload
+            .adc
+            .rb
+            .ctl0
+            .modify(|_, w| w.disrc().enabled().sm().disabled());
+
+        (payload.adc, payload.pins, channel)
+    }
+}
+
+impl<B, PINS, MODE> CircReadDma<B, u16> for AdcDma<PINS, MODE>
+where
+    Self: TransferPayload,
+    &'static mut [B; 2]: StaticWriteBuffer<Word = u16>,
+    B: 'static,
+{
+    fn circ_read(mut self, mut buffer: &'static mut [B; 2]) -> CircBuffer<B, Self> {
+        // NOTE(unsafe) We own the buffer now and we won't call other `&mut` on it
+        // until the end of the transfer.
+        let (ptr, len) = unsafe { buffer.static_write_buffer() };
+        self.channel
+            .set_peripheral_address(unsafe { &(*ADC::ptr()).rdata as *const _ as u32 }, false);
+        self.channel.set_memory_address(ptr as u32, true);
+        self.channel.set_transfer_length(len);
+
+        atomic::compiler_fence(Ordering::Release);
+
+        self.channel.configure_from_peripheral(
+            Priority::Medium,
+            Width::Bits16,
+            Width::Bits16,
+            true,
+        );
+
+        self.start();
+
+        CircBuffer::new(buffer, self)
+    }
+}
+
+impl<B, PINS, MODE> ReadDma<B, u16> for AdcDma<PINS, MODE>
+where
+    Self: TransferPayload,
+    B: StaticWriteBuffer<Word = u16>,
+{
+    fn read(mut self, mut buffer: B) -> Transfer<W, B, Self> {
+        // NOTE(unsafe) We own the buffer now and we won't call other `&mut` on it
+        // until the end of the transfer.
+        let (ptr, len) = unsafe { buffer.static_write_buffer() };
+        self.channel
+            .set_peripheral_address(unsafe { &(*ADC::ptr()).rdata as *const _ as u32 }, false);
+        self.channel.set_memory_address(ptr as u32, true);
+        self.channel.set_transfer_length(len);
+
+        atomic::compiler_fence(Ordering::Release);
+        self.channel.configure_from_peripheral(
+            Priority::Medium,
+            Width::Bits16,
+            Width::Bits16,
+            false,
+        );
+        self.start();
+
+        Transfer::w(buffer, self)
+    }
+}
