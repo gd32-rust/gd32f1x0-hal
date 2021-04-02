@@ -155,13 +155,13 @@ impl C0 {
 
     /// Stops the DMA transfer
     pub fn stop(&mut self) {
-        self.ifcr().write(|w| w.gic0().clear());
+        self.intc().write(|w| w.gic0().clear());
         self.chctl().modify(|_, w| w.chen().disabled());
     }
 
     /// Returns `true` if there's a transfer in progress
     pub fn in_progress(&self) -> bool {
-        self.isr().ftfif0().is_not_complete()
+        self.intf().ftfif0().is_not_complete()
     }
 
     pub fn listen(&mut self, event: Event) {
@@ -194,12 +194,12 @@ impl C0 {
         unsafe { &(*DMA::ptr()).ch0paddr }
     }
 
-    fn isr(&self) -> dma::intf::R {
+    fn intf(&self) -> dma::intf::R {
         // NOTE(unsafe) atomic read with no side effects
         unsafe { (*DMA::ptr()).intf.read() }
     }
 
-    fn ifcr(&self) -> &dma::INTC {
+    fn intc(&self) -> &dma::INTC {
         unsafe { &(*DMA::ptr()).intc }
     }
 
@@ -228,9 +228,9 @@ where
         // XXX does this need a compiler barrier?
         let ret = f(buf, half_being_read);
 
-        let isr = self.payload.channel.isr();
-        let first_half_is_done = isr.htfif0().is_half();
-        let second_half_is_done = isr.ftfif0().is_complete();
+        let intf = self.payload.channel.intf();
+        let first_half_is_done = intf.htfif0().is_half();
+        let second_half_is_done = intf.ftfif0().is_complete();
 
         if (half_being_read == Half::First && second_half_is_done)
             || (half_being_read == Half::Second && first_half_is_done)
@@ -243,9 +243,9 @@ where
 
     /// Returns the `Half` of the buffer that can be read
     pub fn readable_half(&mut self) -> Result<Half, Error> {
-        let isr = self.payload.channel.isr();
-        let first_half_is_done = isr.htfif0().is_half();
-        let second_half_is_done = isr.ftfif0().is_complete();
+        let intf = self.payload.channel.intf();
+        let first_half_is_done = intf.htfif0().is_half();
+        let second_half_is_done = intf.ftfif0().is_complete();
 
         if first_half_is_done && second_half_is_done {
             return Err(Error::Overrun);
@@ -256,7 +256,7 @@ where
         Ok(match last_read_half {
             Half::First => {
                 if second_half_is_done {
-                    self.payload.channel.ifcr().write(|w| w.ftfifc0().clear());
+                    self.payload.channel.intc().write(|w| w.ftfifc0().clear());
 
                     self.readable_half = Half::Second;
                     Half::Second
@@ -266,7 +266,7 @@ where
             }
             Half::Second => {
                 if first_half_is_done {
-                    self.payload.channel.ifcr().write(|w| w.htfifc0().clear());
+                    self.payload.channel.intc().write(|w| w.htfifc0().clear());
 
                     self.readable_half = Half::First;
                     Half::First
