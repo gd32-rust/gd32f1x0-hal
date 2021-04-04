@@ -22,7 +22,7 @@ fn main() -> ! {
     // prescaler values 2/4/6/8.
     let clocks = rcu.cfgr.adcclk(2.mhz()).freeze(&p.FMC.ws);
 
-    let dma_ch1 = p.DMA.split(&mut rcu.ahb).1;
+    let dma_ch0 = p.DMA.split(&mut rcu.ahb).0;
 
     // Setup ADC
     let adc = Adc::new(p.ADC, &mut rcu.apb2, clocks);
@@ -33,7 +33,7 @@ fn main() -> ! {
     // Configure pa0 as an analog input
     let adc_ch0 = gpioa.pa0.into_analog(&mut gpioa.config);
 
-    let adc_dma = adc.with_dma(adc_ch0, dma_ch1);
+    let adc_dma = adc.with_dma(adc_ch0, dma_ch0);
     let buf = singleton!(: [u16; 8] = [0; 8]).unwrap();
 
     // The read method consumes the buf and self, starts the adc and dma transfer and returns a
