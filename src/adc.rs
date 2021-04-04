@@ -502,8 +502,15 @@ impl SequenceAdc {
         (self.adc, self.sequence)
     }
 
-    /// Configure the ADC to run with DMA. Before calling this make sure to set the
-    pub fn with_scan_dma(self, dma_ch: C0) -> AdcDma<Sequence, Scan> {
+    /// Configure the ADC to run with DMA.
+    ///
+    /// Before calling this make sure to set the desired sample times for each channel.
+    pub fn with_scan_dma(
+        mut self,
+        dma_ch: C0,
+        continuous: CTN_A,
+        discontinuous_channels_count: Option<u8>,
+    ) -> AdcDma<Sequence, Scan> {
         self.adc.rb.ctl1.modify(|_, w| {
             w.adcon()
                 .disabled()
@@ -518,6 +525,8 @@ impl SequenceAdc {
             .rb
             .ctl0
             .modify(|_, w| w.sm().enabled().disrc().disabled());
+        self.set_continuous_mode(continuous);
+        self.set_discontinuous_mode(discontinuous_channels_count);
         self.adc
             .rb
             .ctl1
