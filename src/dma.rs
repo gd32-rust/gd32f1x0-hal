@@ -144,7 +144,7 @@ macro_rules! dma {
             $chXmaddr:ident,
             $chXpaddr:ident,
     ),)+} => {
-        pub struct Channels((), $(pub $CX),+);
+        pub struct Channels($(pub $CX),+);
 
         $(
             /// A singleton that represents a single DMA channel (channel X in this case)
@@ -433,7 +433,7 @@ macro_rules! dma {
                     self.$chXctl.reset();
                 )+
 
-                Channels((), $($CX { _0: () }),+)
+                Channels($($CX { _0: () }),+)
             }
         }
     }
