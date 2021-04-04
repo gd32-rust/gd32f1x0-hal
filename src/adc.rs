@@ -21,7 +21,7 @@ use cortex_m::asm::delay;
 use embedded_dma::StaticWriteBuffer;
 use embedded_hal::adc::{Channel, OneShot};
 use gd32f1::gd32f1x0::adc::{
-    ctl1::{CTN_A, DAL_A},
+    ctl1::{CTN_A, DAL_A, TSVREN_A, VBATEN_A},
     sampt0::SPT10_A,
     sampt1::SPT0_A,
 };
@@ -308,6 +308,9 @@ impl Adc {
     ///
     /// This both returns the value and stores it for converting other channel readings to voltages.
     /// Vref should always be 1.2 V.
+    ///
+    /// This method automatically enables the channel if necessary, so there is no need to call
+    /// `enable_aux` first.
     pub fn read_vref(&mut self) -> u16 {
         self.vref_value = self.read_aux(VRef::channel());
         self.vref_value
@@ -317,6 +320,9 @@ impl Adc {
     ///
     /// It is recommended to set the sampling time to at least 17.1 µs before calling this. Returns
     /// the temperature in °C, assuming typical calibration values.
+    ///
+    /// This method automatically enables the channel if necessary, so there is no need to call
+    /// `enable_aux` first.
     pub fn read_temperature(&mut self) -> u16 {
         let vtemp_value = self.read_aux(VTemp::channel());
         self.calculate_temperature(vtemp_value)
@@ -334,7 +340,32 @@ impl Adc {
         (VTEMP_25 - vtemp) * 10 / VTEMP_SLOPE + 25
     }
 
+    /// Enables or disables the internal channel for the backup battery voltage.
+    pub fn enable_vbat(&mut self, enabled: bool) {
+        self.rb.ctl1.modify(|_, w| {
+            w.vbaten().variant(if enabled {
+                VBATEN_A::ENABLED
+            } else {
+                VBATEN_A::DISABLED
+            })
+        });
+    }
+
+    /// Enables or disables the auxiliary channels for the internal temperature sensor and Vref.
+    pub fn enable_aux(&mut self, enabled: bool) {
+        self.rb.ctl1.modify(|_, w| {
+            w.tsvren().variant(if enabled {
+                TSVREN_A::ENABLED
+            } else {
+                TSVREN_A::DISABLED
+            })
+        });
+    }
+
     /// Reads the backup battery voltage from channel 18 of the ADC.
+    ///
+    /// This method automatically enables the channel if necessary, so there is no need to call
+    /// `enable_vbat` first.
     pub fn read_vbat(&mut self) -> u16 {
         let vbat_off = if self.rb.ctl1.read().vbaten().is_disabled() {
             self.rb.ctl1.modify(|_, w| w.vbaten().enabled());
@@ -354,6 +385,9 @@ impl Adc {
     }
 
     /// Reads the temperature sensor or Vref on channel 16 or 17.
+    ///
+    /// This method automatically enables the channels if necessary, so there is no need to call
+    /// `enable_aux` first.
     fn read_aux(&mut self, channel: u8) -> u16 {
         let tsv_off = if self.rb.ctl1.read().tsvren().is_disabled() {
             self.rb.ctl1.modify(|_, w| w.tsvren().enabled());
