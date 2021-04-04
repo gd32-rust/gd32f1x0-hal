@@ -578,6 +578,12 @@ impl SequenceAdc {
     }
 }
 
+impl AsRef<Adc> for SequenceAdc {
+    fn as_ref(&self) -> &Adc {
+        &self.adc
+    }
+}
+
 /// A sequence of up to 16 channels for the ADC to convert.
 #[derive(Debug, Default)]
 pub struct Sequence {
@@ -663,6 +669,12 @@ pub type AdcDma<PINS, MODE> = RxDma<AdcPayload<PINS, MODE>, C0>;
 impl<PINS, MODE> Receive for AdcDma<PINS, MODE> {
     type RxChannel = C0;
     type TransmittedWord = u16;
+}
+
+impl<PINS, MODE> AsRef<Adc> for AdcDma<PINS, MODE> {
+    fn as_ref(&self) -> &Adc {
+        &self.payload.adc
+    }
 }
 
 /// Continuous mode
