@@ -291,7 +291,7 @@ impl Adc {
 
     /// Set ADC sampling time for particular channel
     #[inline(always)]
-    pub fn set_sample_time<C: Channel<ADC, ID = u8>>(&mut self, _pin: C, sample_time: SampleTime) {
+    pub fn set_sample_time<C: Channel<ADC, ID = u8>>(&mut self, _pin: &C, sample_time: SampleTime) {
         self.set_channel_sample_time(C::channel(), sample_time);
     }
 
