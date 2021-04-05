@@ -4,19 +4,17 @@
 
 //! # Reset & Clock Unit
 
-use core::cmp;
-
 use crate::pac::{
     fmc::{ws::WSCNT_A, WS},
     rcu::{
         self,
-        cfg0::{PLLSEL_A, SCS_A, USBDPSC_A},
+        cfg0::{ADCPSC_A, AHBPSC_A, APB1PSC_A, APB2PSC_A, PLLSEL_A, SCS_A, USBDPSC_A},
     },
     RCU,
 };
-use cast::u32;
-
 use crate::time::Hertz;
+use cast::u32;
+use core::cmp;
 
 //use crate::backup_domain::BackupDomain;
 
@@ -33,7 +31,7 @@ impl RcuExt for RCU {
             apb1: APB1 { _0: () },
             apb2: APB2 { _0: () },
             cfgr: CFGR {
-                hse: None,
+                hxtal: None,
                 hclk: None,
                 pclk1: None,
                 pclk2: None,
@@ -144,7 +142,8 @@ impl APB2 {
     }
 }
 
-const HSI: u32 = 8_000_000; // Hz
+/// Frequency of the internal 8MHz RC oscillator in Hz
+const IRC8M: u32 = 8_000_000;
 
 /// Clock configuration register (CFGR)
 ///
@@ -156,7 +155,7 @@ const HSI: u32 = 8_000_000; // Hz
 /// **NOTE**: Currently, it is not guaranteed that the exact frequencies selected will be
 /// used, only frequencies close to it.
 pub struct CFGR {
-    hse: Option<u32>,
+    hxtal: Option<u32>,
     hclk: Option<u32>,
     pclk1: Option<u32>,
     pclk2: Option<u32>,
@@ -165,14 +164,14 @@ pub struct CFGR {
 }
 
 impl CFGR {
-    /// Uses HSE (external oscillator) instead of HSI (internal RC oscillator) as the clock source.
+    /// Uses HXTAL (external oscillator) instead of IRC8M (internal RC oscillator) as the clock source.
     /// Will result in a hang if an external oscillator is not connected or it fails to start.
     /// The frequency specified must be the frequency of the external oscillator
-    pub fn use_hse<F>(mut self, freq: F) -> Self
+    pub fn use_hxtal<F>(mut self, freq: F) -> Self
     where
         F: Into<Hertz>,
     {
-        self.hse = Some(freq.into().0);
+        self.hxtal = Some(freq.into().0);
         self
     }
 
@@ -233,76 +232,62 @@ impl CFGR {
     /// let mut rcu = dp.RCU.constrain();
     /// let clocks = rcu.cfgr.freeze(&mut flash.acr);
     /// ```
-
     pub fn freeze(self, ws: &WS) -> Clocks {
-        let pllsrculk = self.hse.unwrap_or(HSI / 2);
+        let pllsrculk = self.hxtal.unwrap_or(IRC8M / 2);
 
         let pllmul = self.sysclk.unwrap_or(pllsrculk) / pllsrculk;
 
-        let (pllmul_bits, sysclk) = if pllmul == 1 {
-            (None, self.hse.unwrap_or(HSI))
+        let (pllmf_msb, pllmf_bits, sysclk) = if pllmul == 1 {
+            (false, None, self.hxtal.unwrap_or(IRC8M))
         } else {
-            let pllmul = cmp::min(cmp::max(pllmul, 1), 16);
-
-            (Some(pllmul as u8 - 2), pllsrculk * pllmul)
+            let pllmul = cmp::min(cmp::max(pllmul, 2), 32);
+            if pllmul > 16 {
+                (true, Some(pllmul as u8 - 17), pllsrculk * pllmul)
+            } else {
+                (false, Some(pllmul as u8 - 2), pllsrculk * pllmul)
+            }
         };
 
         assert!(sysclk <= 72_000_000);
 
-        let hpre_bits = self
-            .hclk
-            .map(|hclk| match sysclk / hclk {
-                0 => unreachable!(),
-                1 => 0b0111,
-                2 => 0b1000,
-                3..=5 => 0b1001,
-                6..=11 => 0b1010,
-                12..=39 => 0b1011,
-                40..=95 => 0b1100,
-                96..=191 => 0b1101,
-                192..=383 => 0b1110,
-                _ => 0b1111,
-            })
-            .unwrap_or(0b0111);
-
-        let hclk = if hpre_bits >= 0b1100 {
-            sysclk / (1 << (hpre_bits - 0b0110))
-        } else {
-            sysclk / (1 << (hpre_bits - 0b0111))
+        let (ahbpsc, hclk) = match sysclk / self.hclk.unwrap_or(sysclk) {
+            0 => unreachable!(),
+            1 => (AHBPSC_A::DIV1, sysclk),
+            2 => (AHBPSC_A::DIV2, sysclk / 2),
+            3..=5 => (AHBPSC_A::DIV4, sysclk / 4),
+            6..=11 => (AHBPSC_A::DIV8, sysclk / 8),
+            12..=39 => (AHBPSC_A::DIV16, sysclk / 16),
+            40..=95 => (AHBPSC_A::DIV64, sysclk / 64),
+            96..=191 => (AHBPSC_A::DIV128, sysclk / 128),
+            192..=383 => (AHBPSC_A::DIV256, sysclk / 256),
+            _ => (AHBPSC_A::DIV512, sysclk / 512),
         };
 
         assert!(hclk <= 72_000_000);
 
-        let ppre1_bits = self
-            .pclk1
-            .map(|pclk1| match hclk / pclk1 {
-                0 => unreachable!(),
-                1 => 0b011,
-                2 => 0b100,
-                3..=5 => 0b101,
-                6..=11 => 0b110,
-                _ => 0b111,
-            })
-            .unwrap_or(0b011);
+        // Default APB1 clock to less than 36 MHz so I2C will work.
+        let (apb1psc, ppre1) = match hclk / self.pclk1.unwrap_or(cmp::min(hclk, 36_000_000)) {
+            0 => unreachable!(),
+            1 => (APB1PSC_A::DIV1, 1),
+            2 => (APB1PSC_A::DIV2, 2),
+            3..=5 => (APB1PSC_A::DIV4, 4),
+            6..=11 => (APB1PSC_A::DIV8, 8),
+            _ => (APB1PSC_A::DIV16, 16),
+        };
 
-        let ppre1 = 1 << (ppre1_bits - 0b011);
         let pclk1 = hclk / u32(ppre1);
 
-        assert!(pclk1 <= 36_000_000);
+        assert!(pclk1 <= 72_000_000);
 
-        let ppre2_bits = self
-            .pclk2
-            .map(|pclk2| match hclk / pclk2 {
-                0 => unreachable!(),
-                1 => 0b011,
-                2 => 0b100,
-                3..=5 => 0b101,
-                6..=11 => 0b110,
-                _ => 0b111,
-            })
-            .unwrap_or(0b011);
+        let (apb2psc, ppre2) = match hclk / self.pclk2.unwrap_or(hclk) {
+            0 => unreachable!(),
+            1 => (APB2PSC_A::DIV1, 1),
+            2 => (APB2PSC_A::DIV2, 2),
+            3..=5 => (APB2PSC_A::DIV4, 4),
+            6..=11 => (APB2PSC_A::DIV8, 8),
+            _ => (APB2PSC_A::DIV16, 16),
+        };
 
-        let ppre2 = 1 << (ppre2_bits - 0b011);
         let pclk2 = hclk / u32(ppre2);
 
         assert!(pclk2 <= 72_000_000);
@@ -321,45 +306,37 @@ impl CFGR {
         // the USB clock is only valid if an external crystal is used, the PLL is enabled, and the
         // PLL output frequency is a supported one.
         // usbpre == false: divide clock by 1.5, otherwise no division
-        let (usbpre, usbclk_valid) = match (self.hse, pllmul_bits, sysclk) {
+        let (usbpre, usbclk_valid) = match (self.hxtal, pllmf_bits, sysclk) {
             (Some(_), Some(_), 72_000_000) => (USBDPSC_A::DIV1_5, true),
             (Some(_), Some(_), 48_000_000) => (USBDPSC_A::DIV1, true),
             _ => (USBDPSC_A::DIV1_5, false),
         };
 
-        let apre_bits: u8 = self
-            .adcclk
-            .map(|adcclk| match pclk2 / adcclk {
-                0..=2 => 0b00,
-                3..=4 => 0b01,
-                5..=7 => 0b10,
-                _ => 0b11,
-            })
-            .unwrap_or(0b11);
-
-        let apre = (apre_bits + 1) << 1;
-        let adcclk = pclk2 / u32(apre);
-
-        assert!(adcclk <= 14_000_000);
+        let (adcpsc, adcclk) = match pclk2 / self.adcclk.unwrap_or(pclk2 / 8) {
+            0..=2 => (ADCPSC_A::DIV2, pclk2 / 2),
+            3..=4 => (ADCPSC_A::DIV4, pclk2 / 4),
+            5..=7 => (ADCPSC_A::DIV6, pclk2 / 6),
+            _ => (ADCPSC_A::DIV8, pclk2 / 8),
+        };
 
         let rcu = unsafe { &*RCU::ptr() };
 
-        if self.hse.is_some() {
-            // enable HSE and wait for it to be ready
-
+        if self.hxtal.is_some() {
+            // Enable HXTAL and wait for it to be ready.
             rcu.ctl0.modify(|_, w| w.hxtalen().on());
-
             while rcu.ctl0.read().hxtalstb().is_not_ready() {}
         }
 
-        if let Some(pllmul_bits) = pllmul_bits {
+        if let Some(pllmf_bits) = pllmf_bits {
             // enable PLL and wait for it to be ready
 
             rcu.cfg0.modify(|_, w| {
                 w.pllmf()
-                    .bits(pllmul_bits)
+                    .bits(pllmf_bits)
+                    .pllmf_msb()
+                    .bit(pllmf_msb)
                     .pllsel()
-                    .variant(if self.hse.is_some() {
+                    .variant(if self.hxtal.is_some() {
                         PLLSEL_A::HXTAL
                     } else {
                         PLLSEL_A::IRC8M_2
@@ -372,22 +349,21 @@ impl CFGR {
         }
 
         // set prescalers and clock source
-        #[cfg(feature = "gd32f130")]
-        rcu.cfg0.modify(|_, w| unsafe {
+        rcu.cfg0.modify(|_, w| {
             w.adcpsc()
-                .bits(apre_bits)
+                .variant(adcpsc)
                 .apb2psc()
-                .bits(ppre2_bits)
+                .variant(apb2psc)
                 .apb1psc()
-                .bits(ppre1_bits)
+                .variant(apb1psc)
                 .ahbpsc()
-                .bits(hpre_bits)
+                .variant(ahbpsc)
                 .usbdpsc()
                 .variant(usbpre)
                 .scs()
-                .variant(if pllmul_bits.is_some() {
+                .variant(if pllmf_bits.is_some() {
                     SCS_A::PLL
-                } else if self.hse.is_some() {
+                } else if self.hxtal.is_some() {
                     SCS_A::HXTAL
                 } else {
                     SCS_A::IRC8M
