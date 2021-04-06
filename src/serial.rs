@@ -449,6 +449,8 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> UsartReadWrite for USART {
             Err(nb::Error::Other(Error::Noise))
         } else if status.orerr().bit_is_set() {
             self.intc.write(|w| w.orec().clear());
+            // Discard the previous received byte.
+            self.cmd.write(|w| w.rxfcmd().discard());
             Err(nb::Error::Other(Error::Overrun))
         } else if status.rbne().bit_is_set() {
             Ok(self.rdata.read().rdata().bits() as u8)
