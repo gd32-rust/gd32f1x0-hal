@@ -53,7 +53,6 @@ gd32f130 = ["gd32f1/gd32f130", "device-selected"]
 gd32f130x4 = ["gd32f130", "usart-single"]
 gd32f130x6 = ["gd32f130", "usart-dual"]
 gd32f130x8 = ["gd32f130", "usart-dual"]
-default = ["gd32f130x8"]
 
 [profile.dev]
 incremental = false
