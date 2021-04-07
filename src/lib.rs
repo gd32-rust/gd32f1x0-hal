@@ -81,7 +81,7 @@ compile_error!(
 );
 
 #[cfg(feature = "gd32f130")]
-pub use gd32f1::gd32f1x0 as pac;
+pub use gd32f1::gd32f130 as pac;
 
 #[cfg(feature = "device-selected")]
 pub mod adc;

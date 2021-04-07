@@ -10,7 +10,14 @@ use crate::dma::{
 };
 use crate::gpio::Analog;
 use crate::gpio::{gpioa, gpiob, gpioc};
-use crate::pac::ADC;
+use crate::pac::{
+    adc::{
+        ctl1::{CTN_A, DAL_A, TSVREN_A, VBATEN_A},
+        sampt0::SPT10_A,
+        sampt1::SPT0_A,
+    },
+    ADC,
+};
 use crate::rcu::{Clocks, Enable, Reset, APB2};
 use core::{
     convert::Infallible,
@@ -20,11 +27,6 @@ use core::{
 use cortex_m::asm::delay;
 use embedded_dma::StaticWriteBuffer;
 use embedded_hal::adc::{Channel, OneShot};
-use gd32f1::gd32f1x0::adc::{
-    ctl1::{CTN_A, DAL_A, TSVREN_A, VBATEN_A},
-    sampt0::SPT10_A,
-    sampt1::SPT0_A,
-};
 
 /// The number of ADC clock cycles to wait between powering on and starting calibration.
 const ADC_CALIBRATION_CYCLES: u32 = 14;

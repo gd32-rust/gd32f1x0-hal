@@ -19,7 +19,7 @@ default-target = "x86_64-unknown-linux-gnu"
 cortex-m = "0.6.0"
 nb = "0.1.2"
 cortex-m-rt = "0.6.8"
-gd32f1 = { version = "0.13.0", git = "https://github.com/qwandor/stm32-rs" }
+gd32f1 = "0.1.0"
 embedded-dma = "0.1.2"
 bxcan = "0.4.0"
 
@@ -77,7 +77,7 @@ doc = []
 usart-single = []
 usart-dual = []
 rt = ["gd32f1/rt"]
-gd32f130 = ["gd32f1/gd32f1x0", "device-selected"]
+gd32f130 = ["gd32f1/gd32f130", "device-selected"]
 gd32f130x4 = ["gd32f130", "usart-single"]
 gd32f130x6 = ["gd32f130", "usart-dual"]
 gd32f130x8 = ["gd32f130", "usart-dual"]
