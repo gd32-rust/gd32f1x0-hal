@@ -63,46 +63,46 @@ codegen-units = 1
 debug = true
 lto = true
 
-[[example]]
-name = "usb_serial"
-required-features = ["rt", "stm32-usbd"]
+#[[example]]
+#name = "usb_serial"
+#required-features = ["rt", "stm32-usbd"]
 
-[[example]]
-name = "usb_serial_interrupt"
-required-features = ["rt", "stm32-usbd"]
+#[[example]]
+#name = "usb_serial_interrupt"
+#required-features = ["rt", "stm32-usbd"]
 
-[[example]]
-name = "usb_serial_rtic"
-required-features = ["rt", "stm32-usbd"]
+#[[example]]
+#name = "usb_serial_rtic"
+#required-features = ["rt", "stm32-usbd"]
 
 [[example]]
 name = "blinky_timer_irq"
 required-features = ["rt"]
 
-[[example]]
-name = "blinky_rtcalarm_irq"
-required-features = ["rt"]
+#[[example]]
+#name = "blinky_rtcalarm_irq"
+#required-features = ["rt"]
 
-[[example]]
-name = "qei"
-required-features = ["medium"]
+#[[example]]
+#name = "qei"
+#required-features = ["medium"]
 
 [[example]]
 name = "timer-interrupt-rtic"
 required-features = ["rt"]
 
-[[example]]
-name = "exti"
-required-features = ["rt"]
+#[[example]]
+#name = "exti"
+#required-features = ["rt"]
 
-[[example]]
-name = "can-echo"
-required-features = ["has-can"]
+#[[example]]
+#name = "can-echo"
+#required-features = ["has-can"]
 
-[[example]]
-name = "can-loopback"
-required-features = ["has-can"]
+#[[example]]
+#name = "can-loopback"
+#required-features = ["has-can"]
 
-[[example]]
-name = "can-rtic"
-required-features = ["has-can", "rt"]
+#[[example]]
+#name = "can-rtic"
+#required-features = ["has-can", "rt"]
