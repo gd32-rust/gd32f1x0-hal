@@ -7,27 +7,28 @@
 use panic_halt as _;
 
 use cortex_m_rt::entry;
-use stm32f1xx_hal::{pac, prelude::*};
+use gd32f1x0_hal::{pac, prelude::*};
 
 #[entry]
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
-    let mut rcc = p.RCC.constrain();
-    let mut gpioa = p.GPIOA.split(&mut rcc.apb2);
-    let mut gpiob = p.GPIOB.split(&mut rcc.apb2);
-    let mut afio = p.AFIO.constrain(&mut rcc.apb2);
+    let mut rcu = p.RCU.constrain();
+    let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
 
-    let (pa15, pb3, pb4) = afio.mapr.disable_jtag(gpioa.pa15, gpiob.pb3, gpiob.pb4);
-
-    let mut pa15 = pa15.into_push_pull_output(&mut gpioa.crh);
-    let mut pb3 = pb3.into_push_pull_output(&mut gpiob.crl);
-    let mut pb4 = pb4.into_push_pull_output(&mut gpiob.crl);
+    // If you really want to use a JTAG pin for something else, you must first call `.activate()`.
+    let mut pa13 = gpioa
+        .pa13
+        .activate()
+        .into_push_pull_output(&mut gpioa.config);
+    let mut pa14 = gpioa
+        .pa14
+        .activate()
+        .into_push_pull_output(&mut gpioa.config);
 
     loop {
-        pa15.toggle().unwrap();
-        pb3.toggle().unwrap();
-        pb4.toggle().unwrap();
+        pa13.toggle().unwrap();
+        pa14.toggle().unwrap();
         cortex_m::asm::delay(8_000_000);
     }
 }

@@ -17,7 +17,7 @@ fn main() -> ! {
 
     let clocks = rcu
         .cfgr
-        .use_hse(8.mhz())
+        .use_hxtal(8.mhz())
         .sysclk(56.mhz())
         .pclk1(28.mhz())
         .adcclk(14.mhz())
