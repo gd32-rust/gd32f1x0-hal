@@ -36,30 +36,30 @@ fn main() -> ! {
     let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
 
     // USART0
-    // let tx = gpioa
-    //     .pa9
-    //     .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
-    // let rx = gpioa
-    //     .pa10
-    //     .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
-
-    // USART1
-    // Configure pa2 and pa3 in alternate function mode for the USART.
+    // Configure pa9 and pa10 in alternate function mode for the USART.
     let tx = gpioa
-        .pa2
+        .pa9
         .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
     let rx = gpioa
-        .pa3
+        .pa10
         .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
+
+    // USART1
+    // let tx = gpioa
+    //     .pa2
+    //     .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
+    // let rx = gpioa
+    //     .pa3
+    //     .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
 
     // Set up the usart device. Takes ownership of the USART registers and tx/rx pins. The rest of
     // the registers are used to enable and configure the device.
     let mut serial = Serial::usart(
-        p.USART1,
+        p.USART0,
         (tx, rx),
         Config::default().baudrate(9600.bps()),
         clocks,
-        &mut rcu.apb1,
+        &mut rcu.apb2,
     );
 
     // Loopback test. Write `X` and wait until the write is successful.

@@ -14,7 +14,7 @@ use core::ops::Deref;
 use crate::gpio::gpioa::{PA10, PA14, PA15, PA2, PA3, PA9};
 use crate::gpio::gpiob::{PB6, PB7};
 use crate::gpio::{Alternate, AF0, AF1};
-use crate::pac::{usart0, usart0::ctl1::STB_A, USART0, USART1};
+use crate::pac::{usart0, usart0::ctl1::STB_A, USART0};
 use crate::rcu::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset};
 use crate::time::{Bps, U32Ext};
 use core::convert::Infallible;
@@ -108,6 +108,7 @@ mod pins {
     use super::*;
     use crate::gpio::gpiob::PB0;
     use crate::gpio::{gpioa::PA8, AF4};
+    use crate::pac::USART1;
 
     impl TxPin<USART1> for PA2<Alternate<AF1>> {}
     impl RxPin<USART1> for PA3<Alternate<AF1>> {}
