@@ -23,12 +23,14 @@ fn main() -> ! {
     // Get access to the device specific peripherals from the peripheral access crate.
     let p = pac::Peripherals::take().unwrap();
 
-    // Take ownership of the RCU peripheral and convert it into the corresponding HAL struct.
+    // Take ownership of the RCU and FMC peripherals and convert them into the corresponding HAL
+    // structs.
     let mut rcu = p.RCU.constrain();
+    let mut flash = p.FMC.constrain();
 
     // Freeze the configuration of all the clocks in the system and store the frozen frequencies in
     // `clocks`.
-    let clocks = rcu.cfgr.freeze(&p.FMC.ws);
+    let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
     // Prepare the GPIOA peripheral
     let mut gpioa = p.GPIOA.split(&mut rcu.ahb);

@@ -15,13 +15,14 @@ fn main() -> ! {
     // Acquire peripherals
     let p = pac::Peripherals::take().unwrap();
     let mut rcu = p.RCU.constrain();
+    let mut flash = p.FMC.constrain();
 
     // Configure ADC clocks
     // Default value is the slowest possible ADC clock: PCLK2 / 8. Meanwhile ADC
     // clock is configurable. So its frequency may be tweaked to meet certain
     // practical needs. User specified value is be approximated using supported
     // prescaler values 2/4/6/8.
-    let clocks = rcu.cfgr.adcclk(2.mhz()).freeze(&p.FMC.ws);
+    let clocks = rcu.cfgr.adcclk(2.mhz()).freeze(&mut flash.ws);
 
     let dma_ch0 = p.DMA.split(&mut rcu.ahb).0;
 

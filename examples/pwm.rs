@@ -22,8 +22,9 @@ fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
     let mut rcu = p.RCU.constrain();
+    let mut flash = p.FMC.constrain();
 
-    let clocks = rcu.cfgr.freeze(&p.FMC.ws);
+    let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
     let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
     // let mut gpiob = p.GPIOB.split(&mut rcu.ahb);

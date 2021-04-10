@@ -69,8 +69,13 @@ fn TIMER1() {
 fn main() -> ! {
     let dp = Peripherals::take().unwrap();
 
+    let mut flash = dp.FMC.constrain();
     let mut rcu = dp.RCU.constrain();
-    let clocks = rcu.cfgr.sysclk(8.mhz()).pclk1(8.mhz()).freeze(&dp.FMC.ws);
+    let clocks = rcu
+        .cfgr
+        .sysclk(8.mhz())
+        .pclk1(8.mhz())
+        .freeze(&mut flash.ws);
 
     // Configure PC13 pin to blink LED
     let mut gpioc = dp.GPIOC.split(&mut rcu.ahb);

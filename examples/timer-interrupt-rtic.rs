@@ -33,13 +33,14 @@ const APP: () = {
 
     #[init]
     fn init(cx: init::Context) -> init::LateResources {
-        // Take ownership over the raw flash and rcc devices and convert them into the corresponding
+        // Take ownership over the raw flash and rcu devices and convert them into the corresponding
         // HAL structs
+        let mut flash = cx.device.FMC.constrain();
         let mut rcu = cx.device.RCU.constrain();
 
         // Freeze the configuration of all the clocks in the system and store the frozen frequencies
         // in `clocks`
-        let clocks = rcu.cfgr.freeze(&cx.device.FMC.ws);
+        let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
         // Acquire the GPIOC peripheral
         let mut gpioc = cx.device.GPIOC.split(&mut rcu.ahb);

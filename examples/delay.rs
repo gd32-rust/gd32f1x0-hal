@@ -16,8 +16,9 @@ fn main() -> ! {
     let cp = cortex_m::Peripherals::take().unwrap();
 
     let mut rcu = dp.RCU.constrain();
+    let mut flash = dp.FMC.constrain();
 
-    let clocks = rcu.cfgr.freeze(&dp.FMC.ws);
+    let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
     let mut gpioc = dp.GPIOC.split(&mut rcu.ahb);
 

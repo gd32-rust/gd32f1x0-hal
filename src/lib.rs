@@ -37,12 +37,14 @@
 //! // Get access to the device specific peripherals from the peripheral access crate
 //! let dp = pac::Peripherals::take().unwrap();
 //!
-//! // Take ownership over the raw RCU device and convert it into the corresponding HAL struct.
+//! // Take ownership over the raw RCU and FMC devices and convert tem into the corresponding HAL
+//! //  structs.
 //! let mut rcu = dp.RCU.constrain();
+//! let mut flash = p.FMC.constrain();
 //!
 //! // Freeze the configuration of all the clocks in the system and store the frozen frequencies in
 //! // `clocks`
-//! let clocks = rcu.cfgr.freeze(&dp.FMC.ws);
+//! let clocks = rcu.cfgr.freeze(&mut flash.ws);
 //! ```
 //!
 //! ## Usage examples

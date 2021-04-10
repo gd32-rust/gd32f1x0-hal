@@ -4,8 +4,9 @@
 
 //! # Reset & Clock Unit
 
+use crate::flash::WS;
 use crate::pac::{
-    fmc::{ws::WSCNT_A, WS},
+    fmc::ws::WSCNT_A,
     rcu::{
         self,
         cfg0::{ADCPSC_A, AHBPSC_A, APB1PSC_A, APB2PSC_A, PLLSEL_A, SCS_A, USBDPSC_A},
@@ -232,7 +233,7 @@ impl CFGR {
     /// let mut rcu = dp.RCU.constrain();
     /// let clocks = rcu.cfgr.freeze(&mut flash.acr);
     /// ```
-    pub fn freeze(self, ws: &WS) -> Clocks {
+    pub fn freeze(self, ws: &mut WS) -> Clocks {
         let pllsrculk = self.hxtal.unwrap_or(IRC8M / 2);
 
         let pllmul = self.sysclk.unwrap_or(pllsrculk) / pllsrculk;
@@ -293,7 +294,7 @@ impl CFGR {
         assert!(pclk2 <= 72_000_000);
 
         // adjust flash wait states
-        ws.write(|w| {
+        ws.ws().write(|w| {
             w.wscnt().variant(if sysclk <= 24_000_000 {
                 WSCNT_A::WS0
             } else if sysclk <= 48_000_000 {

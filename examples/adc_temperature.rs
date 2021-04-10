@@ -14,6 +14,7 @@ fn main() -> ! {
     // Acquire peripherals
     let p = pac::Peripherals::take().unwrap();
     let mut rcu = p.RCU.constrain();
+    let mut flash = p.FMC.constrain();
 
     let clocks = rcu
         .cfgr
@@ -21,7 +22,7 @@ fn main() -> ! {
         .sysclk(56.mhz())
         .pclk1(28.mhz())
         .adcclk(14.mhz())
-        .freeze(&p.FMC.ws);
+        .freeze(&mut flash.ws);
     hprintln!("sysclk freq: {}", clocks.sysclk().0).unwrap();
     hprintln!("adc freq: {}", clocks.adcclk().0).unwrap();
 
