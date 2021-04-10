@@ -234,6 +234,33 @@ macro_rules! dma {
                     }
                 }
 
+                /// Configures the DMA channel to transfer data from memory to a peripheral.
+                #[allow(dead_code)]
+                pub(crate) fn configure_to_peripheral(
+                    &mut self,
+                    priority: Priority,
+                    memory_width: Width,
+                    peripheral_width: Width,
+                    circular: bool,
+                ) {
+                    unsafe {
+                        (*DMA::ptr()).$chXctl.modify(|_, w| {
+                            w.m2m()
+                                .disabled()
+                                .dir()
+                                .from_memory()
+                                .prio()
+                                .bits(priority as u8)
+                                .mwidth()
+                                .bits(memory_width as u8)
+                                .pwidth()
+                                .bits(peripheral_width as u8)
+                                .cmen()
+                                .bit(circular)
+                        });
+                    }
+                }
+
                 fn intf(&self) -> dma::intf::R {
                     // NOTE(unsafe) atomic read with no side effects
                     unsafe { (*DMA::ptr()).intf.read() }
