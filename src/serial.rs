@@ -8,13 +8,13 @@
 //! synchronous asynchronous receiver transmitter).
 
 use crate::dma::{
-    CircBuffer, CircReadDma, Priority, ReadDma, Receive, RxDma, Transfer, TransferPayload,
-    Transmit, TxDma, Width, WriteDma, C1, C2, C3, C4, R, W,
+    self, CircBuffer, CircReadDma, Priority, ReadDma, Receive, RxDma, Transfer, TransferPayload,
+    Transmit, TxDma, Width, WriteDma, R, W,
 };
 use crate::gpio::gpioa::{PA10, PA14, PA15, PA2, PA3, PA9};
 use crate::gpio::gpiob::{PB6, PB7};
 use crate::gpio::{Alternate, AF0, AF1};
-use crate::pac::{usart0, usart0::ctl1::STB_A, USART0, USART1};
+use crate::pac::{self, usart0, usart0::ctl1::STB_A, USART0};
 use crate::rcu::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset};
 use crate::time::{Bps, U32Ext};
 use core::convert::Infallible;
@@ -486,7 +486,7 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> UsartReadWrite for USART {
 
 macro_rules! serialdma {
     ($(
-        $USARTX:ident: (
+        $USARTX:ty: (
             $RxDmaX:ident,
             $TxDmaX:ident,
             $dmarxch:ty,
@@ -571,7 +571,7 @@ macro_rules! serialdma {
                     // until the end of the transfer.
                     let (ptr, len) = unsafe { buffer.static_write_buffer() };
                     self.channel
-                        .set_peripheral_address(unsafe { &(*$USARTX::ptr()).rdata as *const _ as u32 }, false);
+                        .set_peripheral_address(unsafe { &(*<$USARTX>::ptr()).rdata as *const _ as u32 }, false);
                     self.channel.set_memory_address(ptr as u32, true);
                     self.channel.set_transfer_length(len);
 
@@ -595,7 +595,7 @@ macro_rules! serialdma {
                     // until the end of the transfer.
                     let (ptr, len) = unsafe { buffer.static_write_buffer() };
                     self.channel
-                        .set_peripheral_address(unsafe { &(*$USARTX::ptr()).rdata as *const _ as u32 }, false);
+                        .set_peripheral_address(unsafe { &(*<$USARTX>::ptr()).rdata as *const _ as u32 }, false);
                     self.channel.set_memory_address(ptr as u32, true);
                     self.channel.set_transfer_length(len);
 
@@ -623,7 +623,7 @@ macro_rules! serialdma {
                     let (ptr, len) = unsafe { buffer.static_read_buffer() };
 
                     self.channel
-                        .set_peripheral_address(unsafe { &(*$USARTX::ptr()).tdata as *const _ as u32 }, false);
+                        .set_peripheral_address(unsafe { &(*<$USARTX>::ptr()).tdata as *const _ as u32 }, false);
 
                     self.channel.set_memory_address(ptr as u32, true);
                     self.channel.set_transfer_length(len);
@@ -642,16 +642,20 @@ macro_rules! serialdma {
 }
 
 serialdma! {
-    USART0: (
+    pac::USART0: (
         RxDma0,
         TxDma0,
-        C2,
-        C1,
+        dma::C2,
+        dma::C1,
     ),
-    USART1: (
+}
+
+#[cfg(feature = "usart-dual")]
+serialdma! {
+    pac::USART1: (
         RxDma1,
         TxDma1,
-        C4,
-        C3,
+        dma::C4,
+        dma::C3,
     ),
 }
