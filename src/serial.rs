@@ -603,7 +603,10 @@ where
     B: StaticReadBuffer<Word = u8>,
 {
     fn write(mut self, buffer: B) -> Transfer<R, B, Self> {
-        // TODO: Clear STAT.TC
+        // Clear transmission complete bit.
+        unsafe { &*self.payload.usart }
+            .intc
+            .write(|w| w.tcc().clear());
 
         // NOTE(unsafe) We own the buffer now and we won't call other `&mut` on it
         // until the end of the transfer.
