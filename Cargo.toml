@@ -48,13 +48,11 @@ usbd-serial = "0.1.0"
 [features]
 device-selected = []
 doc = []
-usart-single = []
-usart-dual = []
 rt = ["gd32f1/rt"]
 gd32f130 = ["gd32f1/gd32f130", "device-selected"]
-gd32f130x4 = ["gd32f130", "usart-single"]
-gd32f130x6 = ["gd32f130", "usart-dual"]
-gd32f130x8 = ["gd32f130", "usart-dual"]
+gd32f130x4 = ["gd32f130"]
+gd32f130x6 = ["gd32f130"]
+gd32f130x8 = ["gd32f130"]
 
 [profile.dev]
 incremental = false

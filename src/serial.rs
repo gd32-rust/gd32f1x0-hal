@@ -108,7 +108,8 @@ impl RxPin<USART0> for PA10<Alternate<AF1>> {}
 impl TxPin<USART0> for PB6<Alternate<AF0>> {}
 impl RxPin<USART0> for PB7<Alternate<AF0>> {}
 
-#[cfg(feature = "usart-dual")]
+// Two USARTs
+#[cfg(any(feature = "gd32f130x6", feature = "gd32f130x8"))]
 mod pins {
     use super::*;
     use crate::gpio::gpiob::PB0;
@@ -123,7 +124,8 @@ mod pins {
     impl RxPin<USART1> for PA15<Alternate<AF1>> {}
 }
 
-#[cfg(feature = "usart-single")]
+// Only one USART
+#[cfg(feature = "gd32f130x4")]
 mod pins {
     use super::*;
 
@@ -650,7 +652,7 @@ serialdma! {
     ),
 }
 
-#[cfg(feature = "usart-dual")]
+#[cfg(any(feature = "gd32f130x6", feature = "gd32f130x8"))]
 serialdma! {
     pac::USART1: (
         RxDma1,
