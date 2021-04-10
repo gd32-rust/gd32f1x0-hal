@@ -11,15 +11,14 @@ use core::fmt;
 use core::marker::PhantomData;
 use core::ops::Deref;
 
-use crate::pac::{usart0, usart0::ctl1::STB_A, USART0, USART1};
-use core::convert::Infallible;
-use embedded_hal::serial::{Read, Write};
-
 use crate::gpio::gpioa::{PA10, PA14, PA15, PA2, PA3, PA9};
 use crate::gpio::gpiob::{PB6, PB7};
-use crate::gpio::{Alternate, AF1};
+use crate::gpio::{Alternate, AF0, AF1};
+use crate::pac::{usart0, usart0::ctl1::STB_A, USART0, USART1};
 use crate::rcu::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset};
 use crate::time::{Bps, U32Ext};
+use core::convert::Infallible;
+use embedded_hal::serial::{Read, Write};
 
 /// Serial error
 #[derive(Debug)]
@@ -101,19 +100,19 @@ pub trait RxPin<USART> {}
 
 impl TxPin<USART0> for PA9<Alternate<AF1>> {}
 impl RxPin<USART0> for PA10<Alternate<AF1>> {}
-impl TxPin<USART0> for PB6<Alternate<AF1>> {}
-impl RxPin<USART0> for PB7<Alternate<AF1>> {}
+impl TxPin<USART0> for PB6<Alternate<AF0>> {}
+impl RxPin<USART0> for PB7<Alternate<AF0>> {}
 
 #[cfg(feature = "usart-dual")]
 mod pins {
     use super::*;
-    use crate::gpio::gpioa::PA8;
     use crate::gpio::gpiob::PB0;
+    use crate::gpio::{gpioa::PA8, AF4};
 
     impl TxPin<USART1> for PA2<Alternate<AF1>> {}
     impl RxPin<USART1> for PA3<Alternate<AF1>> {}
-    impl TxPin<USART1> for PA8<Alternate<AF1>> {}
-    impl RxPin<USART1> for PB0<Alternate<AF1>> {}
+    impl TxPin<USART1> for PA8<Alternate<AF4>> {}
+    impl RxPin<USART1> for PB0<Alternate<AF4>> {}
     impl TxPin<USART1> for PA14<Alternate<AF1>> {}
     impl RxPin<USART1> for PA15<Alternate<AF1>> {}
 }
