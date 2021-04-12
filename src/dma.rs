@@ -480,6 +480,7 @@ pub struct TxDma<PAYLOAD, TXCH> {
 
 /// DMA Receiver/Transmitter
 pub struct RxTxDma<PAYLOAD, RXCH, TXCH> {
+    #[allow(dead_code)]
     pub(crate) payload: PAYLOAD,
     pub rxchannel: RXCH,
     pub txchannel: TXCH,
