@@ -541,11 +541,11 @@ macro_rules! bus {
             impl Enable for crate::pac::$PER {
                 #[inline(always)]
                 fn enable(apb: &mut Self::Bus) {
-                    apb.enr().modify(|_, w| w.$peren().set_bit());
+                    apb.enr().modify(|_, w| w.$peren().enabled());
                 }
                 #[inline(always)]
                 fn disable(apb: &mut Self::Bus) {
-                    apb.enr().modify(|_, w| w.$peren().clear_bit());
+                    apb.enr().modify(|_, w| w.$peren().disabled());
                 }
             }
             impl Reset for crate::pac::$PER {
@@ -568,11 +568,11 @@ macro_rules! ahb_bus {
             impl Enable for crate::pac::$PER {
                 #[inline(always)]
                 fn enable(apb: &mut Self::Bus) {
-                    apb.enr().modify(|_, w| w.$peren().set_bit());
+                    apb.enr().modify(|_, w| w.$peren().enabled());
                 }
                 #[inline(always)]
                 fn disable(apb: &mut Self::Bus) {
-                    apb.enr().modify(|_, w| w.$peren().clear_bit());
+                    apb.enr().modify(|_, w| w.$peren().disabled());
                 }
             }
         )+

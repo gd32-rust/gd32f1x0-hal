@@ -310,7 +310,7 @@ macro_rules! hal {
                 // Sets the UPS bit to prevent an interrupt from being triggered by the UPG bit.
                 self.ctl0.modify(|_, w| w.ups().counter_only());
 
-                self.swevg.write(|w| w.upg().set_bit());
+                self.swevg.write(|w| w.upg().update());
                 self.ctl0.modify(|_, w| w.ups().any_event());
             }
 
@@ -342,7 +342,7 @@ macro_rules! hal {
             }
 
             fn wait(&mut self) -> nb::Result<(), Void> {
-                if self.timer.intf.read().upif().bit_is_clear() {
+                if self.timer.intf.read().upif().is_clear() {
                     Err(nb::Error::WouldBlock)
                 } else {
                     self.clear_update_interrupt_flag();

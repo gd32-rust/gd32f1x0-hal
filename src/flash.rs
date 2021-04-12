@@ -231,7 +231,7 @@ impl<'a> FlashWriter<'a> {
             let write_address = (FLASH_START + offset + idx as u32) as *mut u16;
 
             // Set Page Programming to 1
-            self.fmc.ctl.ctl().modify(|_, w| w.pg().set_bit());
+            self.fmc.ctl.ctl().modify(|_, w| w.pg().program());
 
             while self.fmc.stat.stat().read().busy().is_active() {}
 
@@ -249,7 +249,7 @@ impl<'a> FlashWriter<'a> {
             self.fmc.ctl.ctl().modify(|_, w| w.pg().clear_bit());
 
             // Check for errors
-            if self.fmc.stat.stat().read().pgerr().bit_is_set() {
+            if self.fmc.stat.stat().read().pgerr().is_error() {
                 self.fmc.stat.stat().modify(|_, w| w.pgerr().clear_bit());
 
                 self.lock()?;
