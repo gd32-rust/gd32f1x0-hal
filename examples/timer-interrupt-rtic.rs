@@ -21,18 +21,23 @@ use gd32f1x0_hal::{
     timer::{CountDownTimer, Event, Timer},
 };
 
-#[app(device = gd32f1x0_hal::pac, peripherals = true)]
-const APP: () = {
-    struct Resources {
-        led: PC13<Output<PushPull>>,
-        timer_handler: CountDownTimer<pac::TIMER0>,
+pub struct Led {
+    led: PC13<Output<PushPull>>,
+    led_state: bool,
+}
 
-        #[init(false)]
-        led_state: bool,
+#[app(device = gd32f1x0_hal::pac, peripherals = true)]
+mod app {
+    use super::*;
+
+    #[resources]
+    struct Resources {
+        timer_handler: CountDownTimer<pac::TIMER0>,
+        led: Led,
     }
 
     #[init]
-    fn init(cx: init::Context) -> init::LateResources {
+    fn init(cx: init::Context) -> (init::LateResources, init::Monotonics) {
         // Take ownership over the raw flash and rcu devices and convert them into the corresponding
         // HAL structs
         let mut flash = cx.device.FMC.constrain();
@@ -55,10 +60,16 @@ const APP: () = {
         timer.listen(Event::Update);
 
         // Init the static resources to use them later through RTIC
-        init::LateResources {
-            led,
-            timer_handler: timer,
-        }
+        (
+            init::LateResources {
+                led: Led {
+                    led,
+                    led_state: false,
+                },
+                timer_handler: timer,
+            },
+            init::Monotonics(),
+        )
     }
 
     // Optional.
@@ -73,8 +84,8 @@ const APP: () = {
         }
     }
 
-    #[task(binds = TIMER0_BRK_UP_TRG_COM, priority = 1, resources = [led, timer_handler, led_state])]
-    fn tick(cx: tick::Context) {
+    #[task(binds = TIMER0_BRK_UP_TRG_COM, priority = 1, resources = [led, timer_handler])]
+    fn tick(mut cx: tick::Context) {
         // Depending on the application, you could want to delegate some of the work done here to
         // the idle task if you want to minimize the latency of interrupts with same priority (if
         // you have any). That could be done with some kind of machine state, etc.
@@ -82,25 +93,29 @@ const APP: () = {
         // Count used to change the timer update frequency
         static mut COUNT: u8 = 0;
 
-        if *cx.resources.led_state {
-            // Uses resources managed by rtic to turn led off (on bluepill)
-            cx.resources.led.set_high().unwrap();
-            *cx.resources.led_state = false;
-        } else {
-            cx.resources.led.set_low().unwrap();
-            *cx.resources.led_state = true;
-        }
+        cx.resources.led.lock(|led| {
+            if led.led_state {
+                // Uses resources managed by rtic to turn led off (on bluepill)
+                led.led.set_high().unwrap();
+                led.led_state = false;
+            } else {
+                led.led.set_low().unwrap();
+                led.led_state = true;
+            }
+        });
         *COUNT += 1;
 
-        if *COUNT == 4 {
-            // Changes timer update frequency
-            cx.resources.timer_handler.start(2.hz());
-        } else if *COUNT == 12 {
-            cx.resources.timer_handler.start(1.hz());
-            *COUNT = 0;
-        }
+        cx.resources.timer_handler.lock(|timer_handler| {
+            if *COUNT == 4 {
+                // Changes timer update frequency
+                timer_handler.start(2.hz());
+            } else if *COUNT == 12 {
+                timer_handler.start(1.hz());
+                *COUNT = 0;
+            }
 
-        // Clears the update flag
-        cx.resources.timer_handler.clear_update_interrupt_flag();
+            // Clears the update flag
+            timer_handler.clear_update_interrupt_flag();
+        });
     }
-};
+}

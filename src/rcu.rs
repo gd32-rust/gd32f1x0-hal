@@ -581,8 +581,6 @@ macro_rules! ahb_bus {
 
 bus! {
     ADC => (APB2, adcen, adcrst),
-    CAN0 => (APB1, can0en, can0rst),
-    CAN1 => (APB1, can1en, can1rst),
     I2C0 => (APB1, i2c0en, i2c0rst),
     I2C1 => (APB1, i2c1en, i2c1rst),
     // TODO: Support I2C2 on GD32F170/GD32F190
@@ -600,8 +598,18 @@ bus! {
     TIMER16 => (APB2, timer16en, timer16rst),
     USART0 => (APB2, usart0en, usart0rst),
     USART1 => (APB1, usart1en, usart1rst),
-    USBD => (APB1, usbden, usbdrst),
     WWDGT => (APB1, wwdgten, wwdgtrst),
+}
+
+#[cfg(feature = "gd31f150")]
+bus! {
+    USBD => (APB1, usbden, usbdrst),
+}
+
+#[cfg(any(feature = "gd32f170", feature = "gd32f190"))]
+bus! {
+    CAN0 => (APB1, can0en, can0rst),
+    CAN1 => (APB1, can1en, can1rst),
 }
 
 ahb_bus! {
