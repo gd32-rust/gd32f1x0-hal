@@ -95,7 +95,7 @@ mod app {
 
         cx.resources.led.lock(|led| {
             if led.led_state {
-                // Uses resources managed by rtic to turn led off (on bluepill)
+                // Uses resources managed by rtic to turn led off.
                 led.led.set_high().unwrap();
                 led.led_state = false;
             } else {
