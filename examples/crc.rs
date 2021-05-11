@@ -15,7 +15,7 @@ fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
     let mut rcu = p.RCU.constrain();
-    let mut crc = p.CRC.new(&mut rcu.ahb);
+    let mut crc = p.CRC.constrain(&mut rcu.ahb);
 
     crc.reset();
     crc.write(0x12345678);

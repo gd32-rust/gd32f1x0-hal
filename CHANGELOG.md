@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Breaking changes
 
 - Updated to `gd32f1` 0.2.1.
+- Renamed `CrcExt::new` to `CrcExt::constrain` for consistency.
 
 ## [0.1.0]
 

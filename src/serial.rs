@@ -411,7 +411,7 @@ where
 
         // Configure baud rate.
         let baud_rate_ratio = <USART as RcuBus>::Bus::get_frequency(&clocks).0 / config.baudrate.0;
-        assert!(baud_rate_ratio >= 16 && baud_rate_ratio <= 0xFFFF);
+        assert!((16..=0xFFFF).contains(&baud_rate_ratio));
         self.baud.write(|w| unsafe { w.bits(baud_rate_ratio) });
 
         // Configure parity. Note that the parity bit counts towards the word length, so we have to

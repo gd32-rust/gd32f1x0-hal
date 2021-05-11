@@ -6,11 +6,11 @@ use crate::rcu::{Enable, AHB};
 /// Extension trait to constrain the CRC peripheral
 pub trait CrcExt {
     /// Constrains the CRC peripheral to play nicely with the other abstractions
-    fn new(self, ahb: &mut AHB) -> Crc;
+    fn constrain(self, ahb: &mut AHB) -> Crc;
 }
 
 impl CrcExt for CRC {
-    fn new(self, ahb: &mut AHB) -> Crc {
+    fn constrain(self, ahb: &mut AHB) -> Crc {
         CRC::enable(ahb);
         Crc { crc: self }
     }

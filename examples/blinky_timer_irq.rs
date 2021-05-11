@@ -31,10 +31,10 @@ use embedded_hal::digital::v2::OutputPin;
 //use cortex_m_semihosting::hprintln;
 
 // A type definition for the GPIO pin to be used for our LED
-type LEDPIN = gpioc::PC13<Output<PushPull>>;
+type LedPin = gpioc::PC13<Output<PushPull>>;
 
 // Make LED pin globally available
-static G_LED: Mutex<RefCell<Option<LEDPIN>>> = Mutex::new(RefCell::new(None));
+static G_LED: Mutex<RefCell<Option<LedPin>>> = Mutex::new(RefCell::new(None));
 
 // Make timer interrupt registers globally available
 static G_TIM: Mutex<RefCell<Option<CountDownTimer<TIMER1>>>> = Mutex::new(RefCell::new(None));
@@ -43,7 +43,7 @@ static G_TIM: Mutex<RefCell<Option<CountDownTimer<TIMER1>>>> = Mutex::new(RefCel
 // This specific interrupt will "trip" when the timer TIMER1 times out
 #[interrupt]
 fn TIMER1() {
-    static mut LED: Option<LEDPIN> = None;
+    static mut LED: Option<LedPin> = None;
     static mut TIM: Option<CountDownTimer<TIMER1>> = None;
 
     let led = LED.get_or_insert_with(|| {

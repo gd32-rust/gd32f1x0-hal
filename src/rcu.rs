@@ -267,7 +267,8 @@ impl CFGR {
         assert!(hclk <= 72_000_000);
 
         // Default APB1 clock to less than 36 MHz so I2C will work.
-        let (apb1psc, ppre1) = match hclk / self.pclk1.unwrap_or(cmp::min(hclk, 36_000_000)) {
+        let (apb1psc, ppre1) = match hclk / self.pclk1.unwrap_or_else(|| cmp::min(hclk, 36_000_000))
+        {
             0 => unreachable!(),
             1 => (APB1PSC_A::DIV1, 1),
             2 => (APB1PSC_A::DIV2, 2),

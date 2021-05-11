@@ -170,15 +170,15 @@ impl From<MegaHertz> for KiloHertz {
     }
 }
 
-impl Into<Hertz> for MilliSeconds {
-    fn into(self) -> Hertz {
-        Hertz(1_000 / self.0)
+impl From<MilliSeconds> for Hertz {
+    fn from(milliseconds: MilliSeconds) -> Self {
+        Self(1_000 / milliseconds.0)
     }
 }
 
-impl Into<Hertz> for MicroSeconds {
-    fn into(self) -> Hertz {
-        Hertz(1_000_000 / self.0)
+impl From<MicroSeconds> for Hertz {
+    fn from(microseconds: MicroSeconds) -> Self {
+        Self(1_000_000 / microseconds.0)
     }
 }
 

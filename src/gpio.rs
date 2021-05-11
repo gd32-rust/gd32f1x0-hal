@@ -180,11 +180,17 @@ impl<MODE> OutputPin for Pin<Output<MODE>> {
     type Error = Infallible;
 
     fn set_high(&mut self) -> Result<(), Self::Error> {
-        unsafe { Ok((*self.port).set_high(self.pin_index)) }
+        unsafe {
+            (*self.port).set_high(self.pin_index);
+        }
+        Ok(())
     }
 
     fn set_low(&mut self) -> Result<(), Self::Error> {
-        unsafe { Ok((*self.port).set_low(self.pin_index)) }
+        unsafe {
+            (*self.port).set_low(self.pin_index);
+        }
+        Ok(())
     }
 }
 

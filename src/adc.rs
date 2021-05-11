@@ -604,9 +604,14 @@ impl Sequence {
         Ok(())
     }
 
-    /// Returns the number of channels
+    /// Returns the number of channels.
     pub fn len(&self) -> usize {
         self.length
+    }
+
+    /// Returns whether the sequence contains no channels.
+    pub fn is_empty(&self) -> bool {
+        self.length == 0
     }
 
     fn channels(&self) -> &[u8] {

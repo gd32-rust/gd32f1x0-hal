@@ -159,7 +159,7 @@ macro_rules! hal {
             });
 
             Pwm {
-                clock: clock,
+                clock,
                 pins,
                 timer,
             }
