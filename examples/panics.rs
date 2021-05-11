@@ -14,6 +14,8 @@ use cortex_m_rt::{entry, exception, ExceptionFrame};
 #[entry]
 fn main() -> ! {
     hprintln!("Hello, world!").unwrap();
+
+    #[allow(clippy::empty_loop)]
     loop {}
 }
 

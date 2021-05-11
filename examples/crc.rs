@@ -23,5 +23,6 @@ fn main() -> ! {
     let val = crc.read();
     hprintln!("found={:08x}, expected={:08x}", val, 0xdf8a8a2bu32).ok();
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

@@ -72,5 +72,6 @@ fn main() -> ! {
     block!(tx.write(sent)).ok();
     block!(tx.write(sent)).ok();
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

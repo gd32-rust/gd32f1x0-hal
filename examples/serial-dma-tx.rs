@@ -68,5 +68,6 @@ fn main() -> ! {
 
     asm::bkpt();
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

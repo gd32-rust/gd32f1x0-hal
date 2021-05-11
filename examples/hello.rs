@@ -14,5 +14,7 @@ use cortex_m_rt::entry;
 #[entry]
 fn main() -> ! {
     hprintln!("Hello, world!").unwrap();
+
+    #[allow(clippy::empty_loop)]
     loop {}
 }

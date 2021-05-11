@@ -68,5 +68,6 @@ fn main() -> ! {
     let number = 103;
     writeln!(tx, "Hello formatted string {}", number).unwrap();
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

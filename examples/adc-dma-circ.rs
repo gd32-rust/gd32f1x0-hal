@@ -52,5 +52,6 @@ fn main() -> ! {
     let (_adc1, _adc_ch0, _dma_ch1) = adc_dma.split();
     asm::bkpt();
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

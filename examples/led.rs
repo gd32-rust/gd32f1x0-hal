@@ -25,5 +25,6 @@ fn main() -> ! {
         .set_high()
         .unwrap();
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

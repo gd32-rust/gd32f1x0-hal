@@ -15,5 +15,6 @@ fn main() -> ! {
 
     iprintln!(&mut itm.stim[0], "Hello, world!");
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }

@@ -85,5 +85,6 @@ fn main() -> ! {
     assert_eq!(received, sent);
     asm::bkpt();
 
+    #[allow(clippy::empty_loop)]
     loop {}
 }
