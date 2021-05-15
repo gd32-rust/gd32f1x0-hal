@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Bugfixes
+
+- Fixed PWM mode, which was incorrectly changed in 0.2.0 from mode 0 to mode 1. It is now mode 0 as
+  it should be.
+
 ## [0.2.0]
 
 ### Breaking changes
