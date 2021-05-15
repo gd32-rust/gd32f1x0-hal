@@ -126,22 +126,22 @@ macro_rules! hal {
             if pins.uses_channel(Channel::C0) {
                 timer
                     .chctl0_output()
-                    .modify(|_, w| w.ch0comsen().enabled().ch0comctl().pwm_mode0());
+                    .modify(|_, w| w.ch0comfen().slow().ch0comsen().enabled().ch0comctl().pwm_mode0());
             }
             if pins.uses_channel(Channel::C1) {
                 timer
                     .chctl0_output()
-                    .modify(|_, w| w.ch1comsen().enabled().ch1comctl().pwm_mode0());
+                    .modify(|_, w| w.ch1comfen().slow().ch1comsen().enabled().ch1comctl().pwm_mode0());
             }
             if pins.uses_channel(Channel::C2) {
                 timer
                     .chctl1_output()
-                    .modify(|_, w| w.ch2comsen().enabled().ch2comctl().pwm_mode0());
+                    .modify(|_, w| w.ch2comfen().slow().ch2comsen().enabled().ch2comctl().pwm_mode0());
             }
             if pins.uses_channel(Channel::C3) {
                 timer
                     .chctl1_output()
-                    .modify(|_, w| w.ch3comsen().enabled().ch3comctl().pwm_mode0());
+                    .modify(|_, w| w.ch3comfen().slow().ch3comsen().enabled().ch3comctl().pwm_mode0());
             }
             timer.configure_prescaler_reload(freq, clock);
             // Trigger an update event to load the prescaler value to the clock
