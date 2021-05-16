@@ -22,12 +22,37 @@ pub enum Channel {
     C3,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Polarity {
+    NotInverted,
+    Inverted,
+}
+
+macro_rules! from_polarity {
+    ($chpa:ty) => {
+        impl From<Polarity> for $chpa {
+            fn from(polarity: Polarity) -> Self {
+                match polarity {
+                    Polarity::NotInverted => Self::NOTINVERTED,
+                    Polarity::Inverted => Self::INVERTED,
+                }
+            }
+        }
+    };
+}
+
+from_polarity!(timer0::chctl2::CH3P_A);
+from_polarity!(timer0::chctl2::CH2NP_A);
+from_polarity!(timer1::chctl2::CH3P_A);
+from_polarity!(timer1::chctl2::CH3NP_A);
+
 trait TimerRegExt {
     fn disable_channel(&self, channel: Channel, complementary: bool);
     fn enable_channel(&self, channel: Channel, complementary: bool);
     fn get_duty(&self, channel: Channel) -> u16;
     fn set_duty(&self, channel: Channel, duty: u16);
     fn get_max_duty(&self) -> u16;
+    fn set_polarity(&self, channel: Channel, complementary: bool, polarity: Polarity);
 }
 
 pub struct Pwm<TIMER, PINS> {
@@ -354,6 +379,35 @@ macro_rules! timer_reg_ext {
                 }
             }
 
+            fn set_polarity(&self, channel: Channel, complementary: bool, polarity: Polarity) {
+                match (channel, complementary) {
+                    (Channel::C0, false) => {
+                        self.chctl2.modify(|_, w| w.ch0p().variant(polarity.into()))
+                    }
+                    (Channel::C0, true) => self
+                        .chctl2
+                        .modify(|_, w| w.ch0np().variant(polarity.into())),
+                    (Channel::C1, false) => {
+                        self.chctl2.modify(|_, w| w.ch1p().variant(polarity.into()))
+                    }
+                    (Channel::C1, true) => self
+                        .chctl2
+                        .modify(|_, w| w.ch1np().variant(polarity.into())),
+                    (Channel::C2, false) => {
+                        self.chctl2.modify(|_, w| w.ch2p().variant(polarity.into()))
+                    }
+                    (Channel::C2, true) => self
+                        .chctl2
+                        .modify(|_, w| w.ch2np().variant(polarity.into())),
+                    (Channel::C3, false) => {
+                        self.chctl2.modify(|_, w| w.ch3p().variant(polarity.into()))
+                    }
+                    (Channel::C3, true) => {
+                        panic!("Channel 3 doesn't have a complementary output")
+                    }
+                }
+            }
+
             fn get_max_duty(&self) -> u16 {
                 self.car.read().car().bits() as u16
             }
@@ -396,6 +450,27 @@ impl TimerRegExt for timer1::RegisterBlock {
             Channel::C1 => self.ch1cv.write(|w| w.ch1val().bits(duty)),
             Channel::C2 => self.ch2cv.write(|w| w.ch2val().bits(duty)),
             Channel::C3 => self.ch3cv.write(|w| w.ch3val().bits(duty)),
+        }
+    }
+
+    fn set_polarity(&self, channel: Channel, complementary: bool, polarity: Polarity) {
+        match (channel, complementary) {
+            (Channel::C0, false) => self.chctl2.modify(|_, w| w.ch0p().variant(polarity.into())),
+            (Channel::C0, true) => self
+                .chctl2
+                .modify(|_, w| w.ch0np().variant(polarity.into())),
+            (Channel::C1, false) => self.chctl2.modify(|_, w| w.ch1p().variant(polarity.into())),
+            (Channel::C1, true) => self
+                .chctl2
+                .modify(|_, w| w.ch1np().variant(polarity.into())),
+            (Channel::C2, false) => self.chctl2.modify(|_, w| w.ch2p().variant(polarity.into())),
+            (Channel::C2, true) => self
+                .chctl2
+                .modify(|_, w| w.ch2np().variant(polarity.into())),
+            (Channel::C3, false) => self.chctl2.modify(|_, w| w.ch3p().variant(polarity.into())),
+            (Channel::C3, true) => self
+                .chctl2
+                .modify(|_, w| w.ch3np().variant(polarity.into())),
         }
     }
 
