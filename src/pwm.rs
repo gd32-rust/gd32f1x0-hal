@@ -229,6 +229,17 @@ macro_rules! hal {
                     self.pins,
                 )
             }
+
+            $(
+                /// Configure the given break mode.
+                pub fn break_enable(&self, break_mode: BreakMode) {
+                    match break_mode {
+                        BreakMode::Disabled => self.timer.$cchp.modify(|_, w| w.brken().disabled()),
+                        BreakMode::ActiveLow => self.timer.$cchp.modify(|_, w| w.brken().enabled().brkp().inverted()),
+                        BreakMode::ActiveHigh => self.timer.$cchp.modify(|_, w| w.brken().enabled().brkp().not_inverted()),
+                    }
+                }
+            )?
         }
 
         impl<PINS> embedded_hal::Pwm for Pwm<$TIMERX, PINS>
