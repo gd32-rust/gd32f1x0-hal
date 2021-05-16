@@ -14,7 +14,7 @@ use crate::time::U32Ext;
 use crate::timer::{Timer, TimerExt};
 use core::marker::{Copy, PhantomData};
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Channel {
     C0,
     C1,
@@ -23,8 +23,8 @@ pub enum Channel {
 }
 
 trait TimerRegExt {
-    fn disable_channel(&self, channel: Channel);
-    fn enable_channel(&self, channel: Channel);
+    fn disable_channel(&self, channel: Channel, complementary: bool);
+    fn enable_channel(&self, channel: Channel, complementary: bool);
     fn get_duty(&self, channel: Channel) -> u16;
     fn set_duty(&self, channel: Channel, duty: u16);
     fn get_max_duty(&self) -> u16;
@@ -76,11 +76,11 @@ impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannel<TIMER, PIN> {
     type Duty = u16;
 
     fn disable(&mut self) {
-        unsafe { &*self.timer }.disable_channel(self.channel);
+        unsafe { &*self.timer }.disable_channel(self.channel, false);
     }
 
     fn enable(&mut self) {
-        unsafe { &*self.timer }.enable_channel(self.channel);
+        unsafe { &*self.timer }.enable_channel(self.channel, false);
     }
 
     fn get_duty(&self) -> u16 {
@@ -284,23 +284,43 @@ macro_rules! hal {
 }
 
 macro_rules! timer_reg_ext {
-    ($timerX:ident) => {
+    ($timerX:ident, ($($channel:ident: $nen:ident,)*)) => {
         impl TimerRegExt for $timerX::RegisterBlock {
-            fn disable_channel(&self, channel: Channel) {
+            fn disable_channel(&self, channel: Channel, uses_complementary: bool) {
                 match channel {
                     Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().disabled()),
                     Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().disabled()),
                     Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().disabled()),
                     Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().disabled()),
                 }
+                if uses_complementary {
+                    match channel {
+                        $(
+                            Channel::$channel => self.chctl2.modify(|_, w| w.$nen().disabled()),
+                        )*
+                        _ => {
+                            panic!("Channel {:?} doesn't have a complementary output", channel)
+                        }
+                    }
+                }
             }
 
-            fn enable_channel(&self, channel: Channel) {
+            fn enable_channel(&self, channel: Channel, uses_complementary: bool) {
                 match channel {
                     Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().enabled()),
                     Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().enabled()),
                     Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().enabled()),
                     Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().enabled()),
+                }
+                if uses_complementary {
+                    match channel {
+                        $(
+                            Channel::$channel => self.chctl2.modify(|_, w| w.$nen().enabled()),
+                        )*
+                        _ => {
+                            panic!("Channel {:?} doesn't have a complementary output", channel)
+                        }
+                    }
                 }
             }
 
@@ -330,6 +350,49 @@ macro_rules! timer_reg_ext {
     };
 }
 
+impl TimerRegExt for timer1::RegisterBlock {
+    fn disable_channel(&self, channel: Channel, _uses_complementary: bool) {
+        match channel {
+            Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().disabled()),
+            Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().disabled()),
+            Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().disabled()),
+            Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().disabled()),
+        }
+    }
+
+    fn enable_channel(&self, channel: Channel, _uses_complementary: bool) {
+        match channel {
+            Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().enabled()),
+            Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().enabled()),
+            Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().enabled()),
+            Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().enabled()),
+        }
+    }
+
+    fn get_duty(&self, channel: Channel) -> u16 {
+        match channel {
+            Channel::C0 => self.ch0cv.read().ch0val().bits() as u16,
+            Channel::C1 => self.ch1cv.read().ch1val().bits() as u16,
+            Channel::C2 => self.ch2cv.read().ch2val().bits() as u16,
+            Channel::C3 => self.ch3cv.read().ch3val().bits() as u16,
+        }
+    }
+
+    fn set_duty(&self, channel: Channel, duty: u16) {
+        let duty = duty.into();
+        match channel {
+            Channel::C0 => self.ch0cv.write(|w| w.ch0val().bits(duty)),
+            Channel::C1 => self.ch1cv.write(|w| w.ch1val().bits(duty)),
+            Channel::C2 => self.ch2cv.write(|w| w.ch2val().bits(duty)),
+            Channel::C3 => self.ch3cv.write(|w| w.ch3val().bits(duty)),
+        }
+    }
+
+    fn get_max_duty(&self) -> u16 {
+        self.car.read().car().bits() as u16
+    }
+}
+
 impl Pin<TIMER0, Ch0> for PA8<Alternate<AF2>> {}
 impl Pin<TIMER0, Ch1> for PA9<Alternate<AF2>> {}
 impl Pin<TIMER0, Ch2> for PA10<Alternate<AF2>> {}
@@ -357,8 +420,8 @@ impl Pin<TIMER2, Ch3> for PB1<Alternate<AF1>> {}
 impl Pin<TIMER2, Ch3> for PC9<Alternate<AF0>> {}
 
 // Some timers share the same PAC types so we don't need this for all of them.
-timer_reg_ext!(timer0);
-timer_reg_ext!(timer1);
+timer_reg_ext!(timer0, (C0: ch0nen, C1: ch1nen, C2: ch2nen,));
+//timer_reg_ext!(timer1, ());
 // TIMER13/15/16 only has 1 channel, and TIMER14 only has 2.
 //timer_reg_ext!(timer13);
 //timer_reg_ext!(timer14);
