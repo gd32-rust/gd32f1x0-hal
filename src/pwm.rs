@@ -36,6 +36,7 @@ pub struct Pwm<TIMER, PINS> {
     timer: TIMER,
 }
 
+/// A single channel of a PWM peripheral.
 pub struct PwmChannel<TIMER, PIN> {
     channel: Channel,
     timer: *const dyn TimerRegExt,
