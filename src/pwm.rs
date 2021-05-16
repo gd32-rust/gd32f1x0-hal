@@ -4,7 +4,7 @@
 
 use crate::gpio::{
     gpioa::{PA0, PA1, PA10, PA11, PA15, PA2, PA3, PA5, PA6, PA7, PA8, PA9},
-    gpiob::{PB0, PB1, PB10, PB11, PB3, PB4, PB5},
+    gpiob::{PB0, PB1, PB10, PB11, PB13, PB14, PB15, PB3, PB4, PB5},
     gpioc::{PC6, PC7, PC8, PC9},
     Alternate, AF0, AF1, AF2,
 };
@@ -46,6 +46,13 @@ from_polarity!(timer0::chctl2::CH2NP_A);
 from_polarity!(timer1::chctl2::CH3P_A);
 from_polarity!(timer1::chctl2::CH3NP_A);
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+pub enum BreakMode {
+    Disabled,
+    ActiveLow,
+    ActiveHigh,
+}
+
 trait TimerRegExt {
     fn disable_channel(&self, channel: Channel, complementary: bool);
     fn enable_channel(&self, channel: Channel, complementary: bool);
@@ -69,15 +76,22 @@ pub struct PwmChannel<TIMER, PIN> {
     _timer: PhantomData<TIMER>,
 }
 
+/// A single channel of a PWM peripheral, including a complementary output.
+pub struct PwmChannelComplementary<TIMER, PIN> {
+    pwm_channel: PwmChannel<TIMER, PIN>,
+}
+
 pub struct Ch0;
 pub struct Ch1;
 pub struct Ch2;
 pub struct Ch3;
 
 pub trait Pin<TIMER, CHANNEL> {}
+pub trait ComplementaryPin<TIMER, CHANNEL> {}
 
 pub trait Pins<TIMER> {
     fn uses_channel(&self, channel: Channel) -> bool;
+    fn uses_complementary_channel(&self, channel: Channel) -> bool;
 }
 
 impl<P0, P1, P2, P3, TIMER> Pins<TIMER> for (Option<P0>, Option<P1>, Option<P2>, Option<P3>)
@@ -94,6 +108,34 @@ where
             Channel::C2 => self.2.is_some(),
             Channel::C3 => self.3.is_some(),
         }
+    }
+
+    fn uses_complementary_channel(&self, _channel: Channel) -> bool {
+        false
+    }
+}
+
+impl<P0, P0N, P1, P1N, P2, P2N, TIMER> Pins<TIMER>
+    for (Option<(P0, P0N)>, Option<(P1, P1N)>, Option<(P2, P2N)>)
+where
+    P0: Pin<TIMER, Ch0>,
+    P1: Pin<TIMER, Ch1>,
+    P2: Pin<TIMER, Ch2>,
+    P0N: ComplementaryPin<TIMER, Ch0>,
+    P1N: ComplementaryPin<TIMER, Ch1>,
+    P2N: ComplementaryPin<TIMER, Ch2>,
+{
+    fn uses_channel(&self, channel: Channel) -> bool {
+        match channel {
+            Channel::C0 => self.0.is_some(),
+            Channel::C1 => self.1.is_some(),
+            Channel::C2 => self.2.is_some(),
+            Channel::C3 => false,
+        }
+    }
+
+    fn uses_complementary_channel(&self, channel: Channel) -> bool {
+        self.uses_channel(channel)
     }
 }
 
@@ -121,6 +163,32 @@ impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannel<TIMER, PIN> {
     }
 }
 
+impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannelComplementary<TIMER, PIN> {
+    type Duty = u16;
+
+    fn disable(&mut self) {
+        unsafe { &*self.pwm_channel.timer }.disable_channel(self.pwm_channel.channel, false);
+        unsafe { &*self.pwm_channel.timer }.disable_channel(self.pwm_channel.channel, true);
+    }
+
+    fn enable(&mut self) {
+        unsafe { &*self.pwm_channel.timer }.enable_channel(self.pwm_channel.channel, false);
+        unsafe { &*self.pwm_channel.timer }.enable_channel(self.pwm_channel.channel, true);
+    }
+
+    fn get_duty(&self) -> u16 {
+        self.pwm_channel.get_duty()
+    }
+
+    fn get_max_duty(&self) -> u16 {
+        self.pwm_channel.get_max_duty()
+    }
+
+    fn set_duty(&mut self, duty: u16) {
+        self.pwm_channel.set_duty(duty)
+    }
+}
+
 macro_rules! hal {
     ($TIMERX:ident: ($timerX:ident $(,$cchp:ident)*)) => {
         impl Timer<$TIMERX> {
@@ -132,7 +200,7 @@ macro_rules! hal {
                 $(
                     // Some timers have a break function that deactivates the outputs. This bit
                     // automatically activates the output when no break input is present.
-                    self.timer.$cchp.modify(|_, w| w.oaen().automatic());
+                    self.timer.$cchp.modify(|_, w| w.oaen().automatic().prot().disabled());
                 )?
 
                 let Self { timer, clock } = self;
@@ -230,6 +298,38 @@ macro_rules! hal {
             }
         }
 
+        impl<P0, P1, P2> Pwm<$TIMERX, (Option<P0>, Option<P1>, Option<P2>)> {
+            /// Split the timer into separate PWM channels.
+            pub fn split(
+                self,
+            ) -> (
+                Option<PwmChannel<$TIMERX, P0>>,
+                Option<PwmChannel<$TIMERX, P1>>,
+                Option<PwmChannel<$TIMERX, P2>>,
+            ) {
+                (
+                    self.pins.0.map(|pin| PwmChannel {
+                        channel: Channel::C0,
+                        timer: $TIMERX::ptr(),
+                        _pin: pin,
+                        _timer: PhantomData,
+                    }),
+                    self.pins.1.map(|pin| PwmChannel {
+                        channel: Channel::C1,
+                        timer: $TIMERX::ptr(),
+                        _pin: pin,
+                        _timer: PhantomData,
+                    }),
+                    self.pins.2.map(|pin| PwmChannel {
+                        channel: Channel::C2,
+                        timer: $TIMERX::ptr(),
+                        _pin: pin,
+                        _timer: PhantomData,
+                    }),
+                )
+            }
+        }
+
         impl<PINS> Pwm<$TIMERX, PINS>
         where
             PINS: Pins<$TIMERX>,
@@ -277,12 +377,18 @@ macro_rules! hal {
 
             fn disable(&mut self, channel: Self::Channel) {
                 assert!(self.pins.uses_channel(channel));
-                self.timer.disable_channel(channel);
+                self.timer.disable_channel(channel, false);
+                if self.pins.uses_complementary_channel(channel) {
+                    self.timer.disable_channel(channel, true);
+                }
             }
 
             fn enable(&mut self, channel: Self::Channel) {
                 assert!(self.pins.uses_channel(channel));
-                self.timer.enable_channel(channel);
+                self.timer.enable_channel(channel, false);
+                if self.pins.uses_complementary_channel(channel) {
+                    self.timer.enable_channel(channel, true);
+                }
             }
 
             fn get_duty(&self, channel: Self::Channel) -> Self::Duty {
@@ -483,6 +589,10 @@ impl Pin<TIMER0, Ch0> for PA8<Alternate<AF2>> {}
 impl Pin<TIMER0, Ch1> for PA9<Alternate<AF2>> {}
 impl Pin<TIMER0, Ch2> for PA10<Alternate<AF2>> {}
 impl Pin<TIMER0, Ch3> for PA11<Alternate<AF2>> {}
+
+impl ComplementaryPin<TIMER0, Ch0> for PB13<Alternate<AF2>> {}
+impl ComplementaryPin<TIMER0, Ch1> for PB14<Alternate<AF2>> {}
+impl ComplementaryPin<TIMER0, Ch2> for PB15<Alternate<AF2>> {}
 
 impl Pin<TIMER1, Ch0> for PA0<Alternate<AF2>> {}
 impl Pin<TIMER1, Ch0> for PA5<Alternate<AF2>> {}
