@@ -373,7 +373,7 @@ macro_rules! hal {
 #[inline(always)]
 fn compute_prescaler_reload(freq: Hertz, clock: Hertz) -> (u16, u16) {
     let ticks = clock.0 / freq.0;
-    let psc = u16((ticks - 1) / (1 << 16)).unwrap();
+    let psc = u16((ticks - 1) >> 16).unwrap();
     let car = u16(ticks / u32(psc + 1)).unwrap();
     (psc, car)
 }
