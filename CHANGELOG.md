@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Fixed PWM mode, which was incorrectly changed in 0.2.0 from mode 0 to mode 1. It is now mode 0 as
   it should be.
+- Fixed bug with `Pwm::set_period` not working reliably.
 
 ## [0.2.0]
 

@@ -276,6 +276,7 @@ macro_rules! hal {
             {
                 self.timer
                     .configure_prescaler_reload(period.into(), self.clock);
+                self.timer.reset_counter();
             }
         }
     };
