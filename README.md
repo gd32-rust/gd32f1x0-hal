@@ -49,7 +49,7 @@ cortex-m = "0.7.2"
 cortex-m-rt = "0.6.13"
 # Panic behaviour, see https://crates.io/keywords/panic-impl for alternatives
 panic-halt = "0.2.0"
-gd32f1x0-hal = { version = "0.2.0", features = ["rt", "gd32f130x8"] }
+gd32f1x0-hal = { version = "0.2.1", features = ["rt", "gd32f130x8"] }
 ```
 
 If you build your project now, you should get a single error:
@@ -162,7 +162,7 @@ When using this crate as a dependency in your project, the microcontroller can
 be specified as part of the `Cargo.toml` definition.
 
 ```toml
-gd32f1x0-hal = { version = "0.2.0", features = ["gd32f130x8", "rt"] }
+gd32f1x0-hal = { version = "0.2.1", features = ["gd32f130x8", "rt"] }
 ```
 
 ## Documentation
