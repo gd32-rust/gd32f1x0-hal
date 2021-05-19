@@ -66,7 +66,6 @@ impl Timer<SYST> {
         syst.set_clock_source(SystClkSource::Core);
         Self {
             timer: syst,
-            // TODO: Do we need to divide this by 8?
             clock: clocks.hclk(),
         }
     }
