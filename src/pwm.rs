@@ -46,6 +46,18 @@ from_polarity!(timer0::chctl2::CH2NP_A);
 from_polarity!(timer1::chctl2::CH3P_A);
 from_polarity!(timer1::chctl2::CH3NP_A);
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum IdleState {
+    Low,
+    High,
+}
+
+impl IdleState {
+    fn as_bit(self) -> bool {
+        self == IdleState::High
+    }
+}
+
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub enum BreakMode {
     Disabled,
@@ -60,6 +72,10 @@ trait TimerRegExt {
     fn set_duty(&self, channel: Channel, duty: u16);
     fn get_max_duty(&self) -> u16;
     fn set_polarity(&self, channel: Channel, complementary: bool, polarity: Polarity);
+}
+
+trait TimerIdleRegExt {
+    fn set_idle_state(&self, channel: Channel, complementary: bool, idle_state: IdleState);
 }
 
 pub struct Pwm<TIMER, PINS> {
@@ -516,6 +532,23 @@ macro_rules! timer_reg_ext {
 
             fn get_max_duty(&self) -> u16 {
                 self.car.read().car().bits() as u16
+            }
+        }
+
+        impl TimerIdleRegExt for $timerX::RegisterBlock {
+            fn set_idle_state(&self, channel: Channel, complementary: bool, idle_state: IdleState) {
+                match (channel, complementary) {
+                    (Channel::C0, false) => self.ctl1.modify(|_, w| w.iso0().bit(idle_state.as_bit())),
+                    (Channel::C0, true) => self.ctl1.modify(|_, w| w.iso0n().bit(idle_state.as_bit())),
+                    (Channel::C1, false) => self.ctl1.modify(|_, w| w.iso1().bit(idle_state.as_bit())),
+                    (Channel::C1, true) => self.ctl1.modify(|_, w| w.iso1n().bit(idle_state.as_bit())),
+                    (Channel::C2, false) => self.ctl1.modify(|_, w| w.iso2().bit(idle_state.as_bit())),
+                    (Channel::C2, true) => self.ctl1.modify(|_, w| w.iso2n().bit(idle_state.as_bit())),
+                    (Channel::C3, false) => self.ctl1.modify(|_, w| w.iso3().bit(idle_state.as_bit())),
+                    (Channel::C3, true) => {
+                        panic!("Channel 3 doesn't have a complementary output")
+                    }
+                }
             }
         }
     };
