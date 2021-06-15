@@ -15,12 +15,13 @@ use embedded_hal::timer::{Cancel, CountDown, Periodic};
 use void::Void;
 
 /// Interrupt events
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Event {
     /// Timer timed out / count down ended
     Update,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Error {
     /// Timer is canceled
     Canceled,
