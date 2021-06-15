@@ -12,7 +12,7 @@ use gd32f1x0_hal::{
     gpio::{OutputMode, PullMode},
     pac,
     prelude::*,
-    pwm::Channel,
+    pwm::{Channel, IdleState, Polarity},
     time::U32Ext,
     timer::Timer,
 };
@@ -54,6 +54,14 @@ fn main() -> ! {
     let pins = (Some((c0, cn0)), Some((c1, cn1)), Some((c2, cn2)));
 
     let mut pwm = Timer::timer0(p.TIMER0, &clocks, &mut rcu.apb2).pwm(pins, 1.khz());
+
+    // Configure polarity for C2.
+    pwm.set_polarity(Channel::C2, Polarity::NotInverted);
+    pwm.set_complementary_polarity(Channel::C2, Polarity::Inverted);
+
+    // Configure idle state for C2.
+    pwm.set_idle_state(Channel::C2, IdleState::Low);
+    pwm.set_complementary_idle_state(Channel::C2, IdleState::High);
 
     // Enable clock on each of the channels
     pwm.enable(Channel::C0);

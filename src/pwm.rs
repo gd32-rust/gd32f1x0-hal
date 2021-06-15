@@ -13,6 +13,7 @@ use crate::time::Hertz;
 use crate::time::U32Ext;
 use crate::timer::{Timer, TimerExt};
 use core::marker::{Copy, PhantomData};
+use core::ops::Deref;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Channel {
@@ -88,7 +89,9 @@ trait TimerRegExt {
     fn set_polarity(&self, channel: Channel, complementary: bool, polarity: Polarity);
 }
 
-trait TimerIdleRegExt {
+#[doc(hidden)]
+pub trait TimerIdleRegExt {
+    #[doc(hidden)]
     fn set_idle_state(&self, channel: Channel, complementary: bool, idle_state: IdleState);
 }
 
@@ -123,6 +126,9 @@ pub trait Pins<TIMER> {
     fn uses_channel(&self, channel: Channel) -> bool;
     fn uses_complementary_channel(&self, channel: Channel) -> bool;
 }
+
+/// Marker trait for pins which include complementary outputs.
+pub trait ComplementaryPins {}
 
 impl<P0, P1, P2, P3, TIMER> Pins<TIMER> for (Option<P0>, Option<P1>, Option<P2>, Option<P3>)
 where
@@ -167,6 +173,11 @@ where
     fn uses_complementary_channel(&self, channel: Channel) -> bool {
         self.uses_channel(channel)
     }
+}
+
+impl<P0, P0N, P1, P1N, P2, P2N> ComplementaryPins
+    for (Option<(P0, P0N)>, Option<(P1, P1N)>, Option<(P2, P2N)>)
+{
 }
 
 impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannel<TIMER, PIN> {
@@ -214,6 +225,28 @@ impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannelComplementary<TIMER, PIN> {
 
     fn set_duty(&mut self, duty: u16) {
         self.pwm_channel.set_duty(duty)
+    }
+}
+
+// TODO: Should we implement methods based on trait bounds like this, or in the hal! macro?
+
+impl<TIMER: Deref<Target = RB>, RB: TimerIdleRegExt, PINS: Pins<TIMER>> Pwm<TIMER, PINS> {
+    /// Configure the state which the output of the given channel should have when the channel is
+    /// idle.
+    pub fn set_idle_state(&self, channel: Channel, idle_state: IdleState) {
+        assert!(self.pins.uses_channel(channel));
+        self.timer.set_idle_state(channel, false, idle_state);
+    }
+}
+
+impl<TIMER: Deref<Target = RB>, RB: TimerIdleRegExt, PINS: Pins<TIMER> + ComplementaryPins>
+    Pwm<TIMER, PINS>
+{
+    /// Configure the state which the complementary output of the given channel should have when the
+    /// channel is idle.
+    pub fn set_complementary_idle_state(&self, channel: Channel, idle_state: IdleState) {
+        assert!(self.pins.uses_complementary_channel(channel));
+        self.timer.set_idle_state(channel, true, idle_state);
     }
 }
 
@@ -360,6 +393,18 @@ macro_rules! hal {
 
         impl<PINS> Pwm<$TIMERX, PINS>
         where
+            PINS: Pins<$TIMERX> + ComplementaryPins,
+        {
+
+            /// Configure the polarity of the complementary output for the given channel.
+            pub fn set_complementary_polarity(&self, channel: Channel, polarity: Polarity) {
+                assert!(self.pins.uses_channel(channel));
+                self.timer.set_polarity(channel, true, polarity);
+            }
+        }
+
+        impl<PINS> Pwm<$TIMERX, PINS>
+        where
             PINS: Pins<$TIMERX>,
         {
             /// Stop the timer and release it and the pins to be used for something else.
@@ -392,6 +437,12 @@ macro_rules! hal {
                 }
             }
 
+            /// Configure the polarity of the output for the given channel.
+            pub fn set_polarity(&self, channel: Channel, polarity: Polarity) {
+                assert!(self.pins.uses_channel(channel));
+                self.timer.set_polarity(channel, false, polarity);
+            }
+
             $(
                 /// Configure the given break mode.
                 pub fn break_enable(&self, break_mode: BreakMode) {
@@ -400,6 +451,22 @@ macro_rules! hal {
                         BreakMode::ActiveLow => self.timer.$cchp.modify(|_, w| w.brken().enabled().brkp().inverted()),
                         BreakMode::ActiveHigh => self.timer.$cchp.modify(|_, w| w.brken().enabled().brkp().not_inverted()),
                     }
+                }
+
+                /// Configure the dead time for complementary chanels.
+                pub fn set_dead_time(&self, dead_time: u16) {
+                    let dtcfg = if dead_time < 128 {
+                        dead_time as u8
+                    } else if dead_time < 256 {
+                        0b1000_0000 | (dead_time / 2 - 64) as u8
+                    } else if dead_time < 512 {
+                        0b1100_0000 | (dead_time / 8 - 32) as u8
+                    } else if dead_time < 1024 {
+                        0b1110_0000 | (dead_time / 16 - 32) as u8
+                    } else {
+                        panic!("Invalid dead time {}", dead_time);
+                    };
+                    self.timer.$cchp.modify(|_, w| w.dtcfg().bits(dtcfg));
                 }
             )?
         }
