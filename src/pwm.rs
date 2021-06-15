@@ -72,8 +72,8 @@ pub enum BreakMode {
 }
 
 trait TimerRegExt {
-    fn disable_channel(&self, channel: Channel, complementary: bool);
-    fn enable_channel(&self, channel: Channel, complementary: bool);
+    fn disable_channel(&self, channel: Channel, uses_complementary: bool);
+    fn enable_channel(&self, channel: Channel, uses_complementary: bool);
     fn get_duty(&self, channel: Channel) -> u16;
     fn set_duty(&self, channel: Channel, duty: u16);
     fn get_max_duty(&self) -> u16;
@@ -189,12 +189,10 @@ impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannelComplementary<TIMER, PIN> {
     type Duty = u16;
 
     fn disable(&mut self) {
-        unsafe { &*self.pwm_channel.timer }.disable_channel(self.pwm_channel.channel, false);
         unsafe { &*self.pwm_channel.timer }.disable_channel(self.pwm_channel.channel, true);
     }
 
     fn enable(&mut self) {
-        unsafe { &*self.pwm_channel.timer }.enable_channel(self.pwm_channel.channel, false);
         unsafe { &*self.pwm_channel.timer }.enable_channel(self.pwm_channel.channel, true);
     }
 
@@ -399,18 +397,12 @@ macro_rules! hal {
 
             fn disable(&mut self, channel: Self::Channel) {
                 assert!(self.pins.uses_channel(channel));
-                self.timer.disable_channel(channel, false);
-                if self.pins.uses_complementary_channel(channel) {
-                    self.timer.disable_channel(channel, true);
-                }
+                self.timer.disable_channel(channel, self.pins.uses_complementary_channel(channel));
             }
 
             fn enable(&mut self, channel: Self::Channel) {
                 assert!(self.pins.uses_channel(channel));
-                self.timer.enable_channel(channel, false);
-                if self.pins.uses_complementary_channel(channel) {
-                    self.timer.enable_channel(channel, true);
-                }
+                self.timer.enable_channel(channel, self.pins.uses_complementary_channel(channel));
             }
 
             fn get_duty(&self, channel: Self::Channel) -> Self::Duty {
