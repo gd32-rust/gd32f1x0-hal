@@ -71,6 +71,12 @@ pub enum BreakMode {
     ActiveHigh,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum Alignment {
+    Edge,
+    Center,
+}
+
 trait TimerRegExt {
     fn disable_channel(&self, channel: Channel, uses_complementary: bool);
     fn enable_channel(&self, channel: Channel, uses_complementary: bool);
@@ -373,6 +379,14 @@ macro_rules! hal {
                     },
                     self.pins,
                 )
+            }
+
+            /// Configure the given alignment mode.
+            pub fn set_alignment(&self, alignment: Alignment) {
+                match alignment {
+                    Alignment::Edge => self.timer.ctl0.modify(|_, w| w.cam().edge_aligned()),
+                    Alignment::Center => self.timer.ctl0.modify(|_, w| w.cam().center_aligned_counting_up()),
+                }
             }
 
             $(
