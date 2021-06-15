@@ -532,34 +532,22 @@ macro_rules! timer_reg_ext {
 }
 
 macro_rules! timer_idle_reg_ext {
-    ($timerX:ident) => {
+    ($timerX:ident, ($($channel:ident: $iso:ident $(/ $ison:ident)? ;)+)) => {
         impl TimerIdleRegExt for $timerX::RegisterBlock {
             fn set_idle_state(&self, channel: Channel, complementary: bool, idle_state: IdleState) {
                 match (channel, complementary) {
-                    (Channel::C0, false) => {
-                        self.ctl1.modify(|_, w| w.iso0().bit(idle_state.as_bit()))
-                    }
-                    (Channel::C0, true) => {
-                        self.ctl1.modify(|_, w| w.iso0n().bit(idle_state.as_bit()))
-                    }
-                    (Channel::C1, false) => {
-                        self.ctl1.modify(|_, w| w.iso1().bit(idle_state.as_bit()))
-                    }
-                    (Channel::C1, true) => {
-                        self.ctl1.modify(|_, w| w.iso1n().bit(idle_state.as_bit()))
-                    }
-                    (Channel::C2, false) => {
-                        self.ctl1.modify(|_, w| w.iso2().bit(idle_state.as_bit()))
-                    }
-                    (Channel::C2, true) => {
-                        self.ctl1.modify(|_, w| w.iso2n().bit(idle_state.as_bit()))
-                    }
-                    (Channel::C3, false) => {
-                        self.ctl1.modify(|_, w| w.iso3().bit(idle_state.as_bit()))
-                    }
-                    (Channel::C3, true) => {
-                        panic!("Channel 3 doesn't have a complementary output")
-                    }
+                    $(
+                        (Channel::$channel, false) => {
+                            self.ctl1.modify(|_, w| w.$iso().bit(idle_state.as_bit()))
+                        }
+                        $(
+                            (Channel::$channel, true) => {
+                                self.ctl1.modify(|_, w| w.$ison().bit(idle_state.as_bit()))
+                            }
+                            )?
+                    )+
+                    #[allow(unreachable_patterns)]
+                    _ => panic!("No such channel {:?}/{}", channel, complementary),
                 }
             }
         }
@@ -603,7 +591,12 @@ timer_reg_ext!(timer0, (
     C2: ch2cv, ch2val, ch2p/ch2np, ch2en/ch2nen;
     C3: ch3cv, ch3val, ch3p, ch3en;
 ));
-timer_idle_reg_ext!(timer0);
+timer_idle_reg_ext!(timer0, (
+    C0: iso0/iso0n;
+    C1: iso1/iso1n;
+    C2: iso2/iso2n;
+    C3: iso3;
+));
 timer_reg_ext!(timer1, (
     C0: ch0cv, ch0val, ch0p/ch0np, ch0en;
     C1: ch1cv, ch1val, ch1p/ch1np, ch1en;
@@ -618,8 +611,15 @@ timer_reg_ext!(timer14, (
     C0: ch0cv, ch0val, ch0p/ch0np, ch0en/ch0nen;
     C1: ch1cv, ch1val, ch1p/ch1np, ch1en;
 ));
+timer_idle_reg_ext!(timer14, (
+    C0: iso0/iso0n;
+    C1: iso1;
+));
 timer_reg_ext!(timer15, (
     C0: ch0cv, ch0val, ch0p/ch0np, ch0en/ch0nen;
+));
+timer_idle_reg_ext!(timer15, (
+    C0: iso0/iso0n;
 ));
 
 hal!(TIMER0: (timer0, cchp));
