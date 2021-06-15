@@ -8,7 +8,7 @@ use crate::gpio::{
     gpioc::{PC6, PC7, PC8, PC9},
     Alternate, AF0, AF1, AF2,
 };
-use crate::pac::{timer0, timer1, TIMER0, TIMER1, TIMER2};
+use crate::pac::{timer0, timer1, timer13, timer14, timer15, TIMER0, TIMER1, TIMER2};
 use crate::time::Hertz;
 use crate::time::U32Ext;
 use crate::timer::{Timer, TimerExt};
@@ -45,6 +45,12 @@ from_polarity!(timer0::chctl2::CH3P_A);
 from_polarity!(timer0::chctl2::CH2NP_A);
 from_polarity!(timer1::chctl2::CH3P_A);
 from_polarity!(timer1::chctl2::CH3NP_A);
+from_polarity!(timer13::chctl2::CH0P_A);
+from_polarity!(timer13::chctl2::CH0NP_A);
+from_polarity!(timer14::chctl2::CH1P_A);
+from_polarity!(timer14::chctl2::CH1NP_A);
+from_polarity!(timer15::chctl2::CH0P_A);
+from_polarity!(timer15::chctl2::CH0NP_A);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IdleState {
@@ -442,91 +448,79 @@ macro_rules! hal {
 }
 
 macro_rules! timer_reg_ext {
-    ($timerX:ident, ($($channel:ident: $nen:ident,)*)) => {
+    ($timerX:ident, ($($channel:ident: $cv:ident, $val:ident, $p:ident $(/ $np:ident)?, $en:ident $(/ $nen:ident)? ;)+)) => {
         impl TimerRegExt for $timerX::RegisterBlock {
             fn disable_channel(&self, channel: Channel, uses_complementary: bool) {
                 match channel {
-                    Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().disabled()),
-                    Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().disabled()),
-                    Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().disabled()),
-                    Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().disabled()),
+                    $(
+                        Channel::$channel => self.chctl2.modify(|_, w| w.$en().disabled()),
+                    )+
+                    #[allow(unreachable_patterns)]
+                    _ => panic!("No such channel {:?}", channel),
                 }
                 if uses_complementary {
                     match channel {
-                        $(
+                        $($(
                             Channel::$channel => self.chctl2.modify(|_, w| w.$nen().disabled()),
-                        )*
-                        _ => {
-                            panic!("Channel {:?} doesn't have a complementary output", channel)
-                        }
+                        )?)+
+                        _ => {}
                     }
                 }
             }
 
             fn enable_channel(&self, channel: Channel, uses_complementary: bool) {
                 match channel {
-                    Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().enabled()),
-                    Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().enabled()),
-                    Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().enabled()),
-                    Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().enabled()),
+                    $(
+                        Channel::$channel => self.chctl2.modify(|_, w| w.$en().enabled()),
+                    )+
+                    #[allow(unreachable_patterns)]
+                    _ => panic!("No such channel {:?}", channel),
                 }
                 if uses_complementary {
                     match channel {
-                        $(
+                        $($(
                             Channel::$channel => self.chctl2.modify(|_, w| w.$nen().enabled()),
-                        )*
-                        _ => {
-                            panic!("Channel {:?} doesn't have a complementary output", channel)
-                        }
+                        )?)*
+                        _ => {}
                     }
                 }
             }
 
             fn get_duty(&self, channel: Channel) -> u16 {
                 match channel {
-                    Channel::C0 => self.ch0cv.read().ch0val().bits() as u16,
-                    Channel::C1 => self.ch1cv.read().ch1val().bits() as u16,
-                    Channel::C2 => self.ch2cv.read().ch2val().bits() as u16,
-                    Channel::C3 => self.ch3cv.read().ch3val().bits() as u16,
+                    $(
+                        Channel::$channel => self.$cv.read().$val().bits() as u16,
+                    )+
+                    #[allow(unreachable_patterns)]
+                    _ => panic!("No such channel {:?}", channel),
                 }
             }
 
             fn set_duty(&self, channel: Channel, duty: u16) {
                 let duty = duty.into();
                 match channel {
-                    Channel::C0 => self.ch0cv.write(|w| w.ch0val().bits(duty)),
-                    Channel::C1 => self.ch1cv.write(|w| w.ch1val().bits(duty)),
-                    Channel::C2 => self.ch2cv.write(|w| w.ch2val().bits(duty)),
-                    Channel::C3 => self.ch3cv.write(|w| w.ch3val().bits(duty)),
+                    $(
+                        Channel::$channel => self.$cv.write(|w| w.$val().bits(duty)),
+                    )+
+                    #[allow(unreachable_patterns)]
+                    _ => panic!("No such channel {:?}", channel),
                 }
             }
 
             fn set_polarity(&self, channel: Channel, complementary: bool, polarity: Polarity) {
                 match (channel, complementary) {
-                    (Channel::C0, false) => {
-                        self.chctl2.modify(|_, w| w.ch0p().variant(polarity.into()))
-                    }
-                    (Channel::C0, true) => self
-                        .chctl2
-                        .modify(|_, w| w.ch0np().variant(polarity.into())),
-                    (Channel::C1, false) => {
-                        self.chctl2.modify(|_, w| w.ch1p().variant(polarity.into()))
-                    }
-                    (Channel::C1, true) => self
-                        .chctl2
-                        .modify(|_, w| w.ch1np().variant(polarity.into())),
-                    (Channel::C2, false) => {
-                        self.chctl2.modify(|_, w| w.ch2p().variant(polarity.into()))
-                    }
-                    (Channel::C2, true) => self
-                        .chctl2
-                        .modify(|_, w| w.ch2np().variant(polarity.into())),
-                    (Channel::C3, false) => {
-                        self.chctl2.modify(|_, w| w.ch3p().variant(polarity.into()))
-                    }
-                    (Channel::C3, true) => {
-                        panic!("Channel 3 doesn't have a complementary output")
-                    }
+                    $(
+                        (Channel::$channel, false) => {
+                            self.chctl2.modify(|_, w| w.$p().variant(polarity.into()))
+                        }
+                        $(
+                            (Channel::$channel, true) => {
+                                self.chctl2.modify(|_, w| w.$np().variant(polarity.into()))
+                            }
+                        )?
+                    )+
+                    #[allow(unreachable_patterns)]
+                    _ => panic!("No such channel {:?}/{}", channel, complementary),
                 }
             }
 
@@ -534,17 +528,35 @@ macro_rules! timer_reg_ext {
                 self.car.read().car().bits() as u16
             }
         }
+    };
+}
 
+macro_rules! timer_idle_reg_ext {
+    ($timerX:ident) => {
         impl TimerIdleRegExt for $timerX::RegisterBlock {
             fn set_idle_state(&self, channel: Channel, complementary: bool, idle_state: IdleState) {
                 match (channel, complementary) {
-                    (Channel::C0, false) => self.ctl1.modify(|_, w| w.iso0().bit(idle_state.as_bit())),
-                    (Channel::C0, true) => self.ctl1.modify(|_, w| w.iso0n().bit(idle_state.as_bit())),
-                    (Channel::C1, false) => self.ctl1.modify(|_, w| w.iso1().bit(idle_state.as_bit())),
-                    (Channel::C1, true) => self.ctl1.modify(|_, w| w.iso1n().bit(idle_state.as_bit())),
-                    (Channel::C2, false) => self.ctl1.modify(|_, w| w.iso2().bit(idle_state.as_bit())),
-                    (Channel::C2, true) => self.ctl1.modify(|_, w| w.iso2n().bit(idle_state.as_bit())),
-                    (Channel::C3, false) => self.ctl1.modify(|_, w| w.iso3().bit(idle_state.as_bit())),
+                    (Channel::C0, false) => {
+                        self.ctl1.modify(|_, w| w.iso0().bit(idle_state.as_bit()))
+                    }
+                    (Channel::C0, true) => {
+                        self.ctl1.modify(|_, w| w.iso0n().bit(idle_state.as_bit()))
+                    }
+                    (Channel::C1, false) => {
+                        self.ctl1.modify(|_, w| w.iso1().bit(idle_state.as_bit()))
+                    }
+                    (Channel::C1, true) => {
+                        self.ctl1.modify(|_, w| w.iso1n().bit(idle_state.as_bit()))
+                    }
+                    (Channel::C2, false) => {
+                        self.ctl1.modify(|_, w| w.iso2().bit(idle_state.as_bit()))
+                    }
+                    (Channel::C2, true) => {
+                        self.ctl1.modify(|_, w| w.iso2n().bit(idle_state.as_bit()))
+                    }
+                    (Channel::C3, false) => {
+                        self.ctl1.modify(|_, w| w.iso3().bit(idle_state.as_bit()))
+                    }
                     (Channel::C3, true) => {
                         panic!("Channel 3 doesn't have a complementary output")
                     }
@@ -552,70 +564,6 @@ macro_rules! timer_reg_ext {
             }
         }
     };
-}
-
-impl TimerRegExt for timer1::RegisterBlock {
-    fn disable_channel(&self, channel: Channel, _uses_complementary: bool) {
-        match channel {
-            Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().disabled()),
-            Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().disabled()),
-            Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().disabled()),
-            Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().disabled()),
-        }
-    }
-
-    fn enable_channel(&self, channel: Channel, _uses_complementary: bool) {
-        match channel {
-            Channel::C0 => self.chctl2.modify(|_, w| w.ch0en().enabled()),
-            Channel::C1 => self.chctl2.modify(|_, w| w.ch1en().enabled()),
-            Channel::C2 => self.chctl2.modify(|_, w| w.ch2en().enabled()),
-            Channel::C3 => self.chctl2.modify(|_, w| w.ch3en().enabled()),
-        }
-    }
-
-    fn get_duty(&self, channel: Channel) -> u16 {
-        match channel {
-            Channel::C0 => self.ch0cv.read().ch0val().bits() as u16,
-            Channel::C1 => self.ch1cv.read().ch1val().bits() as u16,
-            Channel::C2 => self.ch2cv.read().ch2val().bits() as u16,
-            Channel::C3 => self.ch3cv.read().ch3val().bits() as u16,
-        }
-    }
-
-    fn set_duty(&self, channel: Channel, duty: u16) {
-        let duty = duty.into();
-        match channel {
-            Channel::C0 => self.ch0cv.write(|w| w.ch0val().bits(duty)),
-            Channel::C1 => self.ch1cv.write(|w| w.ch1val().bits(duty)),
-            Channel::C2 => self.ch2cv.write(|w| w.ch2val().bits(duty)),
-            Channel::C3 => self.ch3cv.write(|w| w.ch3val().bits(duty)),
-        }
-    }
-
-    fn set_polarity(&self, channel: Channel, complementary: bool, polarity: Polarity) {
-        match (channel, complementary) {
-            (Channel::C0, false) => self.chctl2.modify(|_, w| w.ch0p().variant(polarity.into())),
-            (Channel::C0, true) => self
-                .chctl2
-                .modify(|_, w| w.ch0np().variant(polarity.into())),
-            (Channel::C1, false) => self.chctl2.modify(|_, w| w.ch1p().variant(polarity.into())),
-            (Channel::C1, true) => self
-                .chctl2
-                .modify(|_, w| w.ch1np().variant(polarity.into())),
-            (Channel::C2, false) => self.chctl2.modify(|_, w| w.ch2p().variant(polarity.into())),
-            (Channel::C2, true) => self
-                .chctl2
-                .modify(|_, w| w.ch2np().variant(polarity.into())),
-            (Channel::C3, false) => self.chctl2.modify(|_, w| w.ch3p().variant(polarity.into())),
-            (Channel::C3, true) => self
-                .chctl2
-                .modify(|_, w| w.ch3np().variant(polarity.into())),
-        }
-    }
-
-    fn get_max_duty(&self) -> u16 {
-        self.car.read().car().bits() as u16
-    }
 }
 
 impl Pin<TIMER0, Ch0> for PA8<Alternate<AF2>> {}
@@ -649,12 +597,30 @@ impl Pin<TIMER2, Ch3> for PB1<Alternate<AF1>> {}
 impl Pin<TIMER2, Ch3> for PC9<Alternate<AF0>> {}
 
 // Some timers share the same PAC types so we don't need this for all of them.
-timer_reg_ext!(timer0, (C0: ch0nen, C1: ch1nen, C2: ch2nen,));
-//timer_reg_ext!(timer1, ());
-// TIMER13/15/16 only has 1 channel, and TIMER14 only has 2.
-//timer_reg_ext!(timer13);
-//timer_reg_ext!(timer14);
-//timer_reg_ext!(timer15);
+timer_reg_ext!(timer0, (
+    C0: ch0cv, ch0val, ch0p/ch0np, ch0en/ch0nen;
+    C1: ch1cv, ch1val, ch1p/ch1np, ch1en/ch1nen;
+    C2: ch2cv, ch2val, ch2p/ch2np, ch2en/ch2nen;
+    C3: ch3cv, ch3val, ch3p, ch3en;
+));
+timer_idle_reg_ext!(timer0);
+timer_reg_ext!(timer1, (
+    C0: ch0cv, ch0val, ch0p/ch0np, ch0en;
+    C1: ch1cv, ch1val, ch1p/ch1np, ch1en;
+    C2: ch2cv, ch2val, ch2p/ch2np, ch2en;
+    C3: ch3cv, ch3val, ch3p/ch3np, ch3en;
+));
+// TIMER13/15/16 only have 1 channel, and TIMER14 only has 2.
+timer_reg_ext!(timer13, (
+    C0: ch0cv, ch0val, ch0p/ch0np, ch0en;
+));
+timer_reg_ext!(timer14, (
+    C0: ch0cv, ch0val, ch0p/ch0np, ch0en/ch0nen;
+    C1: ch1cv, ch1val, ch1p/ch1np, ch1en;
+));
+timer_reg_ext!(timer15, (
+    C0: ch0cv, ch0val, ch0p/ch0np, ch0en/ch0nen;
+));
 
 hal!(TIMER0: (timer0, cchp));
 hal!(TIMER1: (timer1));
