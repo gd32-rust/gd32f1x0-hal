@@ -73,7 +73,9 @@ pub enum BreakMode {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Alignment {
+    /// Align the edge of the pulses from each channel.
     Edge,
+    /// Align the center of the pulses from each channel.
     Center,
 }
 
@@ -381,7 +383,8 @@ macro_rules! hal {
                 )
             }
 
-            /// Configure the given alignment mode.
+            /// Configure the given alignment mode, to control how pulses on different channels of
+            /// this PWM module are aligned with each other.
             pub fn set_alignment(&self, alignment: Alignment) {
                 match alignment {
                     Alignment::Edge => self.timer.ctl0.modify(|_, w| w.cam().edge_aligned()),
