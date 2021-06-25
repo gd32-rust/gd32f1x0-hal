@@ -489,6 +489,28 @@ macro_rules! hal {
                     }
                 }
 
+                /// Configure the run mode off-state.
+                pub fn run_mode_off_state(&mut self, enabled: bool) {
+                    self.timer.$cchp.modify(|_, w| w.ros().variant(
+                        if enabled {
+                            $timerX::cchp::ROS_A::ENABLED
+                        } else {
+                            $timerX::cchp::ROS_A::DISABLED
+                        }
+                    ));
+                }
+
+                /// Configure the idle mode off-state.
+                pub fn idle_mode_off_state(&mut self, enabled: bool) {
+                    self.timer.$cchp.modify(|_, w| w.ios().variant(
+                        if enabled {
+                            $timerX::cchp::IOS_A::ENABLED
+                        } else {
+                            $timerX::cchp::IOS_A::DISABLED
+                        }
+                    ));
+                }
+
                 /// Configure the dead time for complementary chanels.
                 pub fn set_dead_time(&self, dead_time: u16) {
                     let dtcfg = if dead_time < 128 {
