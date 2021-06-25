@@ -472,6 +472,14 @@ macro_rules! hal {
             }
 
             $(
+                pub fn automatic_output_disable(&mut self) {
+                    self.timer.$cchp.modify(|_, w| w.oaen().manual());
+                }
+
+                pub fn automatic_output_enable(&mut self) {
+                    self.timer.$cchp.modify(|_, w| w.oaen().automatic());
+                }
+
                 /// Configure the given break mode.
                 pub fn break_enable(&self, break_mode: BreakMode) {
                     match break_mode {
