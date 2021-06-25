@@ -11,7 +11,7 @@ use crate::gpio::{
 use crate::pac::{timer0, timer1, timer13, timer14, timer15, TIMER0, TIMER1, TIMER2};
 use crate::time::Hertz;
 use crate::time::U32Ext;
-use crate::timer::{Timer, TimerExt};
+use crate::timer::{Event, Timer, TimerExt};
 use core::marker::{Copy, PhantomData};
 use core::ops::Deref;
 
@@ -441,6 +441,34 @@ macro_rules! hal {
             pub fn set_polarity(&self, channel: Channel, polarity: Polarity) {
                 assert!(self.pins.uses_channel(channel));
                 self.timer.set_polarity(channel, false, polarity);
+            }
+
+            /// Starts listening for an `event`.
+            pub fn listen(&mut self, event: Event) {
+                match event {
+                    Event::Update => self.timer.dmainten.modify(|_, w| w.upie().enabled()),
+                }
+            }
+
+            /// Stops listening for an `event`.
+            pub fn unlisten(&mut self, event: Event) {
+                match event {
+                    Event::Update => self.timer.dmainten.modify(|_, w| w.upie().disabled()),
+                }
+            }
+
+            /// Returns true if the given `event` interrupt is pending.
+            pub fn is_pending(&self, event: Event) -> bool {
+                match event {
+                    Event::Update => self.timer.intf.read().upif().is_update_pending(),
+                }
+            }
+
+            /// Clears the given `event` interrupt flag.
+            pub fn clear_interrupt_flag(&mut self, event: Event) {
+                match event {
+                    Event::Update => self.timer.intf.modify(|_, w| w.upif().clear()),
+                }
             }
 
             $(
