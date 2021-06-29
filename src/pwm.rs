@@ -29,29 +29,14 @@ pub enum Polarity {
     Inverted,
 }
 
-macro_rules! from_polarity {
-    ($chpa:ty) => {
-        impl From<Polarity> for $chpa {
-            fn from(polarity: Polarity) -> Self {
-                match polarity {
-                    Polarity::NotInverted => Self::NOTINVERTED,
-                    Polarity::Inverted => Self::INVERTED,
-                }
-            }
+impl From<Polarity> for timer0::chctl2::CH0P_A {
+    fn from(polarity: Polarity) -> Self {
+        match polarity {
+            Polarity::NotInverted => Self::NOTINVERTED,
+            Polarity::Inverted => Self::INVERTED,
         }
-    };
+    }
 }
-
-from_polarity!(timer0::chctl2::CH3P_A);
-from_polarity!(timer0::chctl2::CH2NP_A);
-from_polarity!(timer1::chctl2::CH3P_A);
-from_polarity!(timer1::chctl2::CH3NP_A);
-from_polarity!(timer13::chctl2::CH0P_A);
-from_polarity!(timer13::chctl2::CH0NP_A);
-from_polarity!(timer14::chctl2::CH1P_A);
-from_polarity!(timer14::chctl2::CH1NP_A);
-from_polarity!(timer15::chctl2::CH0P_A);
-from_polarity!(timer15::chctl2::CH0NP_A);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum IdleState {

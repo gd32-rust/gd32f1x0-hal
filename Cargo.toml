@@ -22,7 +22,7 @@ cortex-m = "0.7.2"
 cortex-m-rt = "0.6.13"
 embedded-dma = "0.1.2"
 embedded-hal = { version = "0.2.5", features = ["unproven"] }
-gd32f1 = "0.2.1"
+gd32f1 = "0.3.0"
 nb = "1.0.0"
 void = { version = "1.0.2", default-features = false }
 
