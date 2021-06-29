@@ -15,12 +15,13 @@ use embedded_hal::timer::{Cancel, CountDown, Periodic};
 use void::Void;
 
 /// Interrupt events
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Event {
     /// Timer timed out / count down ended
     Update,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Error {
     /// Timer is canceled
     Canceled,
@@ -271,9 +272,18 @@ macro_rules! hal {
                 Timer { timer, clock }
             }
 
-            /// Clears the update interrupt flag.
-            pub fn clear_update_interrupt_flag(&mut self) {
-                self.timer.intf.modify(|_, w| w.upif().clear());
+            /// Returns true if the given `event` interrupt is pending.
+            pub fn is_pending(&self, event: Event) -> bool {
+                match event {
+                    Event::Update => self.timer.intf.read().upif().is_update_pending(),
+                }
+            }
+
+            /// Clears the given event interrupt flag.
+            pub fn clear_interrupt_flag(&mut self, event: Event) {
+                match event {
+                    Event::Update => self.timer.intf.modify(|_, w| w.upif().clear()),
+                }
             }
 
             /// Releases the TIMER peripheral.
@@ -341,10 +351,10 @@ macro_rules! hal {
             }
 
             fn wait(&mut self) -> nb::Result<(), Void> {
-                if self.timer.intf.read().upif().is_clear() {
+                if !self.is_pending(Event::Update) {
                     Err(nb::Error::WouldBlock)
                 } else {
-                    self.clear_update_interrupt_flag();
+                    self.clear_interrupt_flag(Event::Update);
                     Ok(())
                 }
             }

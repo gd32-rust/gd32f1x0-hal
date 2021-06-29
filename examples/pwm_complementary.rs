@@ -1,4 +1,4 @@
-//! Testing PWM output for pre-defined pin combination: all pins for default mapping
+//! Testing PWM with complementary outputs.
 
 #![deny(unsafe_code)]
 #![no_main]
@@ -9,10 +9,10 @@ use panic_halt as _;
 use cortex_m::asm;
 use cortex_m_rt::entry;
 use gd32f1x0_hal::{
-    gpio::{gpioa::PA11, OutputMode, PullMode},
+    gpio::{OutputMode, PullMode},
     pac,
     prelude::*,
-    pwm::Channel,
+    pwm::{Channel, IdleState, Polarity},
     time::U32Ext,
     timer::Timer,
 };
@@ -27,6 +27,7 @@ fn main() -> ! {
     let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
     let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
+    let mut gpiob = p.GPIOB.split(&mut rcu.ahb);
 
     // TIMER0
     let c0 = gpioa
@@ -38,10 +39,29 @@ fn main() -> ! {
     let c2 = gpioa
         .pa10
         .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
-    // If you don't want to use all channels, just leave some out
-    let pins = (Some(c0), Some(c1), Some(c2), None::<PA11<_>>);
+    let cn0 =
+        gpiob
+            .pb13
+            .into_alternate(&mut gpiob.config, PullMode::Floating, OutputMode::PushPull);
+    let cn1 =
+        gpiob
+            .pb14
+            .into_alternate(&mut gpiob.config, PullMode::Floating, OutputMode::PushPull);
+    let cn2 =
+        gpiob
+            .pb15
+            .into_alternate(&mut gpiob.config, PullMode::Floating, OutputMode::PushPull);
+    let pins = (Some((c0, cn0)), Some((c1, cn1)), Some((c2, cn2)));
 
     let mut pwm = Timer::timer0(p.TIMER0, &clocks, &mut rcu.apb2).pwm(pins, 1.khz());
+
+    // Configure polarity for C2.
+    pwm.set_polarity(Channel::C2, Polarity::NotInverted);
+    pwm.set_complementary_polarity(Channel::C2, Polarity::Inverted);
+
+    // Configure idle state for C2.
+    pwm.set_idle_state(Channel::C2, IdleState::Low);
+    pwm.set_complementary_idle_state(Channel::C2, IdleState::High);
 
     // Enable clock on each of the channels
     pwm.enable(Channel::C0);

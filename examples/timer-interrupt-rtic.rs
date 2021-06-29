@@ -115,7 +115,7 @@ mod app {
             }
 
             // Clears the update flag
-            timer_handler.clear_update_interrupt_flag();
+            timer_handler.clear_interrupt_flag(Event::Update);
         });
     }
 }

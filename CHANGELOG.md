@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Breaking changes
+
+- Updated to `gd32f1` 0.3.0.
+- Changed `CountDownTimer::clear_update_interrupt_flag()` to `CountDownTimer::clear_interrupt_flag(Event::Update)`.
+
+### New features
+
+- Added support for complementary channels and other related PWM features.
+- Added `CountDownTimer::is_pending`.
+
 ## [0.2.1]
 
 ### Bugfixes
