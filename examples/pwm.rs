@@ -27,40 +27,26 @@ fn main() -> ! {
     let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
     let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
-    // let mut gpiob = p.GPIOB.split(&mut rcu.ahb);
 
     // TIMER0
-    let c1 = gpioa
+    let c0 = gpioa
         .pa8
         .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
-    let c2 = gpioa
+    let c1 = gpioa
         .pa9
         .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
-    let c3 = gpioa
+    let c2 = gpioa
         .pa10
         .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
     // If you don't want to use all channels, just leave some out
-    // let c4 = gpioa.pa3.into_alternate_push_pull(&mut gpioa.crl);
-    let pins = (Some(c1), Some(c2), Some(c3), None::<PA11<_>>);
-
-    // TIM3
-    // let c1 = gpioa.pa6.into_alternate_push_pull(&mut gpioa.crl);
-    // let c2 = gpioa.pa7.into_alternate_push_pull(&mut gpioa.crl);
-    // let c3 = gpiob.pb0.into_alternate_push_pull(&mut gpiob.crl);
-    // let c4 = gpiob.pb1.into_alternate_push_pull(&mut gpiob.crl);
-
-    // TIM4 (Only available with the "medium" density feature)
-    // let c1 = gpiob.pb6.into_alternate_push_pull(&mut gpiob.crl);
-    // let c2 = gpiob.pb7.into_alternate_push_pull(&mut gpiob.crl);
-    // let c3 = gpiob.pb8.into_alternate_push_pull(&mut gpiob.crh);
-    // let c4 = gpiob.pb9.into_alternate_push_pull(&mut gpiob.crh);
+    let pins = (Some(c0), Some(c1), Some(c2), None::<PA11<_>>);
 
     let mut pwm = Timer::timer0(p.TIMER0, &clocks, &mut rcu.apb2).pwm(pins, 1.khz());
 
     // Enable clock on each of the channels
+    pwm.enable(Channel::C0);
     pwm.enable(Channel::C1);
     pwm.enable(Channel::C2);
-    pwm.enable(Channel::C3);
 
     //// Operations affecting all defined channels on the Timer
 
@@ -79,35 +65,35 @@ fn main() -> ! {
     //// Operations affecting single channels can be accessed through
     //// the Pwm object or via dereferencing to the pin.
 
-    // Use the Pwm object to set C3 to full strength
-    pwm.set_duty(Channel::C3, max);
+    // Use the Pwm object to set C2 to full strength
+    pwm.set_duty(Channel::C2, max);
 
     asm::bkpt();
 
-    // Use the Pwm object to set C3 to be dim
-    pwm.set_duty(Channel::C3, max / 4);
+    // Use the Pwm object to set C2 to be dim
+    pwm.set_duty(Channel::C2, max / 4);
 
     asm::bkpt();
 
-    // Use the Pwm object to set C3 to be zero
-    pwm.set_duty(Channel::C3, 0);
+    // Use the Pwm object to set C2 to be zero
+    pwm.set_duty(Channel::C2, 0);
 
     asm::bkpt();
 
-    // Extract the PwmChannel for C3
+    // Extract the PwmChannel for C2
     let mut pwm_channel = pwm.split().2.unwrap();
 
-    // Use the PwmChannel object to set C3 to be full strength
+    // Use the PwmChannel object to set C2 to be full strength
     pwm_channel.set_duty(max);
 
     asm::bkpt();
 
-    // Use the PwmChannel object to set C3 to be dim
+    // Use the PwmChannel object to set C2 to be dim
     pwm_channel.set_duty(max / 4);
 
     asm::bkpt();
 
-    // Use the PwmChannel object to set C3 to be zero
+    // Use the PwmChannel object to set C2 to be zero
     pwm_channel.set_duty(0);
 
     asm::bkpt();
