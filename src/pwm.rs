@@ -74,7 +74,8 @@ impl From<Alignment> for timer0::ctl0::CAM_A {
     }
 }
 
-trait TimerRegExt {
+#[doc(hidden)]
+pub trait TimerRegExt {
     fn disable_channel(&self, channel: Channel, uses_complementary: bool);
     fn enable_channel(&self, channel: Channel, uses_complementary: bool);
     fn get_duty(&self, channel: Channel) -> u16;
@@ -85,7 +86,6 @@ trait TimerRegExt {
 
 #[doc(hidden)]
 pub trait TimerIdleRegExt {
-    #[doc(hidden)]
     fn set_idle_state(&self, channel: Channel, complementary: bool, idle_state: IdleState);
 }
 
@@ -222,8 +222,6 @@ impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannelComplementary<TIMER, PIN> {
     }
 }
 
-// TODO: Should we implement methods based on trait bounds like this, or in the hal! macro?
-
 impl<TIMER: Deref<Target = RB>, RB: TimerIdleRegExt, PINS: Pins<TIMER>> Pwm<TIMER, PINS> {
     /// Configure the state which the output of the given channel should have when the channel is
     /// idle.
@@ -241,6 +239,24 @@ impl<TIMER: Deref<Target = RB>, RB: TimerIdleRegExt, PINS: Pins<TIMER> + Complem
     pub fn set_complementary_idle_state(&self, channel: Channel, idle_state: IdleState) {
         assert!(self.pins.uses_complementary_channel(channel));
         self.timer.set_idle_state(channel, true, idle_state);
+    }
+}
+
+impl<TIMER: Deref<Target = RB>, RB: TimerRegExt, PINS: Pins<TIMER>> Pwm<TIMER, PINS> {
+    /// Configure the polarity of the output for the given channel.
+    pub fn set_polarity(&self, channel: Channel, polarity: Polarity) {
+        assert!(self.pins.uses_channel(channel));
+        self.timer.set_polarity(channel, false, polarity);
+    }
+}
+
+impl<TIMER: Deref<Target = RB>, RB: TimerRegExt, PINS: Pins<TIMER> + ComplementaryPins>
+    Pwm<TIMER, PINS>
+{
+    /// Configure the polarity of the complementary output for the given channel.
+    pub fn set_complementary_polarity(&self, channel: Channel, polarity: Polarity) {
+        assert!(self.pins.uses_channel(channel));
+        self.timer.set_polarity(channel, true, polarity);
     }
 }
 
@@ -387,18 +403,6 @@ macro_rules! hal {
 
         impl<PINS> Pwm<$TIMERX, PINS>
         where
-            PINS: Pins<$TIMERX> + ComplementaryPins,
-        {
-
-            /// Configure the polarity of the complementary output for the given channel.
-            pub fn set_complementary_polarity(&self, channel: Channel, polarity: Polarity) {
-                assert!(self.pins.uses_channel(channel));
-                self.timer.set_polarity(channel, true, polarity);
-            }
-        }
-
-        impl<PINS> Pwm<$TIMERX, PINS>
-        where
             PINS: Pins<$TIMERX>,
         {
             /// Stop the timer and release it and the pins to be used for something else.
@@ -426,12 +430,6 @@ macro_rules! hal {
             /// this PWM module are aligned with each other.
             pub fn set_alignment(&self, alignment: Alignment) {
                 self.timer.ctl0.modify(|_, w| w.cam().variant(alignment.into()));
-            }
-
-            /// Configure the polarity of the output for the given channel.
-            pub fn set_polarity(&self, channel: Channel, polarity: Polarity) {
-                assert!(self.pins.uses_channel(channel));
-                self.timer.set_polarity(channel, false, polarity);
             }
 
             /// Starts listening for an `event`.
