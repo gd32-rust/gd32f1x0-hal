@@ -44,9 +44,21 @@ pub enum IdleState {
     High,
 }
 
-impl IdleState {
-    fn as_bit(self) -> bool {
-        self == IdleState::High
+impl From<IdleState> for timer0::ctl1::ISO0_A {
+    fn from(idle_state: IdleState) -> Self {
+        match idle_state {
+            IdleState::Low => Self::LOW,
+            IdleState::High => Self::HIGH,
+        }
+    }
+}
+
+impl From<IdleState> for timer0::ctl1::ISO0N_A {
+    fn from(idle_state: IdleState) -> Self {
+        match idle_state {
+            IdleState::Low => Self::LOW,
+            IdleState::High => Self::HIGH,
+        }
     }
 }
 
@@ -661,11 +673,11 @@ macro_rules! timer_idle_reg_ext {
                 match (channel, complementary) {
                     $(
                         (Channel::$channel, false) => {
-                            self.ctl1.modify(|_, w| w.$iso().bit(idle_state.as_bit()))
+                            self.ctl1.modify(|_, w| w.$iso().variant(idle_state.into()))
                         }
                         $(
                             (Channel::$channel, true) => {
-                                self.ctl1.modify(|_, w| w.$ison().bit(idle_state.as_bit()))
+                                self.ctl1.modify(|_, w| w.$ison().variant(idle_state.into()))
                             }
                             )?
                     )+
