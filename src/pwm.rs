@@ -482,9 +482,9 @@ macro_rules! hal {
                 pub fn run_mode_off_state(&mut self, enabled: bool) {
                     self.timer.$cchp.modify(|_, w| w.ros().variant(
                         if enabled {
-                            $timerX::cchp::ROS_A::ENABLED
+                            timer0::cchp::ROS_A::ENABLED
                         } else {
-                            $timerX::cchp::ROS_A::DISABLED
+                            timer0::cchp::ROS_A::DISABLED
                         }
                     ));
                 }
@@ -493,9 +493,9 @@ macro_rules! hal {
                 pub fn idle_mode_off_state(&mut self, enabled: bool) {
                     self.timer.$cchp.modify(|_, w| w.ios().variant(
                         if enabled {
-                            $timerX::cchp::IOS_A::ENABLED
+                            timer0::cchp::IOS_A::ENABLED
                         } else {
-                            $timerX::cchp::IOS_A::DISABLED
+                            timer0::cchp::IOS_A::DISABLED
                         }
                     ));
                 }
