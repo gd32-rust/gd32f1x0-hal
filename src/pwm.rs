@@ -65,6 +65,15 @@ pub enum Alignment {
     Center,
 }
 
+impl From<Alignment> for timer0::ctl0::CAM_A {
+    fn from(alignment: Alignment) -> Self {
+        match alignment {
+            Alignment::Edge => Self::EDGEALIGNED,
+            Alignment::Center => Self::CENTERALIGNEDCOUNTINGUP,
+        }
+    }
+}
+
 trait TimerRegExt {
     fn disable_channel(&self, channel: Channel, uses_complementary: bool);
     fn enable_channel(&self, channel: Channel, uses_complementary: bool);
@@ -416,10 +425,7 @@ macro_rules! hal {
             /// Configure the given alignment mode, to control how pulses on different channels of
             /// this PWM module are aligned with each other.
             pub fn set_alignment(&self, alignment: Alignment) {
-                match alignment {
-                    Alignment::Edge => self.timer.ctl0.modify(|_, w| w.cam().edge_aligned()),
-                    Alignment::Center => self.timer.ctl0.modify(|_, w| w.cam().center_aligned_counting_up()),
-                }
+                self.timer.ctl0.modify(|_, w| w.cam().variant(alignment.into()));
             }
 
             /// Configure the polarity of the output for the given channel.
