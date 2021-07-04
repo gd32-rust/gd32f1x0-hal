@@ -473,10 +473,13 @@ macro_rules! hal {
             }
 
             $(
-                pub fn automatic_output_disable(&mut self) {
-                    self.timer.$cchp.modify(|_, w| w.oaen().manual());
+                /// Disable PWM outputs, and prevent them from being automatically enabled.
+                pub fn output_disable(&mut self) {
+                    self.timer.$cchp.modify(|_, w| w.oaen().manual().poen().disabled());
                 }
 
+                /// Automatically enable outputs at the next update event, if the break input is not
+                /// active.
                 pub fn automatic_output_enable(&mut self) {
                     self.timer.$cchp.modify(|_, w| w.oaen().automatic());
                 }
