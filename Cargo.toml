@@ -9,7 +9,7 @@ repository = "https://github.com/qwandor/gd32f1x0-hal"
 documentation = "https://docs.rs/gd2f1x0-hal"
 readme = "README.md"
 edition = "2018"
-version = "0.4.0"
+version = "0.5.0"
 
 [package.metadata.docs.rs]
 features = ["gd32f130x8", "rt"]
@@ -22,7 +22,7 @@ cortex-m = "0.7.2"
 cortex-m-rt = "0.6.13"
 embedded-dma = "0.1.2"
 embedded-hal = { version = "0.2.5", features = ["unproven"] }
-gd32f1 = "0.3.0"
+gd32f1 = "0.4.0"
 nb = "1.0.0"
 void = { version = "1.0.2", default-features = false }
 
