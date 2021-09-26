@@ -58,6 +58,10 @@ gd32f170 = ["gd32f1/gd32f170", "device-selected"]
 gd32f170x4 = ["gd32f170"]
 gd32f170x6 = ["gd32f170"]
 gd32f170x8 = ["gd32f170"]
+gd32f190 = ["gd32f1/gd32f190", "device-selected"]
+gd32f190x4 = ["gd32f190"]
+gd32f190x6 = ["gd32f190"]
+gd32f190x8 = ["gd32f190"]
 
 [profile.dev]
 incremental = false

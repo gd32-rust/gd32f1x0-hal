@@ -34,6 +34,9 @@
 //! - `gd32f170x4` (e.g. GD32F170T4, GD32F170C4, ...)
 //! - `gd32f170x6` (e.g. GD32F170T6, GD32F170C6, ...)
 //! - `gd32f170x8` (e.g. GD32F170T8, GD32F170C8, ...)
+//! - `gd32f190x4` (e.g. GD32F190T4, GD32F190C4, ...)
+//! - `gd32f190x6` (e.g. GD32F190T6, GD32F190C6, ...)
+//! - `gd32f190x8` (e.g. GD32F190T8, GD32F190C8, ...)
 //!
 //! ## Commonly used setup
 //! Almost all peripherals require references to some registers in `RCU`. The following
@@ -85,6 +88,9 @@
     feature = "gd32f170x4",
     feature = "gd32f170x6",
     feature = "gd32f170x8",
+    feature = "gd32f190x4",
+    feature = "gd32f190x6",
+    feature = "gd32f190x8",
 )))]
 compile_error!("Target not found. A `--features <target-name>` is required.");
 
@@ -92,7 +98,10 @@ compile_error!("Target not found. A `--features <target-name>` is required.");
 #[cfg(any(
     all(feature = "gd32f130", feature = "gd32f150"),
     all(feature = "gd32f130", feature = "gd32f170"),
+    all(feature = "gd32f130", feature = "gd32f190"),
     all(feature = "gd32f150", feature = "gd32f170"),
+    all(feature = "gd32f150", feature = "gd32f190"),
+    all(feature = "gd32f170", feature = "gd32f190"),
     all(feature = "gd32f130x4", feature = "gd32f130x6"),
     all(feature = "gd32f130x4", feature = "gd32f130x8"),
     all(feature = "gd32f130x6", feature = "gd32f130x8"),
@@ -102,6 +111,9 @@ compile_error!("Target not found. A `--features <target-name>` is required.");
     all(feature = "gd32f170x4", feature = "gd32f170x6"),
     all(feature = "gd32f170x4", feature = "gd32f170x8"),
     all(feature = "gd32f170x6", feature = "gd32f170x8"),
+    all(feature = "gd32f190x4", feature = "gd32f190x6"),
+    all(feature = "gd32f190x4", feature = "gd32f190x8"),
+    all(feature = "gd32f190x6", feature = "gd32f190x8"),
 ))]
 compile_error!(
     "Multiple targets specified. Only a single `--features <target-name>` can be specified."
