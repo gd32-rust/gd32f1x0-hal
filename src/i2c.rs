@@ -4,11 +4,31 @@
 // parts of this code is based on
 // https://www.st.com/content/ccc/resource/technical/document/application_note/5d/ae/a3/6f/08/69/4e/9b/CD00209826.pdf/files/CD00209826.pdf/jcr:content/translations/en.CD00209826.pdf
 
-use crate::gpio::gpioa::{PA0, PA1, PA10, PA9};
-use crate::gpio::gpiob::{PB10, PB11, PB6, PB7, PB8, PB9};
+use crate::gpio::gpioa::*;
+use crate::gpio::gpiob::*;
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
 use crate::gpio::gpioc::{PC0, PC1, PC7, PC8};
+#[cfg(any(
+    feature = "gd32f130x4",
+    feature = "gd32f130x6",
+    feature = "gd32f130x8",
+    feature = "gd32f170x4",
+    feature = "gd32f170x8",
+    feature = "gd32f190x4",
+    feature = "gd32f190x8",
+))]
 use crate::gpio::gpiof::{PF6, PF7};
-use crate::gpio::{Alternate, AF0, AF1, AF4};
+#[cfg(any(
+    feature = "gd32f130x4",
+    feature = "gd32f130x6",
+    feature = "gd32f130x8",
+    feature = "gd32f170x4",
+    feature = "gd32f170x8",
+    feature = "gd32f190x4",
+    feature = "gd32f190x8",
+))]
+use crate::gpio::AF0;
+use crate::gpio::{Alternate, AF1, AF4};
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
 use crate::pac::I2C2;
 use crate::pac::{DWT, I2C0, I2C1};
