@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Updated to `gd32f1` 0.5.0.
 
+### New features
+
+- Added initial support for GD32F150, GD32F170 and GD32F190 devices.
+
 ## [0.5.0]
 
 ### Breaking changes
