@@ -17,6 +17,9 @@ jobs:
           - gd32f150x4
           - gd32f150x6
           - gd32f150x8
+          - gd32f170x4
+          - gd32f170x6
+          - gd32f170x8
         rust:
           - stable
         include:

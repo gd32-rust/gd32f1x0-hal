@@ -114,6 +114,8 @@ impl RxPin<USART0> for PB7<Alternate<AF0>> {}
     feature = "gd32f130x8",
     feature = "gd32f150x6",
     feature = "gd32f150x8",
+    feature = "gd32f170x6",
+    feature = "gd32f170x8",
 ))]
 mod pins {
     use super::*;
@@ -130,7 +132,7 @@ mod pins {
 }
 
 // Only one USART
-#[cfg(any(feature = "gd32f130x4", feature = "gd32f150x4"))]
+#[cfg(any(feature = "gd32f130x4", feature = "gd32f150x4", feature = "gd32f170x4"))]
 mod pins {
     use super::*;
 
@@ -662,6 +664,8 @@ serialdma! {
     feature = "gd32f130x8",
     feature = "gd32f150x6",
     feature = "gd32f150x8",
+    feature = "gd32f170x6",
+    feature = "gd32f170x8",
 ))]
 serialdma! {
     pac::USART1: (
