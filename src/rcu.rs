@@ -610,7 +610,7 @@ bus! {
     WWDGT => (APB1, wwdgten, wwdgtrst),
 }
 
-#[cfg(feature = "gd31f150")]
+#[cfg(feature = "gd32f150")]
 bus! {
     USBD => (APB1, usbden, usbdrst),
 }
