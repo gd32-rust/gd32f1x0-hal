@@ -50,6 +50,10 @@ gd32f130 = ["gd32f1/gd32f130", "device-selected"]
 gd32f130x4 = ["gd32f130"]
 gd32f130x6 = ["gd32f130"]
 gd32f130x8 = ["gd32f130"]
+gd32f150 = ["gd32f1/gd32f150", "device-selected"]
+gd32f150x4 = ["gd32f150"]
+gd32f150x6 = ["gd32f150"]
+gd32f150x8 = ["gd32f150"]
 
 [profile.dev]
 incremental = false
