@@ -28,6 +28,15 @@
 //! - `gd32f130x4` (e.g. GD32F130F4, GD32F130G4, ...)
 //! - `gd32f130x6` (e.g. GD32F130F6, GD32F130G6, ...)
 //! - `gd32f130x8` (e.g. GD32F130F8, GD32F130G8, ...)
+//! - `gd32f150x4` (e.g. GD32F150G4, GD32F150K4, ...)
+//! - `gd32f150x6` (e.g. GD32F150G6, GD32F150K6, ...)
+//! - `gd32f150x8` (e.g. GD32F150G8, GD32F150K8, ...)
+//! - `gd32f170x4` (e.g. GD32F170T4, GD32F170C4, ...)
+//! - `gd32f170x6` (e.g. GD32F170T6, GD32F170C6, ...)
+//! - `gd32f170x8` (e.g. GD32F170T8, GD32F170C8, ...)
+//! - `gd32f190x4` (e.g. GD32F190T4, GD32F190C4, ...)
+//! - `gd32f190x6` (e.g. GD32F190T6, GD32F190C6, ...)
+//! - `gd32f190x8` (e.g. GD32F190T8, GD32F190C8, ...)
 //!
 //! ## Commonly used setup
 //! Almost all peripherals require references to some registers in `RCU`. The following
@@ -69,14 +78,42 @@
 #![deny(broken_intra_doc_links)]
 
 // If no target specified, print error message.
-#[cfg(not(any(feature = "gd32f130x4", feature = "gd32f130x6", feature = "gd32f130x8")))]
+#[cfg(not(any(
+    feature = "gd32f130x4",
+    feature = "gd32f130x6",
+    feature = "gd32f130x8",
+    feature = "gd32f150x4",
+    feature = "gd32f150x6",
+    feature = "gd32f150x8",
+    feature = "gd32f170x4",
+    feature = "gd32f170x6",
+    feature = "gd32f170x8",
+    feature = "gd32f190x4",
+    feature = "gd32f190x6",
+    feature = "gd32f190x8",
+)))]
 compile_error!("Target not found. A `--features <target-name>` is required.");
 
 // If any two or more targets are specified, print error message.
 #[cfg(any(
+    all(feature = "gd32f130", feature = "gd32f150"),
+    all(feature = "gd32f130", feature = "gd32f170"),
+    all(feature = "gd32f130", feature = "gd32f190"),
+    all(feature = "gd32f150", feature = "gd32f170"),
+    all(feature = "gd32f150", feature = "gd32f190"),
+    all(feature = "gd32f170", feature = "gd32f190"),
     all(feature = "gd32f130x4", feature = "gd32f130x6"),
     all(feature = "gd32f130x4", feature = "gd32f130x8"),
     all(feature = "gd32f130x6", feature = "gd32f130x8"),
+    all(feature = "gd32f150x4", feature = "gd32f150x6"),
+    all(feature = "gd32f150x4", feature = "gd32f150x8"),
+    all(feature = "gd32f150x6", feature = "gd32f150x8"),
+    all(feature = "gd32f170x4", feature = "gd32f170x6"),
+    all(feature = "gd32f170x4", feature = "gd32f170x8"),
+    all(feature = "gd32f170x6", feature = "gd32f170x8"),
+    all(feature = "gd32f190x4", feature = "gd32f190x6"),
+    all(feature = "gd32f190x4", feature = "gd32f190x8"),
+    all(feature = "gd32f190x6", feature = "gd32f190x8"),
 ))]
 compile_error!(
     "Multiple targets specified. Only a single `--features <target-name>` can be specified."
@@ -84,6 +121,12 @@ compile_error!(
 
 #[cfg(feature = "gd32f130")]
 pub use gd32f1::gd32f130 as pac;
+#[cfg(feature = "gd32f150")]
+pub use gd32f1::gd32f150 as pac;
+#[cfg(feature = "gd32f170")]
+pub use gd32f1::gd32f170 as pac;
+#[cfg(feature = "gd32f190")]
+pub use gd32f1::gd32f190 as pac;
 
 #[cfg(feature = "device-selected")]
 pub mod adc;

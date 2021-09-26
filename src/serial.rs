@@ -109,7 +109,16 @@ impl TxPin<USART0> for PB6<Alternate<AF0>> {}
 impl RxPin<USART0> for PB7<Alternate<AF0>> {}
 
 // Two USARTs
-#[cfg(any(feature = "gd32f130x6", feature = "gd32f130x8"))]
+#[cfg(any(
+    feature = "gd32f130x6",
+    feature = "gd32f130x8",
+    feature = "gd32f150x6",
+    feature = "gd32f150x8",
+    feature = "gd32f170x6",
+    feature = "gd32f170x8",
+    feature = "gd32f190x6",
+    feature = "gd32f190x8",
+))]
 mod pins {
     use super::*;
     use crate::gpio::gpiob::PB0;
@@ -125,7 +134,12 @@ mod pins {
 }
 
 // Only one USART
-#[cfg(feature = "gd32f130x4")]
+#[cfg(any(
+    feature = "gd32f130x4",
+    feature = "gd32f150x4",
+    feature = "gd32f170x4",
+    feature = "gd32f190x4"
+))]
 mod pins {
     use super::*;
 
@@ -652,7 +666,16 @@ serialdma! {
     ),
 }
 
-#[cfg(any(feature = "gd32f130x6", feature = "gd32f130x8"))]
+#[cfg(any(
+    feature = "gd32f130x6",
+    feature = "gd32f130x8",
+    feature = "gd32f150x6",
+    feature = "gd32f150x8",
+    feature = "gd32f170x6",
+    feature = "gd32f170x8",
+    feature = "gd32f190x6",
+    feature = "gd32f190x8",
+))]
 serialdma! {
     pac::USART1: (
         RxDma1,

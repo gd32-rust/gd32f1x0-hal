@@ -122,8 +122,15 @@ If no microcontroller is specified, the crate will not compile.
 - `gd32f130x4` (e.g. GD32F130F4, GD32F130G4, ...)
 - `gd32f130x6` (e.g. GD32F130F6, GD32F130G6, ...)
 - `gd32f130x8` (e.g. GD32F130F8, GD32F130G8, ...)
-
-The GD32F150/GD32F170/GD32F190 series are not yet supported, but should be in the future.
+- `gd32f150x4` (e.g. GD32F150G4, GD32F150K4, ...)
+- `gd32f150x6` (e.g. GD32F150G6, GD32F150K6, ...)
+- `gd32f150x8` (e.g. GD32F150G8, GD32F150K8, ...)
+- `gd32f170x4` (e.g. GD32F170T4, GD32F170C4, ...)
+- `gd32f170x6` (e.g. GD32F170T6, GD32F170C6, ...)
+- `gd32f170x8` (e.g. GD32F170T8, GD32F170C8, ...)
+- `gd32f190x4` (e.g. GD32F190T4, GD32F190C4, ...)
+- `gd32f190x6` (e.g. GD32F190T6, GD32F190C6, ...)
+- `gd32f190x8` (e.g. GD32F190T8, GD32F190C8, ...)
 
 ## Trying out the examples
 

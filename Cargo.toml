@@ -16,13 +16,13 @@ features = ["gd32f130x8", "rt"]
 default-target = "x86_64-unknown-linux-gnu"
 
 [dependencies]
-bxcan = "0.5.0"
-cast = { version = "0.2.5", default-features = false }
+bxcan = "0.6.0"
+cast = { version = "0.3.0", default-features = false }
 cortex-m = "0.7.2"
-cortex-m-rt = "0.6.13"
+cortex-m-rt = "0.7.0"
 embedded-dma = "0.1.2"
 embedded-hal = { version = "0.2.5", features = ["unproven"] }
-gd32f1 = "0.4.0"
+gd32f1 = "0.5.0"
 nb = "1.0.0"
 void = { version = "1.0.2", default-features = false }
 
@@ -50,6 +50,18 @@ gd32f130 = ["gd32f1/gd32f130", "device-selected"]
 gd32f130x4 = ["gd32f130"]
 gd32f130x6 = ["gd32f130"]
 gd32f130x8 = ["gd32f130"]
+gd32f150 = ["gd32f1/gd32f150", "device-selected"]
+gd32f150x4 = ["gd32f150"]
+gd32f150x6 = ["gd32f150"]
+gd32f150x8 = ["gd32f150"]
+gd32f170 = ["gd32f1/gd32f170", "device-selected"]
+gd32f170x4 = ["gd32f170"]
+gd32f170x6 = ["gd32f170"]
+gd32f170x8 = ["gd32f170"]
+gd32f190 = ["gd32f1/gd32f190", "device-selected"]
+gd32f190x4 = ["gd32f190"]
+gd32f190x6 = ["gd32f190"]
+gd32f190x8 = ["gd32f190"]
 
 [profile.dev]
 incremental = false
