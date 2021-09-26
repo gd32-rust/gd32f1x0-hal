@@ -30,14 +30,17 @@ pub struct Led {
 mod app {
     use super::*;
 
-    #[resources]
-    struct Resources {
+    #[shared]
+    struct Shared {
         timer_handler: CountDownTimer<pac::TIMER0>,
         led: Led,
     }
 
+    #[local]
+    struct Local {}
+
     #[init]
-    fn init(cx: init::Context) -> (init::LateResources, init::Monotonics) {
+    fn init(cx: init::Context) -> (Shared, Local, init::Monotonics) {
         // Take ownership over the raw flash and rcu devices and convert them into the corresponding
         // HAL structs
         let mut flash = cx.device.FMC.constrain();
@@ -61,13 +64,14 @@ mod app {
 
         // Init the static resources to use them later through RTIC
         (
-            init::LateResources {
+            Shared {
                 led: Led {
                     led,
                     led_state: false,
                 },
                 timer_handler: timer,
             },
+            Local {},
             init::Monotonics(),
         )
     }
@@ -84,16 +88,18 @@ mod app {
         }
     }
 
-    #[task(binds = TIMER0_BRK_UP_TRG_COM, priority = 1, resources = [led, timer_handler])]
-    fn tick(mut cx: tick::Context) {
+    #[task(binds = TIMER0_BRK_UP_TRG_COM, priority = 1, local = [count: u8 = 0], shared = [led, timer_handler])]
+    fn tick(cx: tick::Context) {
         // Depending on the application, you could want to delegate some of the work done here to
         // the idle task if you want to minimize the latency of interrupts with same priority (if
         // you have any). That could be done with some kind of machine state, etc.
 
+        let mut led = cx.shared.led;
+        let mut timer_handler = cx.shared.timer_handler;
         // Count used to change the timer update frequency
-        static mut COUNT: u8 = 0;
+        let count = cx.local.count;
 
-        cx.resources.led.lock(|led| {
+        led.lock(|led| {
             if led.led_state {
                 // Uses resources managed by rtic to turn led off.
                 led.led.set_high().unwrap();
@@ -103,15 +109,15 @@ mod app {
                 led.led_state = true;
             }
         });
-        *COUNT += 1;
+        *count += 1;
 
-        cx.resources.timer_handler.lock(|timer_handler| {
-            if *COUNT == 4 {
+        timer_handler.lock(|timer_handler| {
+            if *count == 4 {
                 // Changes timer update frequency
                 timer_handler.start(2.hz());
-            } else if *COUNT == 12 {
+            } else if *count == 12 {
                 timer_handler.start(1.hz());
-                *COUNT = 0;
+                *count = 0;
             }
 
             // Clears the update flag
