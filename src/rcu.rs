@@ -5,11 +5,13 @@
 //! # Reset & Clock Unit
 
 use crate::flash::WS;
+#[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
+use crate::pac::rcu::cfg0::USBDPSC_A;
 use crate::pac::{
     fmc::ws::WSCNT_A,
     rcu::{
         self,
-        cfg0::{ADCPSC_A, AHBPSC_A, APB1PSC_A, APB2PSC_A, PLLSEL_A, SCS_A, USBDPSC_A},
+        cfg0::{ADCPSC_A, AHBPSC_A, APB1PSC_A, APB2PSC_A, PLLSEL_A, SCS_A},
     },
     RCU,
 };
@@ -305,6 +307,7 @@ impl CFGR {
             })
         });
 
+        #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
         // the USB clock is only valid if an external crystal is used, the PLL is enabled, and the
         // PLL output frequency is a supported one.
         // usbpre == false: divide clock by 1.5, otherwise no division
@@ -360,8 +363,6 @@ impl CFGR {
                 .variant(apb1psc)
                 .ahbpsc()
                 .variant(ahbpsc)
-                .usbdpsc()
-                .variant(usbpre)
                 .scs()
                 .variant(if pllmf_bits.is_some() {
                     SCS_A::PLL
@@ -371,6 +372,10 @@ impl CFGR {
                     SCS_A::IRC8M
                 })
         });
+        #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
+        {
+            rcu.cfg0.modify(|_, w| w.usbdpsc().variant(usbpre));
+        }
         rcu.cfg2.modify(|_, w| w.adcsel().apb2().usart0sel().apb2());
 
         Clocks {
@@ -381,6 +386,7 @@ impl CFGR {
             ppre2,
             sysclk: Hertz(sysclk),
             adcclk: Hertz(adcclk),
+            #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
             usbclk_valid,
         }
     }
@@ -427,6 +433,7 @@ pub struct Clocks {
     ppre2: u8,
     sysclk: Hertz,
     adcclk: Hertz,
+    #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
     usbclk_valid: bool,
 }
 
@@ -477,6 +484,7 @@ impl Clocks {
     }
 
     /// Returns whether the USBCLK clock frequency is valid for the USB peripheral
+    #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
     pub fn usbclk_valid(&self) -> bool {
         self.usbclk_valid
     }
