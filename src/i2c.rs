@@ -32,6 +32,8 @@ use crate::gpio::{Alternate, AF1, AF4};
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
 use crate::pac::I2C2;
 use crate::pac::{DWT, I2C0, I2C1};
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
+use crate::rcu::ADDAPB1;
 use crate::rcu::{Clocks, Enable, GetBusFreq, Reset, APB1};
 use crate::time::Hertz;
 use core::ops::Deref;
@@ -223,6 +225,48 @@ impl<PINS> BlockingI2c<I2C1, PINS> {
         PINS: Pins<I2C1>,
     {
         BlockingI2c::<I2C1, _>::_i2c(
+            i2c,
+            pins,
+            mode,
+            clocks,
+            apb,
+            start_timeout_us,
+            start_retries,
+            addr_timeout_us,
+            data_timeout_us,
+        )
+    }
+}
+
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
+impl<PINS> I2c<I2C2, PINS> {
+    /// Creates a generic I2C2 object on the given pins using the embedded-hal `BlockingI2c` trait.
+    pub fn i2c2(i2c: I2C2, pins: PINS, mode: Mode, clocks: Clocks, apb: &mut ADDAPB1) -> Self
+    where
+        PINS: Pins<I2C2>,
+    {
+        I2c::<I2C2, _>::_i2c(i2c, pins, mode, clocks, apb)
+    }
+}
+
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
+impl<PINS> BlockingI2c<I2C2, PINS> {
+    /// Creates a blocking I2C2 object on the given pins.
+    pub fn i2c2(
+        i2c: I2C2,
+        pins: PINS,
+        mode: Mode,
+        clocks: Clocks,
+        apb: &mut ADDAPB1,
+        start_timeout_us: u32,
+        start_retries: u8,
+        addr_timeout_us: u32,
+        data_timeout_us: u32,
+    ) -> Self
+    where
+        PINS: Pins<I2C2>,
+    {
+        BlockingI2c::<I2C2, _>::_i2c(
             i2c,
             pins,
             mode,
