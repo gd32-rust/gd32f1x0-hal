@@ -4,8 +4,13 @@
 // parts of this code is based on
 // https://www.st.com/content/ccc/resource/technical/document/application_note/5d/ae/a3/6f/08/69/4e/9b/CD00209826.pdf/files/CD00209826.pdf/jcr:content/translations/en.CD00209826.pdf
 
+use crate::gpio::gpioa::{PA0, PA1, PA10, PA9};
 use crate::gpio::gpiob::{PB10, PB11, PB6, PB7, PB8, PB9};
-use crate::gpio::{Alternate, OpenDrain};
+use crate::gpio::gpioc::{PC0, PC1, PC7, PC8};
+use crate::gpio::gpiof::{PF6, PF7};
+use crate::gpio::{Alternate, AF0, AF1, AF4};
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
+use crate::pac::I2C2;
 use crate::pac::{DWT, I2C0, I2C1};
 use crate::rcu::{Clocks, Enable, GetBusFreq, Reset, APB1};
 use crate::time::Hertz;
@@ -13,8 +18,6 @@ use core::ops::Deref;
 use embedded_hal::blocking::i2c::{Read, Write, WriteRead};
 use nb::Error::{Other, WouldBlock};
 use nb::{Error as NbError, Result as NbResult};
-
-// TODO: Support I2C2 on GD32F170/GD32F190
 
 /// I2C error
 #[derive(Debug, Eq, PartialEq)]
@@ -75,9 +78,43 @@ impl Mode {
 /// Helper trait to ensure that the correct I2C pins are used for the corresponding interface
 pub trait Pins<I2C> {}
 
-impl Pins<I2C0> for (PB6<Alternate<OpenDrain>>, PB7<Alternate<OpenDrain>>) {}
-impl Pins<I2C0> for (PB8<Alternate<OpenDrain>>, PB9<Alternate<OpenDrain>>) {}
-impl Pins<I2C1> for (PB10<Alternate<OpenDrain>>, PB11<Alternate<OpenDrain>>) {}
+//SCL, SDA
+impl Pins<I2C0> for (PA9<Alternate<AF4>>, PA10<Alternate<AF4>>) {}
+impl Pins<I2C0> for (PB6<Alternate<AF1>>, PB7<Alternate<AF1>>) {}
+impl Pins<I2C0> for (PB8<Alternate<AF1>>, PB9<Alternate<AF1>>) {}
+#[cfg(any(feature = "gd32f170x4", feature = "gd32f190x4"))]
+impl Pins<I2C0> for (PB10<Alternate<AF1>>, PB11<Alternate<AF1>>) {}
+#[cfg(any(
+    feature = "gd32f130x4",
+    feature = "gd32f130x6",
+    feature = "gd32f170x4",
+    feature = "gd32f190x4",
+))]
+impl Pins<I2C0> for (PF6<Alternate<AF0>>, PF7<Alternate<AF0>>) {}
+
+#[cfg(any(
+    feature = "gd32f130x8",
+    feature = "gd32f150x8",
+    feature = "gd32f170x8",
+    feature = "gd32f190x8",
+))]
+impl Pins<I2C1> for (PA0<Alternate<AF4>>, PA1<Alternate<AF4>>) {}
+#[cfg(any(
+    feature = "gd32f130x8",
+    feature = "gd32f150x8",
+    feature = "gd32f170x8",
+    feature = "gd32f190x8",
+))]
+impl Pins<I2C1> for (PB10<Alternate<AF1>>, PB11<Alternate<AF1>>) {}
+#[cfg(any(feature = "gd32f130x8", feature = "gd32f170x8", feature = "gd32f190x8"))]
+impl Pins<I2C1> for (PF6<Alternate<AF0>>, PF7<Alternate<AF0>>) {}
+
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
+impl Pins<I2C2> for (PB6<Alternate<AF4>>, PB7<Alternate<AF4>>) {}
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
+impl Pins<I2C2> for (PC0<Alternate<AF1>>, PC1<Alternate<AF1>>) {}
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
+impl Pins<I2C2> for (PC7<Alternate<AF1>>, PC8<Alternate<AF1>>) {}
 
 /// I2C peripheral operating in master mode
 pub struct I2c<I2C, PINS> {
@@ -100,7 +137,7 @@ pub struct BlockingI2c<I2C, PINS> {
 }
 
 impl<PINS> I2c<I2C0, PINS> {
-    /// Creates a generic I2C0 object on pins PB6 and PB7 or PB8 and PB9 (if remapped)
+    /// Creates a generic I2C0 object on the given pins.
     pub fn i2c0(i2c: I2C0, pins: PINS, mode: Mode, clocks: Clocks, apb: &mut APB1) -> Self
     where
         PINS: Pins<I2C0>,
@@ -110,7 +147,7 @@ impl<PINS> I2c<I2C0, PINS> {
 }
 
 impl<PINS> BlockingI2c<I2C0, PINS> {
-    /// Creates a blocking I2C0 object on pins PB6 and PB7 or PB8 and PB9 using the embedded-hal `BlockingI2c` trait.
+    /// Creates a blocking I2C0 object on the given pins using the embedded-hal `BlockingI2c` trait.
     pub fn i2c0(
         i2c: I2C0,
         pins: PINS,
@@ -140,7 +177,7 @@ impl<PINS> BlockingI2c<I2C0, PINS> {
 }
 
 impl<PINS> I2c<I2C1, PINS> {
-    /// Creates a generic I2C1 object on pins PB10 and PB11 using the embedded-hal `BlockingI2c` trait.
+    /// Creates a generic I2C1 object on the given pins using the embedded-hal `BlockingI2c` trait.
     pub fn i2c1(i2c: I2C1, pins: PINS, mode: Mode, clocks: Clocks, apb: &mut APB1) -> Self
     where
         PINS: Pins<I2C1>,
@@ -150,7 +187,7 @@ impl<PINS> I2c<I2C1, PINS> {
 }
 
 impl<PINS> BlockingI2c<I2C1, PINS> {
-    /// Creates a blocking I2C1 object on pins PB10 and PB1
+    /// Creates a blocking I2C1 object on the given pins.
     pub fn i2c1(
         i2c: I2C1,
         pins: PINS,
