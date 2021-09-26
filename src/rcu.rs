@@ -33,6 +33,7 @@ impl RcuExt for RCU {
             ahb: AHB { _0: () },
             apb1: APB1 { _0: () },
             apb2: APB2 { _0: () },
+            addapb1: ADDAPB1 { _0: () },
             cfgr: CFGR {
                 hxtal: None,
                 hclk: None,
@@ -62,6 +63,8 @@ pub struct Rcu {
     pub apb1: APB1,
     /// Advanced Peripheral Bus 2 (APB2) registers
     pub apb2: APB2,
+    /// Additional Advanced Peripheral Bus 1 (ADDAPB1) registers
+    pub addapb1: ADDAPB1,
     pub cfgr: CFGR,
     pub bkp: BKP,
 }
@@ -111,9 +114,7 @@ impl APB1 {
         // NOTE(unsafe) this proxy grants exclusive access to this register
         unsafe { &(*RCU::ptr()).apb1rst }
     }
-}
 
-impl APB1 {
     /// Set power interface clock (PWREN) bit in RCU_APB1ENR
     pub fn set_pwren(&mut self) {
         self.enr().modify(|_r, w| w.pmuen().enabled())
@@ -142,6 +143,33 @@ impl APB2 {
     pub(crate) fn rstr(&mut self) -> &rcu::APB2RST {
         // NOTE(unsafe) this proxy grants exclusive access to this register
         unsafe { &(*RCU::ptr()).apb2rst }
+    }
+}
+
+/// Additional Advanced Peripheral Bus 1 (APB1) registers
+///
+/// Aquired through the `Rcu` registers:
+///
+/// ```rust
+/// let dp = pac::Peripherals::take().unwrap();
+/// let mut rcu = dp.RCU.constrain();
+/// function_that_uses_addapb1(&mut rcu.addapb1)
+/// ```
+pub struct ADDAPB1 {
+    _0: (),
+}
+
+impl ADDAPB1 {
+    #[allow(unused)]
+    pub(crate) fn enr(&mut self) -> &rcu::ADDEN {
+        // NOTE(unsafe) this proxy grants exclusive access to this register
+        unsafe { &(*RCU::ptr()).adden }
+    }
+
+    #[allow(unused)]
+    pub(crate) fn rstr(&mut self) -> &rcu::ADDRST {
+        // NOTE(unsafe) this proxy grants exclusive access to this register
+        unsafe { &(*RCU::ptr()).addrst }
     }
 }
 
@@ -512,6 +540,15 @@ impl GetBusFreq for APB1 {
     }
 }
 
+impl GetBusFreq for ADDAPB1 {
+    fn get_frequency(clocks: &Clocks) -> Hertz {
+        clocks.pclk1
+    }
+    fn get_timer_frequency(clocks: &Clocks) -> Hertz {
+        clocks.pclk1_tim()
+    }
+}
+
 impl GetBusFreq for APB2 {
     fn get_frequency(clocks: &Clocks) -> Hertz {
         clocks.pclk2
@@ -592,8 +629,6 @@ bus! {
     ADC => (APB2, adcen, adcrst),
     I2C0 => (APB1, i2c0en, i2c0rst),
     I2C1 => (APB1, i2c1en, i2c1rst),
-    // TODO: Support I2C2 on GD32F170/GD32F190
-    //I2C2 => (ADDAPB1, i2c2en, i2c2rst),
     SPI0 => (APB2, spi0en, spi0rst),
     SPI1 => (APB1, spi1en, spi1rst),
     SPI2 => (APB1, spi2en, spi2rst),
@@ -619,6 +654,7 @@ bus! {
 bus! {
     CAN0 => (APB1, can0en, can0rst),
     CAN1 => (APB1, can1en, can1rst),
+    I2C2 => (ADDAPB1, i2c2en, i2c2rst),
 }
 
 ahb_bus! {
