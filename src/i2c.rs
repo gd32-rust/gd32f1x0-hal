@@ -259,17 +259,17 @@ macro_rules! wait_for_flag {
     ($i2c:expr, $flag:ident) => {{
         let stat0 = $i2c.stat0.read();
 
-        if stat0.berr().bit_is_set() {
-            $i2c.stat0.write(|w| w.berr().clear_bit());
+        if stat0.berr().is_error() {
+            $i2c.stat0.write(|w| w.berr().no_error());
             Err(Other(Error::Bus))
-        } else if stat0.lostarb().bit_is_set() {
-            $i2c.stat0.write(|w| w.lostarb().clear_bit());
+        } else if stat0.lostarb().is_lost() {
+            $i2c.stat0.write(|w| w.lostarb().no_lost());
             Err(Other(Error::Arbitration))
-        } else if stat0.aerr().bit_is_set() {
-            $i2c.stat0.write(|w| w.aerr().clear_bit());
+        } else if stat0.aerr().is_error() {
+            $i2c.stat0.write(|w| w.aerr().no_error());
             Err(Other(Error::Acknowledge))
-        } else if stat0.ouerr().bit_is_set() {
-            $i2c.stat0.write(|w| w.ouerr().clear_bit());
+        } else if stat0.ouerr().is_overrun() {
+            $i2c.stat0.write(|w| w.ouerr().no_overrun());
             Err(Other(Error::Overrun))
         } else if stat0.$flag().bit_is_set() {
             Ok(())
@@ -375,7 +375,7 @@ where
             }
         };
 
-        self.i2c.ctl0.modify(|_, w| w.i2cen().set_bit());
+        self.i2c.ctl0.modify(|_, w| w.i2cen().enabled());
     }
 
     /// Perform an I2C software reset
@@ -389,7 +389,7 @@ where
 
     /// Generate START condition
     fn send_start(&mut self) {
-        self.i2c.ctl0.modify(|_, w| w.start().set_bit());
+        self.i2c.ctl0.modify(|_, w| w.start().start());
     }
 
     /// Check if START condition is generated. If the condition is not generated, this
@@ -420,7 +420,7 @@ where
 
     /// Generate STOP condition
     fn send_stop(&self) {
-        self.i2c.ctl0.modify(|_, w| w.stop().set_bit());
+        self.i2c.ctl0.modify(|_, w| w.stop().stop());
     }
 
     /// Releases the I2C peripheral and associated pins
@@ -542,7 +542,7 @@ where
 
         match buffer.len() {
             1 => {
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().clear_bit());
+                self.nb.i2c.ctl0.modify(|_, w| w.acken().nak());
                 self.nb.i2c.stat0.read();
                 self.nb.i2c.stat1.read();
                 self.nb.send_stop();
@@ -551,16 +551,16 @@ where
                 buffer[0] = self.nb.i2c.data.read().trb().bits();
 
                 busy_wait_cycles!(self.nb.wait_for_stop(), self.data_timeout)?;
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().set_bit());
+                self.nb.i2c.ctl0.modify(|_, w| w.acken().ack());
             }
             2 => {
                 self.nb
                     .i2c
                     .ctl0
-                    .modify(|_, w| w.poap().set_bit().acken().set_bit());
+                    .modify(|_, w| w.poap().next().acken().ack());
                 self.nb.i2c.stat0.read();
                 self.nb.i2c.stat1.read();
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().clear_bit());
+                self.nb.i2c.ctl0.modify(|_, w| w.acken().nak());
 
                 busy_wait_cycles!(wait_for_flag!(self.nb.i2c, btc), self.data_timeout)?;
                 self.nb.send_stop();
@@ -571,11 +571,11 @@ where
                 self.nb
                     .i2c
                     .ctl0
-                    .modify(|_, w| w.poap().clear_bit().acken().clear_bit());
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().set_bit());
+                    .modify(|_, w| w.poap().current().acken().nak());
+                self.nb.i2c.ctl0.modify(|_, w| w.acken().ack());
             }
             buffer_len => {
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().set_bit());
+                self.nb.i2c.ctl0.modify(|_, w| w.acken().ack());
                 self.nb.i2c.stat0.read();
                 self.nb.i2c.stat1.read();
 
@@ -586,7 +586,7 @@ where
                 }
 
                 busy_wait_cycles!(wait_for_flag!(self.nb.i2c, btc), self.data_timeout)?;
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().clear_bit());
+                self.nb.i2c.ctl0.modify(|_, w| w.acken().nak());
                 last_two_bytes[0] = self.nb.i2c.data.read().trb().bits();
                 self.nb.send_stop();
                 last_two_bytes[1] = self.nb.i2c.data.read().trb().bits();
@@ -594,7 +594,7 @@ where
                 last_two_bytes[2] = self.nb.i2c.data.read().trb().bits();
 
                 busy_wait_cycles!(self.nb.wait_for_stop(), self.data_timeout)?;
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().set_bit());
+                self.nb.i2c.ctl0.modify(|_, w| w.acken().ack());
             }
         }
 
