@@ -96,51 +96,91 @@ impl Mode {
     }
 }
 
-/// Helper trait to ensure that the correct I2C pins are used for the corresponding interface
-pub trait Pins<I2C> {}
+/// Marker trait for possible SCL pins for an I2C module.
+pub trait SclPin<I2C> {}
 
-//SCL, SDA
-impl Pins<I2C0> for (PA9<Alternate<AF4>>, PA10<Alternate<AF4>>) {}
-impl Pins<I2C0> for (PB6<Alternate<AF1>>, PB7<Alternate<AF1>>) {}
-impl Pins<I2C0> for (PB8<Alternate<AF1>>, PB9<Alternate<AF1>>) {}
+/// Marker trait for possible SDA pins for an I2C module.
+pub trait SdaPin<I2C> {}
+
+// Pins for I2C0
+impl SclPin<I2C0> for PA9<Alternate<AF4>> {}
+impl SdaPin<I2C0> for PA10<Alternate<AF4>> {}
+impl SclPin<I2C0> for PB6<Alternate<AF1>> {}
+impl SdaPin<I2C0> for PB7<Alternate<AF1>> {}
+impl SclPin<I2C0> for PB8<Alternate<AF1>> {}
+impl SdaPin<I2C0> for PB9<Alternate<AF1>> {}
 #[cfg(any(feature = "gd32f170x4", feature = "gd32f190x4"))]
-impl Pins<I2C0> for (PB10<Alternate<AF1>>, PB11<Alternate<AF1>>) {}
+impl SclPin<I2C0> for PB10<Alternate<AF1>> {}
+#[cfg(any(feature = "gd32f170x4", feature = "gd32f190x4"))]
+impl SdaPin<I2C0> for PB11<Alternate<AF1>> {}
 #[cfg(any(
     feature = "gd32f130x4",
     feature = "gd32f130x6",
     feature = "gd32f170x4",
     feature = "gd32f190x4",
 ))]
-impl Pins<I2C0> for (PF6<Alternate<AF0>>, PF7<Alternate<AF0>>) {}
+impl SclPin<I2C0> for PF6<Alternate<AF0>> {}
+#[cfg(any(
+    feature = "gd32f130x4",
+    feature = "gd32f130x6",
+    feature = "gd32f170x4",
+    feature = "gd32f190x4",
+))]
+impl SdaPin<I2C0> for PF7<Alternate<AF0>> {}
 
+// Pins for I2C1
 #[cfg(any(
     feature = "gd32f130x8",
     feature = "gd32f150x8",
     feature = "gd32f170x8",
     feature = "gd32f190x8",
 ))]
-impl Pins<I2C1> for (PA0<Alternate<AF4>>, PA1<Alternate<AF4>>) {}
+impl SclPin<I2C1> for PA0<Alternate<AF4>> {}
 #[cfg(any(
     feature = "gd32f130x8",
     feature = "gd32f150x8",
     feature = "gd32f170x8",
     feature = "gd32f190x8",
 ))]
-impl Pins<I2C1> for (PB10<Alternate<AF1>>, PB11<Alternate<AF1>>) {}
+impl SdaPin<I2C1> for PA1<Alternate<AF4>> {}
+#[cfg(any(
+    feature = "gd32f130x8",
+    feature = "gd32f150x8",
+    feature = "gd32f170x8",
+    feature = "gd32f190x8",
+))]
+impl SclPin<I2C1> for PB10<Alternate<AF1>> {}
+#[cfg(any(
+    feature = "gd32f130x8",
+    feature = "gd32f150x8",
+    feature = "gd32f170x8",
+    feature = "gd32f190x8",
+))]
+impl SdaPin<I2C1> for PB11<Alternate<AF1>> {}
 #[cfg(any(feature = "gd32f130x8", feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl Pins<I2C1> for (PF6<Alternate<AF0>>, PF7<Alternate<AF0>>) {}
+impl SclPin<I2C1> for PF6<Alternate<AF0>> {}
+#[cfg(any(feature = "gd32f130x8", feature = "gd32f170x8", feature = "gd32f190x8"))]
+impl SdaPin<I2C1> for PF7<Alternate<AF0>> {}
 
+// Pins for I2C2
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl Pins<I2C2> for (PB6<Alternate<AF4>>, PB7<Alternate<AF4>>) {}
+impl SclPin<I2C2> for PB6<Alternate<AF4>> {}
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl Pins<I2C2> for (PC0<Alternate<AF1>>, PC1<Alternate<AF1>>) {}
+impl SdaPin<I2C2> for PB7<Alternate<AF4>> {}
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl Pins<I2C2> for (PC7<Alternate<AF1>>, PC8<Alternate<AF1>>) {}
+impl SclPin<I2C2> for PC0<Alternate<AF1>> {}
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
+impl SdaPin<I2C2> for PC1<Alternate<AF1>> {}
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
+impl SclPin<I2C2> for PC7<Alternate<AF1>> {}
+#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
+impl SdaPin<I2C2> for PC8<Alternate<AF1>> {}
 
 /// I2C peripheral operating in master mode
-pub struct I2c<I2C, PINS> {
+pub struct I2c<I2C, SCLPIN, SDAPIN> {
     i2c: I2C,
-    pins: PINS,
+    scl_pin: SCLPIN,
+    sda_pin: SDAPIN,
     mode: Mode,
     pclk1: u32,
 }
@@ -149,29 +189,38 @@ pub struct I2c<I2C, PINS> {
 ///
 /// **NOTE**: Before using blocking I2C, you need to enable the DWT cycle counter using the
 /// [DWT::enable_cycle_counter] method.
-pub struct BlockingI2c<I2C, PINS> {
-    nb: I2c<I2C, PINS>,
+pub struct BlockingI2c<I2C, SCLPIN, SDAPIN> {
+    nb: I2c<I2C, SCLPIN, SDAPIN>,
     start_timeout: u32,
     start_retries: u8,
     addr_timeout: u32,
     data_timeout: u32,
 }
 
-impl<PINS> I2c<I2C0, PINS> {
+impl<SCLPIN, SDAPIN> I2c<I2C0, SCLPIN, SDAPIN> {
     /// Creates a generic I2C0 object on the given pins.
-    pub fn i2c0(i2c: I2C0, pins: PINS, mode: Mode, clocks: Clocks, apb: &mut APB1) -> Self
+    pub fn i2c0(
+        i2c: I2C0,
+        scl_pin: SCLPIN,
+        sda_pin: SDAPIN,
+        mode: Mode,
+        clocks: Clocks,
+        apb: &mut APB1,
+    ) -> Self
     where
-        PINS: Pins<I2C0>,
+        SCLPIN: SclPin<I2C0>,
+        SDAPIN: SdaPin<I2C0>,
     {
-        I2c::<I2C0, _>::_i2c(i2c, pins, mode, clocks, apb)
+        I2c::<I2C0, _, _>::_i2c(i2c, scl_pin, sda_pin, mode, clocks, apb)
     }
 }
 
-impl<PINS> BlockingI2c<I2C0, PINS> {
+impl<SCLPIN, SDAPIN> BlockingI2c<I2C0, SCLPIN, SDAPIN> {
     /// Creates a blocking I2C0 object on the given pins using the embedded-hal `BlockingI2c` trait.
     pub fn i2c0(
         i2c: I2C0,
-        pins: PINS,
+        scl_pin: SCLPIN,
+        sda_pin: SDAPIN,
         mode: Mode,
         clocks: Clocks,
         apb: &mut APB1,
@@ -181,11 +230,13 @@ impl<PINS> BlockingI2c<I2C0, PINS> {
         data_timeout_us: u32,
     ) -> Self
     where
-        PINS: Pins<I2C0>,
+        SCLPIN: SclPin<I2C0>,
+        SDAPIN: SdaPin<I2C0>,
     {
-        BlockingI2c::<I2C0, _>::_i2c(
+        BlockingI2c::<I2C0, _, _>::_i2c(
             i2c,
-            pins,
+            scl_pin,
+            sda_pin,
             mode,
             clocks,
             apb,
@@ -197,21 +248,30 @@ impl<PINS> BlockingI2c<I2C0, PINS> {
     }
 }
 
-impl<PINS> I2c<I2C1, PINS> {
+impl<SCLPIN, SDAPIN> I2c<I2C1, SCLPIN, SDAPIN> {
     /// Creates a generic I2C1 object on the given pins using the embedded-hal `BlockingI2c` trait.
-    pub fn i2c1(i2c: I2C1, pins: PINS, mode: Mode, clocks: Clocks, apb: &mut APB1) -> Self
+    pub fn i2c1(
+        i2c: I2C1,
+        scl_pin: SCLPIN,
+        sda_pin: SDAPIN,
+        mode: Mode,
+        clocks: Clocks,
+        apb: &mut APB1,
+    ) -> Self
     where
-        PINS: Pins<I2C1>,
+        SCLPIN: SclPin<I2C1>,
+        SDAPIN: SdaPin<I2C1>,
     {
-        I2c::<I2C1, _>::_i2c(i2c, pins, mode, clocks, apb)
+        I2c::<I2C1, _, _>::_i2c(i2c, scl_pin, sda_pin, mode, clocks, apb)
     }
 }
 
-impl<PINS> BlockingI2c<I2C1, PINS> {
+impl<SCLPIN, SDAPIN> BlockingI2c<I2C1, SCLPIN, SDAPIN> {
     /// Creates a blocking I2C1 object on the given pins.
     pub fn i2c1(
         i2c: I2C1,
-        pins: PINS,
+        scl_pin: SCLPIN,
+        sda_pin: SDAPIN,
         mode: Mode,
         clocks: Clocks,
         apb: &mut APB1,
@@ -221,11 +281,13 @@ impl<PINS> BlockingI2c<I2C1, PINS> {
         data_timeout_us: u32,
     ) -> Self
     where
-        PINS: Pins<I2C1>,
+        SCLPIN: SclPin<I2C1>,
+        SDAPIN: SdaPin<I2C1>,
     {
-        BlockingI2c::<I2C1, _>::_i2c(
+        BlockingI2c::<I2C1, _, _>::_i2c(
             i2c,
-            pins,
+            scl_pin,
+            sda_pin,
             mode,
             clocks,
             apb,
@@ -238,22 +300,31 @@ impl<PINS> BlockingI2c<I2C1, PINS> {
 }
 
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl<PINS> I2c<I2C2, PINS> {
+impl<SCLPIN, SDAPIN> I2c<I2C2, SCLPIN, SDAPIN> {
     /// Creates a generic I2C2 object on the given pins using the embedded-hal `BlockingI2c` trait.
-    pub fn i2c2(i2c: I2C2, pins: PINS, mode: Mode, clocks: Clocks, apb: &mut ADDAPB1) -> Self
+    pub fn i2c2(
+        i2c: I2C2,
+        scl_pin: SCLPIN,
+        sda_pin: SDAPIN,
+        mode: Mode,
+        clocks: Clocks,
+        apb: &mut ADDAPB1,
+    ) -> Self
     where
-        PINS: Pins<I2C2>,
+        SCLPIN: SclPin<I2C2>,
+        SDAPIN: SdaPin<I2C2>,
     {
-        I2c::<I2C2, _>::_i2c(i2c, pins, mode, clocks, apb)
+        I2c::<I2C2, _, _>::_i2c(i2c, scl_pin, sda_pin, mode, clocks, apb)
     }
 }
 
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl<PINS> BlockingI2c<I2C2, PINS> {
+impl<SCLPIN, SDAPIN> BlockingI2c<I2C2, SCLPIN, SDAPIN> {
     /// Creates a blocking I2C2 object on the given pins.
     pub fn i2c2(
         i2c: I2C2,
-        pins: PINS,
+        scl_pin: SCLPIN,
+        sda_pin: SDAPIN,
         mode: Mode,
         clocks: Clocks,
         apb: &mut ADDAPB1,
@@ -263,11 +334,13 @@ impl<PINS> BlockingI2c<I2C2, PINS> {
         data_timeout_us: u32,
     ) -> Self
     where
-        PINS: Pins<I2C2>,
+        SCLPIN: SclPin<I2C2>,
+        SDAPIN: SdaPin<I2C2>,
     {
-        BlockingI2c::<I2C2, _>::_i2c(
+        BlockingI2c::<I2C2, _, _>::_i2c(
             i2c,
-            pins,
+            scl_pin,
+            sda_pin,
             mode,
             clocks,
             apb,
@@ -280,14 +353,14 @@ impl<PINS> BlockingI2c<I2C2, PINS> {
 }
 
 /// Generates a blocking I2C instance from a universal I2C object
-fn blocking_i2c<I2C, PINS>(
-    i2c: I2c<I2C, PINS>,
+fn blocking_i2c<I2C, SCLPIN, SDAPIN>(
+    i2c: I2c<I2C, SCLPIN, SDAPIN>,
     clocks: Clocks,
     start_timeout_us: u32,
     start_retries: u8,
     addr_timeout_us: u32,
     data_timeout_us: u32,
-) -> BlockingI2c<I2C, PINS> {
+) -> BlockingI2c<I2C, SCLPIN, SDAPIN> {
     let sysclk_mhz = clocks.sysclk().0 / 1_000_000;
     BlockingI2c {
         nb: i2c,
@@ -349,13 +422,20 @@ macro_rules! busy_wait_cycles {
 
 pub type I2cRegisterBlock = crate::pac::i2c0::RegisterBlock;
 
-impl<I2C, PINS> I2c<I2C, PINS>
+impl<I2C, SCLPIN, SDAPIN> I2c<I2C, SCLPIN, SDAPIN>
 where
     I2C: Deref<Target = I2cRegisterBlock> + Enable + Reset,
     I2C::Bus: GetBusFreq,
 {
     /// Configures the I2C peripheral to work in master mode
-    fn _i2c(i2c: I2C, pins: PINS, mode: Mode, clocks: Clocks, apb: &mut I2C::Bus) -> Self {
+    fn _i2c(
+        i2c: I2C,
+        scl_pin: SCLPIN,
+        sda_pin: SDAPIN,
+        mode: Mode,
+        clocks: Clocks,
+        apb: &mut I2C::Bus,
+    ) -> Self {
         I2C::enable(apb);
         I2C::reset(apb);
 
@@ -365,7 +445,8 @@ where
 
         let mut i2c = I2c {
             i2c,
-            pins,
+            scl_pin,
+            sda_pin,
             mode,
             pclk1,
         };
@@ -374,7 +455,7 @@ where
     }
 }
 
-impl<I2C, PINS> I2c<I2C, PINS>
+impl<I2C, SCLPIN, SDAPIN> I2c<I2C, SCLPIN, SDAPIN>
 where
     I2C: Deref<Target = I2cRegisterBlock>,
 {
@@ -467,19 +548,20 @@ where
     }
 
     /// Releases the I2C peripheral and associated pins
-    pub fn free(self) -> (I2C, PINS) {
-        (self.i2c, self.pins)
+    pub fn free(self) -> (I2C, SCLPIN, SDAPIN) {
+        (self.i2c, self.scl_pin, self.sda_pin)
     }
 }
 
-impl<I2C, PINS> BlockingI2c<I2C, PINS>
+impl<I2C, SCLPIN, SDAPIN> BlockingI2c<I2C, SCLPIN, SDAPIN>
 where
     I2C: Deref<Target = I2cRegisterBlock> + Enable + Reset,
     I2C::Bus: GetBusFreq,
 {
     fn _i2c(
         i2c: I2C,
-        pins: PINS,
+        scl_pin: SCLPIN,
+        sda_pin: SDAPIN,
         mode: Mode,
         clocks: Clocks,
         apb: &mut I2C::Bus,
@@ -489,7 +571,7 @@ where
         data_timeout_us: u32,
     ) -> Self {
         blocking_i2c(
-            I2c::<I2C, _>::_i2c(i2c, pins, mode, clocks, apb),
+            I2c::<I2C, _, _>::_i2c(i2c, scl_pin, sda_pin, mode, clocks, apb),
             clocks,
             start_timeout_us,
             start_retries,
@@ -499,7 +581,7 @@ where
     }
 }
 
-impl<I2C, PINS> BlockingI2c<I2C, PINS>
+impl<I2C, SCLPIN, SDAPIN> BlockingI2c<I2C, SCLPIN, SDAPIN>
 where
     I2C: Deref<Target = I2cRegisterBlock>,
 {
@@ -558,7 +640,7 @@ where
     }
 }
 
-impl<I2C, PINS> Write for BlockingI2c<I2C, PINS>
+impl<I2C, SCLPIN, SDAPIN> Write for BlockingI2c<I2C, SCLPIN, SDAPIN>
 where
     I2C: Deref<Target = I2cRegisterBlock>,
 {
@@ -573,7 +655,7 @@ where
     }
 }
 
-impl<I2C, PINS> Read for BlockingI2c<I2C, PINS>
+impl<I2C, SCLPIN, SDAPIN> Read for BlockingI2c<I2C, SCLPIN, SDAPIN>
 where
     I2C: Deref<Target = I2cRegisterBlock>,
 {
@@ -645,7 +727,7 @@ where
     }
 }
 
-impl<I2C, PINS> WriteRead for BlockingI2c<I2C, PINS>
+impl<I2C, SCLPIN, SDAPIN> WriteRead for BlockingI2c<I2C, SCLPIN, SDAPIN>
 where
     I2C: Deref<Target = I2cRegisterBlock>,
 {
