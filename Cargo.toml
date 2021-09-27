@@ -9,7 +9,7 @@ repository = "https://github.com/qwandor/gd32f1x0-hal"
 documentation = "https://docs.rs/gd2f1x0-hal"
 readme = "README.md"
 edition = "2018"
-version = "0.5.0"
+version = "0.6.0"
 
 [package.metadata.docs.rs]
 features = ["gd32f130x8", "rt"]
