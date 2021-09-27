@@ -197,162 +197,67 @@ pub struct BlockingI2c<I2C, SCLPIN, SDAPIN> {
     data_timeout: u32,
 }
 
-impl<SCLPIN, SDAPIN> I2c<I2C0, SCLPIN, SDAPIN> {
-    /// Creates a generic I2C0 object on the given pins.
-    pub fn i2c0(
-        i2c: I2C0,
-        scl_pin: SCLPIN,
-        sda_pin: SDAPIN,
-        mode: Mode,
-        clocks: Clocks,
-        apb: &mut APB1,
-    ) -> Self
-    where
-        SCLPIN: SclPin<I2C0>,
-        SDAPIN: SdaPin<I2C0>,
-    {
-        I2c::<I2C0, _, _>::_i2c(i2c, scl_pin, sda_pin, mode, clocks, apb)
-    }
+macro_rules! i2c_impl {
+    ($I2Cn:ty, $i2cn:ident, $APBn:ty) => {
+        impl<SCLPIN, SDAPIN> I2c<$I2Cn, SCLPIN, SDAPIN> {
+            /// Creates a generic I2Cn object on the given pins.
+            pub fn $i2cn(
+                i2c: $I2Cn,
+                scl_pin: SCLPIN,
+                sda_pin: SDAPIN,
+                mode: Mode,
+                clocks: Clocks,
+                apb: &mut $APBn,
+            ) -> Self
+            where
+                SCLPIN: SclPin<$I2Cn>,
+                SDAPIN: SdaPin<$I2Cn>,
+            {
+                I2c::<$I2Cn, _, _>::_i2c(i2c, scl_pin, sda_pin, mode, clocks, apb)
+            }
+        }
+
+        impl<SCLPIN, SDAPIN> BlockingI2c<$I2Cn, SCLPIN, SDAPIN> {
+            /// Creates a blocking I2Cn object on the given pins using the embedded-hal `BlockingI2c` trait.
+            pub fn $i2cn(
+                i2c: $I2Cn,
+                scl_pin: SCLPIN,
+                sda_pin: SDAPIN,
+                mode: Mode,
+                clocks: Clocks,
+                apb: &mut $APBn,
+                start_timeout_us: u32,
+                start_retries: u8,
+                addr_timeout_us: u32,
+                data_timeout_us: u32,
+            ) -> Self
+            where
+                SCLPIN: SclPin<$I2Cn>,
+                SDAPIN: SdaPin<$I2Cn>,
+            {
+                BlockingI2c::<$I2Cn, _, _>::_i2c(
+                    i2c,
+                    scl_pin,
+                    sda_pin,
+                    mode,
+                    clocks,
+                    apb,
+                    start_timeout_us,
+                    start_retries,
+                    addr_timeout_us,
+                    data_timeout_us,
+                )
+            }
+        }
+    };
 }
 
-impl<SCLPIN, SDAPIN> BlockingI2c<I2C0, SCLPIN, SDAPIN> {
-    /// Creates a blocking I2C0 object on the given pins using the embedded-hal `BlockingI2c` trait.
-    pub fn i2c0(
-        i2c: I2C0,
-        scl_pin: SCLPIN,
-        sda_pin: SDAPIN,
-        mode: Mode,
-        clocks: Clocks,
-        apb: &mut APB1,
-        start_timeout_us: u32,
-        start_retries: u8,
-        addr_timeout_us: u32,
-        data_timeout_us: u32,
-    ) -> Self
-    where
-        SCLPIN: SclPin<I2C0>,
-        SDAPIN: SdaPin<I2C0>,
-    {
-        BlockingI2c::<I2C0, _, _>::_i2c(
-            i2c,
-            scl_pin,
-            sda_pin,
-            mode,
-            clocks,
-            apb,
-            start_timeout_us,
-            start_retries,
-            addr_timeout_us,
-            data_timeout_us,
-        )
-    }
-}
-
-impl<SCLPIN, SDAPIN> I2c<I2C1, SCLPIN, SDAPIN> {
-    /// Creates a generic I2C1 object on the given pins using the embedded-hal `BlockingI2c` trait.
-    pub fn i2c1(
-        i2c: I2C1,
-        scl_pin: SCLPIN,
-        sda_pin: SDAPIN,
-        mode: Mode,
-        clocks: Clocks,
-        apb: &mut APB1,
-    ) -> Self
-    where
-        SCLPIN: SclPin<I2C1>,
-        SDAPIN: SdaPin<I2C1>,
-    {
-        I2c::<I2C1, _, _>::_i2c(i2c, scl_pin, sda_pin, mode, clocks, apb)
-    }
-}
-
-impl<SCLPIN, SDAPIN> BlockingI2c<I2C1, SCLPIN, SDAPIN> {
-    /// Creates a blocking I2C1 object on the given pins.
-    pub fn i2c1(
-        i2c: I2C1,
-        scl_pin: SCLPIN,
-        sda_pin: SDAPIN,
-        mode: Mode,
-        clocks: Clocks,
-        apb: &mut APB1,
-        start_timeout_us: u32,
-        start_retries: u8,
-        addr_timeout_us: u32,
-        data_timeout_us: u32,
-    ) -> Self
-    where
-        SCLPIN: SclPin<I2C1>,
-        SDAPIN: SdaPin<I2C1>,
-    {
-        BlockingI2c::<I2C1, _, _>::_i2c(
-            i2c,
-            scl_pin,
-            sda_pin,
-            mode,
-            clocks,
-            apb,
-            start_timeout_us,
-            start_retries,
-            addr_timeout_us,
-            data_timeout_us,
-        )
-    }
-}
-
+i2c_impl!(I2C0, i2c0, APB1);
+i2c_impl!(I2C1, i2c1, APB1);
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl<SCLPIN, SDAPIN> I2c<I2C2, SCLPIN, SDAPIN> {
-    /// Creates a generic I2C2 object on the given pins using the embedded-hal `BlockingI2c` trait.
-    pub fn i2c2(
-        i2c: I2C2,
-        scl_pin: SCLPIN,
-        sda_pin: SDAPIN,
-        mode: Mode,
-        clocks: Clocks,
-        apb: &mut ADDAPB1,
-    ) -> Self
-    where
-        SCLPIN: SclPin<I2C2>,
-        SDAPIN: SdaPin<I2C2>,
-    {
-        I2c::<I2C2, _, _>::_i2c(i2c, scl_pin, sda_pin, mode, clocks, apb)
-    }
-}
+i2c_impl!(I2C2, i2c2, ADDAPB1);
 
-#[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl<SCLPIN, SDAPIN> BlockingI2c<I2C2, SCLPIN, SDAPIN> {
-    /// Creates a blocking I2C2 object on the given pins.
-    pub fn i2c2(
-        i2c: I2C2,
-        scl_pin: SCLPIN,
-        sda_pin: SDAPIN,
-        mode: Mode,
-        clocks: Clocks,
-        apb: &mut ADDAPB1,
-        start_timeout_us: u32,
-        start_retries: u8,
-        addr_timeout_us: u32,
-        data_timeout_us: u32,
-    ) -> Self
-    where
-        SCLPIN: SclPin<I2C2>,
-        SDAPIN: SdaPin<I2C2>,
-    {
-        BlockingI2c::<I2C2, _, _>::_i2c(
-            i2c,
-            scl_pin,
-            sda_pin,
-            mode,
-            clocks,
-            apb,
-            start_timeout_us,
-            start_retries,
-            addr_timeout_us,
-            data_timeout_us,
-        )
-    }
-}
-
-/// Generates a blocking I2C instance from a universal I2C object
+/// Generates a blocking I2C instance from a universal I2C object.
 fn blocking_i2c<I2C, SCLPIN, SDAPIN>(
     i2c: I2c<I2C, SCLPIN, SDAPIN>,
     clocks: Clocks,
