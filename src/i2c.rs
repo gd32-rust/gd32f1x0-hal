@@ -219,6 +219,7 @@ macro_rules! i2c_impl {
 
         impl<SCLPIN, SDAPIN> BlockingI2c<$I2Cn, SCLPIN, SDAPIN> {
             /// Creates a blocking I2Cn object on the given pins using the embedded-hal `BlockingI2c` trait.
+            #[allow(clippy::too_many_arguments)]
             pub fn $i2cn(
                 i2c: $I2Cn,
                 scl_pin: SCLPIN,
@@ -463,6 +464,7 @@ where
     I2C: Deref<Target = I2cRegisterBlock> + Enable + Reset,
     I2C::Bus: GetBusFreq,
 {
+    #[allow(clippy::too_many_arguments)]
     fn create_internal(
         i2c: I2C,
         scl_pin: SCLPIN,
