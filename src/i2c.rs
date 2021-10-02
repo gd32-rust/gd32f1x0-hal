@@ -213,7 +213,7 @@ macro_rules! i2c_impl {
                 SCLPIN: SclPin<$I2Cn>,
                 SDAPIN: SdaPin<$I2Cn>,
             {
-                I2c::<$I2Cn, _, _>::_i2c(i2c, scl_pin, sda_pin, mode, clocks, apb)
+                I2c::<$I2Cn, _, _>::create_internal(i2c, scl_pin, sda_pin, mode, clocks, apb)
             }
         }
 
@@ -235,7 +235,7 @@ macro_rules! i2c_impl {
                 SCLPIN: SclPin<$I2Cn>,
                 SDAPIN: SdaPin<$I2Cn>,
             {
-                BlockingI2c::<$I2Cn, _, _>::_i2c(
+                BlockingI2c::<$I2Cn, _, _>::create_internal(
                     i2c,
                     scl_pin,
                     sda_pin,
@@ -333,7 +333,7 @@ where
     I2C::Bus: GetBusFreq,
 {
     /// Configures the I2C peripheral to work in master mode
-    fn _i2c(
+    fn create_internal(
         i2c: I2C,
         scl_pin: SCLPIN,
         sda_pin: SDAPIN,
@@ -391,10 +391,10 @@ where
 
                 self.i2c.ckcfg.write(|w| {
                     let (freq, duty) = match duty_cycle {
-                        &DutyCycle::Ratio2to1 => {
+                        DutyCycle::Ratio2to1 => {
                             (((self.pclk1 / (freq.0 * 3)) as u16).max(1), false)
                         }
-                        &DutyCycle::Ratio16to9 => {
+                        DutyCycle::Ratio16to9 => {
                             (((self.pclk1 / (freq.0 * 25)) as u16).max(1), true)
                         }
                     };
@@ -463,7 +463,7 @@ where
     I2C: Deref<Target = I2cRegisterBlock> + Enable + Reset,
     I2C::Bus: GetBusFreq,
 {
-    fn _i2c(
+    fn create_internal(
         i2c: I2C,
         scl_pin: SCLPIN,
         sda_pin: SDAPIN,
@@ -476,7 +476,7 @@ where
         data_timeout_us: u32,
     ) -> Self {
         blocking_i2c(
-            I2c::<I2C, _, _>::_i2c(i2c, scl_pin, sda_pin, mode, clocks, apb),
+            I2c::<I2C, _, _>::create_internal(i2c, scl_pin, sda_pin, mode, clocks, apb),
             clocks,
             start_timeout_us,
             start_retries,
@@ -498,7 +498,7 @@ where
         while retries_left > 0 {
             self.nb.send_start();
             last_ret = busy_wait_cycles!(self.nb.wait_after_sent_start(), self.start_timeout);
-            if let Err(_) = last_ret {
+            if last_ret.is_err() {
                 self.nb.reset();
             } else {
                 break;
