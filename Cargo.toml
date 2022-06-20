@@ -20,7 +20,7 @@ bxcan = "0.7.0"
 cast = { version = "0.3.0", default-features = false }
 cortex-m = "0.7.5"
 cortex-m-rt = "0.7.1"
-embedded-dma = "0.1.2"
+embedded-dma = "0.2.0"
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
 gd32f1 = "0.5.0"
 nb = "1.0.0"

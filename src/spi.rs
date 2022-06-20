@@ -55,7 +55,7 @@ use crate::rcc::{Clocks, Enable, GetBusFreq, Reset, APB1, APB2};
 use crate::time::Hertz;
 
 use core::sync::atomic::{self, Ordering};
-use embedded_dma::StaticReadBuffer;
+use embedded_dma::ReadBuffer;
 
 /// SPI error
 #[derive(Debug)]
@@ -587,12 +587,12 @@ macro_rules! spi_dma {
 
         impl<B, REMAP, PIN> crate::dma::WriteDma<B, u8> for SpiTxDma<$SPIi, REMAP, PIN, $TCi>
         where
-            B: StaticReadBuffer<Word = u8>,
+            B: ReadBuffer<Word = u8>,
         {
             fn write(mut self, buffer: B) -> Transfer<R, B, Self> {
                 // NOTE(unsafe) We own the buffer now and we won't call other `&mut` on it
                 // until the end of the transfer.
-                let (ptr, len) = unsafe { buffer.static_read_buffer() };
+                let (ptr, len) = unsafe { buffer.read_buffer() };
                 self.channel.set_peripheral_address(
                     unsafe { &(*$SPIi::ptr()).dr as *const _ as u32 },
                     false,

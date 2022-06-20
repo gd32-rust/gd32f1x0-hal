@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Breaking changes
 
 - Updated to `bxcan` 0.7.0.
+- Updated to `embedded-dma` 0.2.0.
 
 ### Other changes
 
