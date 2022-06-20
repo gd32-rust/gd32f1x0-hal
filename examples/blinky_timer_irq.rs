@@ -24,12 +24,6 @@ use cortex_m::{asm::wfi, interrupt::Mutex};
 use cortex_m_rt::entry;
 use embedded_hal::digital::v2::OutputPin;
 
-// NOTE You can uncomment 'hprintln' here and in the code below for a bit more
-// verbosity at runtime, at the cost of throwing off the timing of the blink
-// (using 'semihosting' for printing debug info anywhere slows program
-// execution down)
-//use cortex_m_semihosting::hprintln;
-
 // A type definition for the GPIO pin to be used for our LED
 type LedPin = gpioc::PC13<Output<PushPull>>;
 
