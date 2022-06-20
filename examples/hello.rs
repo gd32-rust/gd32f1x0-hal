@@ -13,7 +13,7 @@ use cortex_m_rt::entry;
 
 #[entry]
 fn main() -> ! {
-    hprintln!("Hello, world!").unwrap();
+    hprintln!("Hello, world!");
 
     #[allow(clippy::empty_loop)]
     loop {}

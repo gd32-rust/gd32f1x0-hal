@@ -22,7 +22,7 @@ fn main() -> ! {
     // practical needs. User specified value is be approximated using supported
     // prescaler values 2/4/6/8.
     let clocks = rcu.cfgr.adcclk(2.mhz()).freeze(&mut flash.ws);
-    hprintln!("adc freq: {}", clocks.adcclk().0).unwrap();
+    hprintln!("adc freq: {}", clocks.adcclk().0);
 
     // Setup ADC
     let mut adc = Adc::new(p.ADC, &mut rcu.apb2, clocks);
@@ -35,6 +35,6 @@ fn main() -> ! {
 
     loop {
         let data: u16 = adc.read(&mut ch0).unwrap();
-        hprintln!("adc1: {}", data).unwrap();
+        hprintln!("adc1: {}", data);
     }
 }
