@@ -25,7 +25,7 @@ use core::{
     sync::atomic::{self, Ordering},
 };
 use cortex_m::asm::delay;
-use embedded_dma::StaticWriteBuffer;
+use embedded_dma::WriteBuffer;
 use embedded_hal::adc::{Channel, OneShot};
 
 /// The number of ADC clock cycles to wait between powering on and starting calibration.
@@ -751,13 +751,13 @@ where
 impl<B, PINS, MODE> CircReadDma<B, u16> for AdcDma<PINS, MODE>
 where
     Self: TransferPayload,
-    &'static mut [B; 2]: StaticWriteBuffer<Word = u16>,
+    &'static mut [B; 2]: WriteBuffer<Word = u16>,
     B: 'static,
 {
     fn circ_read(mut self, mut buffer: &'static mut [B; 2]) -> CircBuffer<B, Self> {
         // NOTE(unsafe) We own the buffer now and we won't call other `&mut` on it
         // until the end of the transfer.
-        let (ptr, len) = unsafe { buffer.static_write_buffer() };
+        let (ptr, len) = unsafe { buffer.write_buffer() };
         self.channel
             .set_peripheral_address(unsafe { &(*ADC::ptr()).rdata as *const _ as u32 }, false);
         self.channel.set_memory_address(ptr as u32, true);
@@ -781,12 +781,12 @@ where
 impl<B, PINS, MODE> ReadDma<B, u16> for AdcDma<PINS, MODE>
 where
     Self: TransferPayload,
-    B: StaticWriteBuffer<Word = u16>,
+    B: WriteBuffer<Word = u16>,
 {
     fn read(mut self, mut buffer: B) -> Transfer<W, B, Self> {
         // NOTE(unsafe) We own the buffer now and we won't call other `&mut` on it
         // until the end of the transfer.
-        let (ptr, len) = unsafe { buffer.static_write_buffer() };
+        let (ptr, len) = unsafe { buffer.write_buffer() };
         self.channel
             .set_peripheral_address(unsafe { &(*ADC::ptr()).rdata as *const _ as u32 }, false);
         self.channel.set_memory_address(ptr as u32, true);

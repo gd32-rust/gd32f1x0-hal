@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Breaking changes
+
+- Updated to `bxcan` 0.7.0.
+- Updated to `embedded-dma` 0.2.0.
+
+### Other changes
+
+- Updated various dependencies.
+
 ## [0.6.0]
 
 ### Breaking changes

@@ -23,8 +23,8 @@ fn main() -> ! {
         .pclk1(28.mhz())
         .adcclk(14.mhz())
         .freeze(&mut flash.ws);
-    hprintln!("sysclk freq: {}", clocks.sysclk().0).unwrap();
-    hprintln!("adc freq: {}", clocks.adcclk().0).unwrap();
+    hprintln!("sysclk freq: {}", clocks.sysclk().0);
+    hprintln!("adc freq: {}", clocks.adcclk().0);
 
     // Setup ADC
     let mut adc = Adc::new(p.ADC, &mut rcu.apb2, clocks);
@@ -33,6 +33,6 @@ fn main() -> ! {
     loop {
         let temp = adc.read_temperature();
 
-        hprintln!("temp: {}", temp).unwrap();
+        hprintln!("temp: {}", temp);
     }
 }
