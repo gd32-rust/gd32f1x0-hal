@@ -16,7 +16,7 @@ features = ["gd32f130x8", "rt"]
 default-target = "x86_64-unknown-linux-gnu"
 
 [dependencies]
-bxcan = "0.6.0"
+bxcan = "0.7.0"
 cast = { version = "0.3.0", default-features = false }
 cortex-m = "0.7.2"
 cortex-m-rt = "0.7.0"
