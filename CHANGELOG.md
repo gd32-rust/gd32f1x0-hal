@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Breaking changes
+
+- Updated to `bxcan` 0.7.0.
+
 ### Other changes
 
 - Updated various dependencies.
