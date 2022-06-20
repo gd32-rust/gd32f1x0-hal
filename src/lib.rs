@@ -71,8 +71,8 @@
 //! panic-halt = "0.2.0"
 //! ```
 //!
-//! [examples]: https://github.com/qwandor/gd32f1x0-hal/tree/main/examples
-//! [README]: https://github.com/qwandor/gd32f1x0-hal
+//! [examples]: https://github.com/gd32-rust/gd32f1x0-hal/tree/main/examples
+//! [README]: https://github.com/gd32-rust/gd32f1x0-hal
 
 #![no_std]
 #![deny(broken_intra_doc_links)]

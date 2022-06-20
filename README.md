@@ -4,7 +4,7 @@
 
 [hal]: https://crates.io/crates/embedded-hal
 
-[![Continuous integration](https://github.com/qwandor/gd32f1x0-hal/workflows/Continuous%20integration/badge.svg)](https://github.com/qwandor/gd32f1x0-hal)
+[![Continuous integration](https://github.com/gd32-rust/gd32f1x0-hal/workflows/Continuous%20integration/badge.svg)](https://github.com/gd32-rust/gd32f1x0-hal)
 [![crates.io](https://img.shields.io/crates/v/gd32f1x0-hal.svg)](https://crates.io/crates/gd32f1x0-hal)
 [![Released API docs](https://docs.rs/gd32f1x0-hal/badge.svg)](https://docs.rs/gd32f1x0-hal)
 
