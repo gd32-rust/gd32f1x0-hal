@@ -138,7 +138,7 @@ macro_rules! dma {
             $ftfifX:ident,
             $htfifcX:ident,
             $ftfifcX:ident,
-            $gicX:ident,
+            $gifcX:ident,
             $chXctl:ident,
             $chXcnt:ident,
             $chXmaddr:ident,
@@ -184,7 +184,7 @@ macro_rules! dma {
 
                 /// Stops the DMA transfer
                 pub fn stop(&mut self) {
-                    self.intc().write(|w| w.$gicX().clear());
+                    self.intc().write(|w| w.$gifcX().clear());
                     unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.chen().disabled());
                 }
 
@@ -527,37 +527,37 @@ where
 dma! {
     C0: (
         htfif0, ftfif0,
-        htfifc0, ftfifc0, gic0,
-        ch0ctl0, ch0cnt, ch0maddr, ch0paddr,
+        htfifc0, ftfifc0, gifc0,
+        ch0ctl, ch0cnt, ch0maddr, ch0paddr,
     ),
     C1: (
         htfif1, ftfif1,
-        htfifc1, ftfifc1, gic1,
-        ch1ctl0, ch1cnt, ch1maddr, ch1paddr,
+        htfifc1, ftfifc1, gifc1,
+        ch1ctl, ch1cnt, ch1maddr, ch1paddr,
     ),
     C2: (
         htfif2, ftfif2,
-        htfifc2, ftfifc2, gic2,
-        ch2ctl0, ch2cnt, ch2maddr, ch2paddr,
+        htfifc2, ftfifc2, gifc2,
+        ch2ctl, ch2cnt, ch2maddr, ch2paddr,
     ),
     C3: (
         htfif3, ftfif3,
-        htfifc3, ftfifc3, gic3,
-        ch3ctl0, ch3cnt, ch3maddr, ch3paddr,
+        htfifc3, ftfifc3, gifc3,
+        ch3ctl, ch3cnt, ch3maddr, ch3paddr,
     ),
     C4: (
         htfif4, ftfif4,
-        htfifc4, ftfifc4, gic4,
-        ch4ctl0, ch4cnt, ch4maddr, ch4paddr,
+        htfifc4, ftfifc4, gifc4,
+        ch4ctl, ch4cnt, ch4maddr, ch4paddr,
     ),
     C5: (
         htfif5, ftfif5,
-        htfifc5, ftfifc5, gic5,
-        ch5ctl0, ch5cnt, ch5maddr, ch5paddr,
+        htfifc5, ftfifc5, gifc5,
+        ch5ctl, ch5cnt, ch5maddr, ch5paddr,
     ),
     C6: (
         htfif6, ftfif6,
-        htfifc6, ftfifc6, gic6,
-        ch6ctl0, ch6cnt, ch6maddr, ch6paddr,
+        htfifc6, ftfifc6, gifc6,
+        ch6ctl, ch6cnt, ch6maddr, ch6paddr,
     ),
 }

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 - Updated to `bxcan` 0.7.0.
 - Updated to `embedded-dma` 0.2.0.
+- Updated to `gd32f1` 0.6.0.
 
 ### Other changes
 
