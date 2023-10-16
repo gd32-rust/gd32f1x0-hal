@@ -17,17 +17,18 @@ default-target = "x86_64-unknown-linux-gnu"
 [dependencies]
 bxcan = "0.7.0"
 cast = { version = "0.3.0", default-features = false }
-cortex-m = "0.7.5"
+cortex-m = "0.7.7"
 cortex-m-rt = "0.7.1"
 embedded-dma = "0.2.0"
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
-gd32f1 = "0.6.0"
+gd32f1 = { version = "0.8.0", features = ["critical-section"] }
 nb = "1.0.0"
 void = { version = "1.0.2", default-features = false }
 
 [dev-dependencies]
-byteorder = { version = "1.4.3",default-features = false }
+byteorder = { version = "1.4.3", default-features = false }
 cobs = { version = "0.2.3", default-features = false }
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rtic = "1.1.2"
 cortex-m-semihosting = "0.5.0"
 crc16 = { version = "0.4.0", default-features = false }

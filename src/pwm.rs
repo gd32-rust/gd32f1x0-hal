@@ -32,7 +32,7 @@ pub enum Polarity {
 impl From<Polarity> for timer0::chctl2::CH0P_A {
     fn from(polarity: Polarity) -> Self {
         match polarity {
-            Polarity::NotInverted => Self::NOTINVERTED,
+            Polarity::NotInverted => Self::NOT_INVERTED,
             Polarity::Inverted => Self::INVERTED,
         }
     }
@@ -80,8 +80,8 @@ pub enum Alignment {
 impl From<Alignment> for timer0::ctl0::CAM_A {
     fn from(alignment: Alignment) -> Self {
         match alignment {
-            Alignment::Edge => Self::EDGEALIGNED,
-            Alignment::Center => Self::CENTERALIGNEDCOUNTINGUP,
+            Alignment::Edge => Self::EDGE_ALIGNED,
+            Alignment::Center => Self::CENTER_ALIGNED_COUNTING_UP,
         }
     }
 }
