@@ -11,7 +11,7 @@ use crate::pac::{
     fmc::ws::WSCNT_A,
     rcu::{
         self,
-        cfg0::{ADCPSC_A, AHBPSC_A, APB1PSC_A, APB2PSC_A, PLLSEL_A, SCS_A},
+        cfg0::{ADCPSC_A, AHBPSC_A, APB1PSC_A, PLLSEL_A, SCS_A},
     },
     RCU,
 };
@@ -313,11 +313,11 @@ impl CFGR {
 
         let (apb2psc, ppre2) = match hclk / self.pclk2.unwrap_or(hclk) {
             0 => unreachable!(),
-            1 => (APB2PSC_A::DIV1, 1),
-            2 => (APB2PSC_A::DIV2, 2),
-            3..=5 => (APB2PSC_A::DIV4, 4),
-            6..=11 => (APB2PSC_A::DIV8, 8),
-            _ => (APB2PSC_A::DIV16, 16),
+            1 => (APB1PSC_A::DIV1, 1),
+            2 => (APB1PSC_A::DIV2, 2),
+            3..=5 => (APB1PSC_A::DIV4, 4),
+            6..=11 => (APB1PSC_A::DIV8, 8),
+            _ => (APB1PSC_A::DIV16, 16),
         };
 
         let pclk2 = hclk / u32(ppre2);

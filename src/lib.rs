@@ -63,10 +63,10 @@
 //! Most of the examples require the following additional dependencies
 //! ```toml
 //! [dependencies]
-//! embedded-hal = "0.2.3"
-//! nb = "0.1.2"
-//! cortex-m = "0.6.2"
-//! cortex-m-rt = "0.6.11"
+//! embedded-hal = "0.2.7"
+//! nb = "1.1.0"
+//! cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
+//! cortex-m-rt = "0.7.3"
 //! # Panic behaviour, see https://crates.io/keywords/panic-impl for alternatives
 //! panic-halt = "0.2.0"
 //! ```
