@@ -44,9 +44,9 @@ You also need to add some dependencies to your `Cargo.toml`:
 ```toml
 [dependencies]
 embedded-hal = "0.2.7"
-nb = "1.0.0"
-cortex-m = "0.7.5"
-cortex-m-rt = "0.7.1"
+nb = "1.1.0"
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
+cortex-m-rt = "0.7.3"
 # Panic behaviour, see https://crates.io/keywords/panic-impl for alternatives
 panic-halt = "0.2.0"
 gd32f1x0-hal = { version = "0.7.1", features = ["rt", "gd32f130x8"] }
