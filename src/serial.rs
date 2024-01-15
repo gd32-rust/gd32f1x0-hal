@@ -19,11 +19,12 @@ use crate::rcu::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset};
 use crate::time::{Bps, U32Ext};
 use core::convert::Infallible;
 use core::fmt;
+use core::hint::spin_loop;
 use core::marker::PhantomData;
 use core::ops::Deref;
 use core::sync::atomic::{self, Ordering};
 use embedded_dma::{ReadBuffer, WriteBuffer};
-use embedded_hal_02::serial::{Read, Write};
+use embedded_io::{ErrorKind, ErrorType, Read, ReadReady, Write, WriteReady};
 
 /// Serial error
 #[derive(Debug)]
@@ -37,6 +38,21 @@ pub enum Error {
     Overrun,
     /// Parity check error
     Parity,
+}
+
+impl From<Infallible> for Error {
+    fn from(e: Infallible) -> Self {
+        match e {}
+    }
+}
+
+impl embedded_io::Error for Error {
+    fn kind(&self) -> ErrorKind {
+        match self {
+            Self::Framing | Self::Noise | Self::Parity => ErrorKind::InvalidData,
+            Self::Overrun => ErrorKind::Other,
+        }
+    }
 }
 
 pub enum Parity {
@@ -339,8 +355,29 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> Tx<USART> {
 }
 
 // Implement writing traits if the USART has a TX pin assigned.
-impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>, RXPIN> Write<u8>
+impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>, RXPIN> Write
     for Serial<USART, TXPIN, RXPIN>
+{
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        self.usart.write_buffer(buf)
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        nb::block!(self.usart.flush())?;
+        Ok(())
+    }
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>, RXPIN> WriteReady
+    for Serial<USART, TXPIN, RXPIN>
+{
+    fn write_ready(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.usart.write_ready())
+    }
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>, RXPIN>
+    embedded_hal_02::serial::Write<u8> for Serial<USART, TXPIN, RXPIN>
 {
     type Error = Infallible;
 
@@ -353,7 +390,30 @@ impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>, RXPIN> W
     }
 }
 
-impl<USART: Deref<Target = usart0::RegisterBlock>> Write<u8> for Tx<USART> {
+impl<USART> ErrorType for Tx<USART> {
+    type Error = Error;
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>> Write for Tx<USART> {
+    fn write(&mut self, buf: &[u8]) -> Result<usize, Self::Error> {
+        unsafe { &*self.usart }.write_buffer(buf)
+    }
+
+    fn flush(&mut self) -> Result<(), Self::Error> {
+        nb::block!(unsafe { &*self.usart }.flush())?;
+        Ok(())
+    }
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>> WriteReady for Tx<USART> {
+    fn write_ready(&mut self) -> Result<bool, Self::Error> {
+        Ok(unsafe { &*self.usart }.write_ready())
+    }
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>> embedded_hal_02::serial::Write<u8>
+    for Tx<USART>
+{
     type Error = Infallible;
 
     fn flush(&mut self) -> nb::Result<(), Self::Error> {
@@ -369,25 +429,55 @@ impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>, RXPIN> f
     for Serial<USART, TXPIN, RXPIN>
 {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        s.as_bytes()
-            .iter()
-            .try_for_each(|c| nb::block!(self.write(*c)))
-            .map_err(|_| core::fmt::Error)
+        self.write_all(s.as_bytes()).map_err(|_| core::fmt::Error)
     }
 }
 
 impl<USART: Deref<Target = usart0::RegisterBlock>> fmt::Write for Tx<USART> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        s.as_bytes()
-            .iter()
-            .try_for_each(|c| nb::block!(self.write(*c)))
-            .map_err(|_| core::fmt::Error)
+        self.write_all(s.as_bytes()).map_err(|_| core::fmt::Error)
     }
 }
 
-// Implement reading trait if the USART has an RX pin assigned.
-impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN: RxPin<USART>> Read<u8>
+impl<USART, TXPIN, RXPIN> ErrorType for Serial<USART, TXPIN, RXPIN> {
+    type Error = Error;
+}
+
+// Implement reading traits if the USART has an RX pin assigned.
+impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN: RxPin<USART>> Read
     for Serial<USART, TXPIN, RXPIN>
+{
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        self.usart.read_buffer(buf)
+    }
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN: RxPin<USART>> ReadReady
+    for Serial<USART, TXPIN, RXPIN>
+{
+    fn read_ready(&mut self) -> Result<bool, Self::Error> {
+        Ok(self.usart.read_ready())
+    }
+}
+
+impl<USART> ErrorType for Rx<USART> {
+    type Error = Error;
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>> Read for Rx<USART> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, Self::Error> {
+        unsafe { &*self.usart }.read_buffer(buf)
+    }
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>> ReadReady for Rx<USART> {
+    fn read_ready(&mut self) -> Result<bool, Self::Error> {
+        Ok(unsafe { &*self.usart }.read_ready())
+    }
+}
+
+impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN: RxPin<USART>>
+    embedded_hal_02::serial::Read<u8> for Serial<USART, TXPIN, RXPIN>
 {
     type Error = Error;
 
@@ -396,7 +486,7 @@ impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN: RxPin<USART>> R
     }
 }
 
-impl<USART: Deref<Target = usart0::RegisterBlock>> Read<u8> for Rx<USART> {
+impl<USART: Deref<Target = usart0::RegisterBlock>> embedded_hal_02::serial::Read<u8> for Rx<USART> {
     type Error = Error;
 
     fn read(&mut self) -> nb::Result<u8, Error> {
@@ -451,8 +541,55 @@ where
 
 trait UsartReadWrite {
     fn read(&mut self) -> nb::Result<u8, Error>;
+    fn read_ready(&self) -> bool;
     fn flush(&mut self) -> nb::Result<(), Infallible>;
     fn write(&mut self, byte: u8) -> nb::Result<(), Infallible>;
+    fn write_ready(&self) -> bool;
+
+    /// Reads into the given buffer, blocking until at least one byte is available.
+    fn read_buffer(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
+        let mut bytes_read = 0;
+        while bytes_read < buf.len() {
+            match self.read() {
+                Ok(b) => {
+                    buf[bytes_read] = b;
+                    bytes_read += 1;
+                }
+                Err(nb::Error::WouldBlock) => {
+                    if bytes_read > 0 {
+                        break;
+                    }
+                    spin_loop();
+                }
+                Err(nb::Error::Other(e)) => {
+                    return Err(e);
+                }
+            }
+        }
+        Ok(bytes_read)
+    }
+
+    /// Writes at least one byte from the given buffer, blocking if necessary.
+    fn write_buffer(&mut self, buf: &[u8]) -> Result<usize, Error> {
+        let mut bytes_written = 0;
+        while bytes_written < buf.len() {
+            match self.write(buf[bytes_written]) {
+                Ok(()) => {
+                    bytes_written += 1;
+                }
+                Err(nb::Error::WouldBlock) => {
+                    if bytes_written > 0 {
+                        break;
+                    }
+                    spin_loop();
+                }
+                Err(nb::Error::Other(_)) => {
+                    unreachable!()
+                }
+            }
+        }
+        Ok(bytes_written)
+    }
 }
 
 impl<USART: Deref<Target = usart0::RegisterBlock>> UsartReadWrite for USART {
@@ -480,6 +617,10 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> UsartReadWrite for USART {
         }
     }
 
+    fn read_ready(&self) -> bool {
+        self.stat.read().rbne().bit_is_set()
+    }
+
     fn flush(&mut self) -> nb::Result<(), Infallible> {
         let status = self.stat.read();
         if status.tc().bit_is_set() {
@@ -497,6 +638,10 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> UsartReadWrite for USART {
         } else {
             Err(nb::Error::WouldBlock)
         }
+    }
+
+    fn write_ready(&self) -> bool {
+        self.stat.read().tbe().bit_is_set()
     }
 }
 

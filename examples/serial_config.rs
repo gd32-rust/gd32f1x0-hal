@@ -8,10 +8,8 @@
 
 use panic_halt as _;
 
-use nb::block;
-
 use cortex_m_rt::entry;
-use embedded_hal_02::serial::Write;
+use embedded_io::Write;
 use gd32f1x0_hal::{
     gpio::{OutputMode, PullMode},
     pac,
@@ -69,9 +67,7 @@ fn main() -> ! {
     // Split the serial struct into a receiving and a transmitting part
     let (mut tx, _rx) = serial.split();
 
-    let sent = b'U';
-    block!(tx.write(sent)).ok();
-    block!(tx.write(sent)).ok();
+    tx.write_all(b"UU").unwrap();
 
     #[allow(clippy::empty_loop)]
     loop {}
