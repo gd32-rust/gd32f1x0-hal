@@ -13,7 +13,8 @@ use panic_halt as _;
 
 use rtic::app;
 
-use embedded_hal_02::{digital::v2::OutputPin, timer::CountDown};
+use embedded_hal::digital::OutputPin;
+use embedded_hal_02::timer::CountDown;
 use gd32f1x0_hal::{
     gpio::{gpioc::PC13, Output, PushPull},
     pac,
