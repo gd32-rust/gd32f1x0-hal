@@ -20,6 +20,7 @@ cast = { version = "0.3.0", default-features = false }
 cortex-m = "0.7.7"
 cortex-m-rt = "0.7.3"
 embedded-dma = "0.2.0"
+embedded-hal = "1.0.0"
 embedded-hal-02 = { package = "embedded-hal", version = "0.2.7", features = [
   "unproven",
 ] }
