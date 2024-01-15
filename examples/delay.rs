@@ -7,7 +7,7 @@
 use panic_halt as _;
 
 use cortex_m_rt::entry;
-use embedded_hal_02::digital::v2::OutputPin;
+use embedded_hal_02::{blocking::delay::DelayMs, digital::v2::OutputPin};
 use gd32f1x0_hal::{delay::Delay, pac, prelude::*};
 
 #[entry]

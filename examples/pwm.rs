@@ -8,6 +8,7 @@ use panic_halt as _;
 
 use cortex_m::asm;
 use cortex_m_rt::entry;
+use embedded_hal_02::{Pwm, PwmPin};
 use gd32f1x0_hal::{
     gpio::{gpioa::PA11, OutputMode, PullMode},
     pac,

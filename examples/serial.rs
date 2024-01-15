@@ -9,16 +9,15 @@
 use panic_halt as _;
 
 use cortex_m::asm;
-
-use nb::block;
-
 use cortex_m_rt::entry;
+use embedded_hal_02::serial::{Read, Write};
 use gd32f1x0_hal::{
     gpio::{OutputMode, PullMode},
     pac,
     prelude::*,
     serial::{Config, Serial},
 };
+use nb::block;
 
 #[entry]
 fn main() -> ! {

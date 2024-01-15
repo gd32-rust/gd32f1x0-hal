@@ -12,17 +12,19 @@
 
 use panic_halt as _;
 
+use core::cell::RefCell;
+use cortex_m::{asm::wfi, interrupt::Mutex};
+use cortex_m_rt::entry;
+use embedded_hal_02::{
+    digital::v2::{OutputPin, ToggleableOutputPin},
+    timer::CountDown,
+};
 use gd32f1x0_hal::{
     gpio::{gpioc, Output, PushPull},
     pac::{interrupt, Interrupt, Peripherals, TIMER1},
     prelude::*,
     timer::{CountDownTimer, Event, Timer},
 };
-
-use core::cell::RefCell;
-use cortex_m::{asm::wfi, interrupt::Mutex};
-use cortex_m_rt::entry;
-use embedded_hal_02::digital::v2::OutputPin;
 
 // A type definition for the GPIO pin to be used for our LED
 type LedPin = gpioc::PC13<Output<PushPull>>;
