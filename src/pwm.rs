@@ -186,7 +186,7 @@ impl<P0, P0N, P1, P1N, P2, P2N> ComplementaryPins
 {
 }
 
-impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannel<TIMER, PIN> {
+impl<TIMER, PIN> embedded_hal_02::PwmPin for PwmChannel<TIMER, PIN> {
     type Duty = u16;
 
     fn disable(&mut self) {
@@ -210,7 +210,7 @@ impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannel<TIMER, PIN> {
     }
 }
 
-impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannelComplementary<TIMER, PIN> {
+impl<TIMER, PIN> embedded_hal_02::PwmPin for PwmChannelComplementary<TIMER, PIN> {
     type Duty = u16;
 
     fn disable(&mut self) {
@@ -533,7 +533,7 @@ macro_rules! hal {
             )?
         }
 
-        impl<PINS> embedded_hal::Pwm for Pwm<$TIMERX, PINS>
+        impl<PINS> embedded_hal_02::Pwm for Pwm<$TIMERX, PINS>
         where
             PINS: Pins<$TIMERX>,
         {

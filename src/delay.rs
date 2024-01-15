@@ -9,7 +9,7 @@ use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
 
 use crate::rcu::Clocks;
-use embedded_hal::blocking::delay::{DelayMs, DelayUs};
+use embedded_hal_02::blocking::delay::{DelayMs, DelayUs};
 
 /// System timer (SysTick) as a delay provider
 pub struct Delay {

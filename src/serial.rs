@@ -23,7 +23,7 @@ use core::marker::PhantomData;
 use core::ops::Deref;
 use core::sync::atomic::{self, Ordering};
 use embedded_dma::{ReadBuffer, WriteBuffer};
-use embedded_hal::serial::{Read, Write};
+use embedded_hal_02::serial::{Read, Write};
 
 /// Serial error
 #[derive(Debug)]

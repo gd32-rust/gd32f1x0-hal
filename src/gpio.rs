@@ -5,7 +5,7 @@
 use crate::rcu::AHB;
 use core::convert::Infallible;
 use core::marker::PhantomData;
-use embedded_hal::digital::v2::{toggleable, InputPin, OutputPin, StatefulOutputPin};
+use embedded_hal_02::digital::v2::{toggleable, InputPin, OutputPin, StatefulOutputPin};
 
 /// Extension trait to split a GPIO peripheral in independent pins and registers
 pub trait GpioExt {
