@@ -26,7 +26,7 @@ use core::{
 };
 use cortex_m::asm::delay;
 use embedded_dma::WriteBuffer;
-use embedded_hal::adc::{Channel, OneShot};
+use embedded_hal_02::adc::{Channel, OneShot};
 
 /// The number of ADC clock cycles to wait between powering on and starting calibration.
 const ADC_CALIBRATION_CYCLES: u32 = 14;

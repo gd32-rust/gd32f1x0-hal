@@ -9,7 +9,7 @@
 use panic_halt as _;
 
 use cortex_m_rt::entry;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::OutputPin;
 use gd32f1x0_hal::{pac, prelude::*};
 
 #[entry]

@@ -12,8 +12,11 @@ use crate::pac::{timer0, timer1, timer13, timer14, timer15, TIMER0, TIMER1, TIME
 use crate::time::Hertz;
 use crate::time::U32Ext;
 use crate::timer::{Event, Timer, TimerExt};
+use core::convert::Infallible;
 use core::marker::{Copy, PhantomData};
 use core::ops::Deref;
+use embedded_hal::pwm::{ErrorType, SetDutyCycle};
+use embedded_hal_02::PwmPin;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Channel {
@@ -186,7 +189,7 @@ impl<P0, P0N, P1, P1N, P2, P2N> ComplementaryPins
 {
 }
 
-impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannel<TIMER, PIN> {
+impl<TIMER, PIN> PwmPin for PwmChannel<TIMER, PIN> {
     type Duty = u16;
 
     fn disable(&mut self) {
@@ -210,7 +213,22 @@ impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannel<TIMER, PIN> {
     }
 }
 
-impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannelComplementary<TIMER, PIN> {
+impl<TIMER, PIN> ErrorType for PwmChannel<TIMER, PIN> {
+    type Error = Infallible;
+}
+
+impl<TIMER, PIN> SetDutyCycle for PwmChannel<TIMER, PIN> {
+    fn max_duty_cycle(&self) -> u16 {
+        self.get_max_duty()
+    }
+
+    fn set_duty_cycle(&mut self, duty: u16) -> Result<(), Self::Error> {
+        self.set_duty(duty);
+        Ok(())
+    }
+}
+
+impl<TIMER, PIN> PwmPin for PwmChannelComplementary<TIMER, PIN> {
     type Duty = u16;
 
     fn disable(&mut self) {
@@ -231,6 +249,21 @@ impl<TIMER, PIN> embedded_hal::PwmPin for PwmChannelComplementary<TIMER, PIN> {
 
     fn set_duty(&mut self, duty: u16) {
         self.pwm_channel.set_duty(duty)
+    }
+}
+
+impl<TIMER, PIN> ErrorType for PwmChannelComplementary<TIMER, PIN> {
+    type Error = Infallible;
+}
+
+impl<TIMER, PIN> SetDutyCycle for PwmChannelComplementary<TIMER, PIN> {
+    fn max_duty_cycle(&self) -> u16 {
+        self.get_max_duty()
+    }
+
+    fn set_duty_cycle(&mut self, duty: u16) -> Result<(), Self::Error> {
+        self.set_duty(duty);
+        Ok(())
     }
 }
 
@@ -533,7 +566,7 @@ macro_rules! hal {
             )?
         }
 
-        impl<PINS> embedded_hal::Pwm for Pwm<$TIMERX, PINS>
+        impl<PINS> embedded_hal_02::Pwm for Pwm<$TIMERX, PINS>
         where
             PINS: Pins<$TIMERX>,
         {

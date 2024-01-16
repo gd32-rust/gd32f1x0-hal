@@ -9,10 +9,8 @@
 use panic_halt as _;
 
 use cortex_m::asm;
-
-use nb::block;
-
 use cortex_m_rt::entry;
+use embedded_io::{Read, Write};
 use gd32f1x0_hal::{
     gpio::{OutputMode, PullMode},
     pac,
@@ -65,24 +63,26 @@ fn main() -> ! {
     );
 
     // Loopback test. Write `X` and wait until the write is successful.
-    let sent = b'X';
-    block!(serial.write(sent)).ok();
+    let sent = b"X";
+    serial.write_all(sent).unwrap();
 
     // Read the byte that was just sent. Blocks until the read is complete
-    let received = block!(serial.read()).unwrap();
+    let mut receive_buffer = [0];
+    assert_eq!(serial.read(&mut receive_buffer).unwrap(), 1);
 
     // Since we have connected tx and rx, the byte we sent should be the one we received
-    assert_eq!(received, sent);
+    assert_eq!(&receive_buffer, sent);
 
     // Trigger a breakpoint to allow us to inspect the values
     asm::bkpt();
 
     // You can also split the serial struct into a receiving and a transmitting part
     let (mut tx, mut rx) = serial.split();
-    let sent = b'Y';
-    block!(tx.write(sent)).ok();
-    let received = block!(rx.read()).unwrap();
-    assert_eq!(received, sent);
+    let sent = b"Y";
+    tx.write_all(sent).unwrap();
+    let mut receive_buffer = [0];
+    assert_eq!(rx.read(&mut receive_buffer).unwrap(), 1);
+    assert_eq!(&receive_buffer, sent);
     asm::bkpt();
 
     #[allow(clippy::empty_loop)]

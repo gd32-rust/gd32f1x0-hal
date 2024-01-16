@@ -8,7 +8,7 @@ use crate::{
     pac::{DBG, FWDGT},
     time::MilliSeconds,
 };
-use embedded_hal::watchdog::{Watchdog, WatchdogEnable};
+use embedded_hal_02::watchdog::{Watchdog, WatchdogEnable};
 
 /// Wraps the Free Watchdog (FWDGT) peripheral
 pub struct FreeWatchdog {
