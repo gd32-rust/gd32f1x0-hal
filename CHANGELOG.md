@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Breaking changes
+
+- Removed `embedded-hal` 0.2 traits from prelude.
+- Changed error type of `embedded-hal` 0.2 trait implementations for `BlockingI2c`.
+
+### New features
+
+- Implemented `embedded-hal` 1.0 traits where relevant.
+
 ## [0.7.1]
 
 ### Other changes
