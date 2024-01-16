@@ -612,7 +612,7 @@ where
                 self.nb.i2c.stat0.read();
                 self.nb.i2c.stat1.read();
 
-                let (first_bytes, last_two_bytes) = buffer.split_at_mut(buffer_len - 3);
+                let (first_bytes, last_three_bytes) = buffer.split_at_mut(buffer_len - 3);
                 for byte in first_bytes {
                     busy_wait_cycles!(wait_for_flag!(self.nb.i2c, rbne), self.data_timeout)?;
                     *byte = self.nb.i2c.data.read().trb().bits();
@@ -620,11 +620,11 @@ where
 
                 busy_wait_cycles!(wait_for_flag!(self.nb.i2c, btc), self.data_timeout)?;
                 self.nb.i2c.ctl0.modify(|_, w| w.acken().nak());
-                last_two_bytes[0] = self.nb.i2c.data.read().trb().bits();
+                last_three_bytes[0] = self.nb.i2c.data.read().trb().bits();
                 self.nb.send_stop();
-                last_two_bytes[1] = self.nb.i2c.data.read().trb().bits();
+                last_three_bytes[1] = self.nb.i2c.data.read().trb().bits();
                 busy_wait_cycles!(wait_for_flag!(self.nb.i2c, rbne), self.data_timeout)?;
-                last_two_bytes[2] = self.nb.i2c.data.read().trb().bits();
+                last_three_bytes[2] = self.nb.i2c.data.read().trb().bits();
 
                 busy_wait_cycles!(self.nb.wait_for_stop(), self.data_timeout)?;
                 self.nb.i2c.ctl0.modify(|_, w| w.acken().ack());
