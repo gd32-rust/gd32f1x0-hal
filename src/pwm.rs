@@ -221,6 +221,7 @@ impl<TIMER, PIN> SetDutyCycle for PwmChannel<TIMER, PIN> {
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl<TIMER, PIN> embedded_hal_02::PwmPin for PwmChannel<TIMER, PIN> {
     type Duty = u16;
 
@@ -263,6 +264,7 @@ impl<TIMER, PIN> PwmChannelComplementary<TIMER, PIN> {
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl<TIMER, PIN> embedded_hal_02::PwmPin for PwmChannelComplementary<TIMER, PIN> {
     type Duty = u16;
 
@@ -643,6 +645,7 @@ macro_rules! hal {
             )?
         }
 
+        #[cfg(feature = "embedded-hal-02")]
         impl<PINS> embedded_hal_02::Pwm for Pwm<$TIMERX, PINS>
         where
             PINS: Pins<$TIMERX>,

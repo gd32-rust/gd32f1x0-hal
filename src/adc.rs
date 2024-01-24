@@ -20,13 +20,21 @@ use crate::pac::{
 };
 use crate::rcu::{Clocks, Enable, Reset, APB2};
 use core::{
-    convert::Infallible,
     marker::PhantomData,
     sync::atomic::{self, Ordering},
 };
 use cortex_m::asm::delay;
 use embedded_dma::WriteBuffer;
-use embedded_hal_02::adc::Channel;
+#[cfg(feature = "embedded-hal-02")]
+use embedded_hal_02::adc::Channel as _;
+
+#[cfg(feature = "embedded-hal-02")]
+pub trait Channel<ADC>: embedded_hal_02::adc::Channel<ADC, ID = u8> {}
+
+#[cfg(not(feature = "embedded-hal-02"))]
+pub trait Channel<ADC> {
+    fn channel() -> u8;
+}
 
 /// The number of ADC clock cycles to wait between powering on and starting calibration.
 const ADC_CALIBRATION_CYCLES: u32 = 14;
@@ -293,7 +301,7 @@ impl Adc {
 
     /// Set ADC sampling time for particular channel
     #[inline(always)]
-    pub fn set_sample_time<C: Channel<ADC, ID = u8>>(&mut self, _pin: &C, sample_time: SampleTime) {
+    pub fn set_sample_time<C: Channel<ADC>>(&mut self, _pin: &C, sample_time: SampleTime) {
         self.set_channel_sample_time(C::channel(), sample_time);
     }
 
@@ -465,14 +473,14 @@ impl Adc {
         self.rb.rdata.read().rdata().bits()
     }
 
-    pub fn read_channel<PIN: Channel<ADC, ID = u8>>(&mut self, _pin: &PIN) -> u16 {
+    pub fn read_channel<PIN: Channel<ADC>>(&mut self, _pin: &PIN) -> u16 {
         self.convert(PIN::channel())
     }
 
     /// Configure the ADC to read from the given pin with DMA.
     pub fn with_dma<PIN>(mut self, pins: PIN, dma_ch: C0) -> AdcDma<PIN, Continuous>
     where
-        PIN: Channel<ADC, ID = u8>,
+        PIN: Channel<ADC>,
     {
         self.rb.ctl0.modify(|_, w| w.disrc().disabled());
         self.rb
@@ -494,12 +502,13 @@ impl Adc {
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl<WORD, PIN> embedded_hal_02::adc::OneShot<ADC, WORD, PIN> for Adc
 where
     WORD: From<u16>,
-    PIN: Channel<ADC, ID = u8>,
+    PIN: Channel<ADC>,
 {
-    type Error = Infallible;
+    type Error = core::convert::Infallible;
 
     fn read(&mut self, pin: &mut PIN) -> nb::Result<WORD, Self::Error> {
         let res = self.read_channel(pin);
@@ -599,7 +608,7 @@ pub struct Sequence {
 
 impl Sequence {
     /// Adds the given ADC pin to the list of channels.
-    pub fn add_pin<PIN: Channel<ADC, ID = u8>>(&mut self, pin: PIN) -> Result<(), PIN> {
+    pub fn add_pin<PIN: Channel<ADC>>(&mut self, pin: PIN) -> Result<(), PIN> {
         if self.length >= self.channels.len() {
             return Err(pin);
         }
@@ -638,9 +647,15 @@ pub struct VBat;
 macro_rules! adc_pins {
     ($ADC:ident, $($pin:ty => $chan:expr),+ $(,)*) => {
         $(
-            impl Channel<$ADC> for $pin {
+            #[cfg(feature = "embedded-hal-02")]
+            impl embedded_hal_02::adc::Channel<$ADC> for $pin {
                 type ID = u8;
 
+                fn channel() -> u8 { $chan }
+            }
+
+            impl Channel<$ADC> for $pin {
+                #[cfg(not(feature = "embedded-hal-02"))]
                 fn channel() -> u8 { $chan }
             }
         )+

@@ -8,7 +8,6 @@ use crate::{
     pac::{DBG, FWDGT},
     time::MilliSeconds,
 };
-use embedded_hal_02::watchdog::{Watchdog, WatchdogEnable};
 
 /// Wraps the Free Watchdog (FWDGT) peripheral
 pub struct FreeWatchdog {
@@ -105,7 +104,8 @@ impl FreeWatchdog {
     }
 }
 
-impl WatchdogEnable for FreeWatchdog {
+#[cfg(feature = "embedded-hal-02")]
+impl embedded_hal_02::watchdog::WatchdogEnable for FreeWatchdog {
     type Time = MilliSeconds;
 
     fn start<T: Into<Self::Time>>(&mut self, period: T) {
@@ -113,7 +113,8 @@ impl WatchdogEnable for FreeWatchdog {
     }
 }
 
-impl Watchdog for FreeWatchdog {
+#[cfg(feature = "embedded-hal-02")]
+impl embedded_hal_02::watchdog::Watchdog for FreeWatchdog {
     fn feed(&mut self) {
         self.feed();
     }

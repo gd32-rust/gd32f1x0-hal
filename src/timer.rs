@@ -11,8 +11,6 @@ use crate::time::Hertz;
 use cast::{u16, u32, u64};
 use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
-use embedded_hal_02::timer::{Cancel, CountDown, Periodic};
-use void::Void;
 
 /// Interrupt events
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -164,7 +162,8 @@ impl CountDownTimer<SYST> {
     }
 }
 
-impl CountDown for CountDownTimer<SYST> {
+#[cfg(feature = "embedded-hal-02")]
+impl embedded_hal_02::timer::CountDown for CountDownTimer<SYST> {
     type Time = Hertz;
 
     fn start<T>(&mut self, timeout: T)
@@ -174,7 +173,7 @@ impl CountDown for CountDownTimer<SYST> {
         self.start(timeout);
     }
 
-    fn wait(&mut self) -> nb::Result<(), Void> {
+    fn wait(&mut self) -> nb::Result<(), void::Void> {
         if self.has_elapsed() {
             Ok(())
         } else {
@@ -183,7 +182,8 @@ impl CountDown for CountDownTimer<SYST> {
     }
 }
 
-impl Cancel for CountDownTimer<SYST> {
+#[cfg(feature = "embedded-hal-02")]
+impl embedded_hal_02::timer::Cancel for CountDownTimer<SYST> {
     type Error = Error;
 
     fn cancel(&mut self) -> Result<(), Self::Error> {
@@ -191,7 +191,8 @@ impl Cancel for CountDownTimer<SYST> {
     }
 }
 
-impl Periodic for CountDownTimer<SYST> {}
+#[cfg(feature = "embedded-hal-02")]
+impl embedded_hal_02::timer::Periodic for CountDownTimer<SYST> {}
 
 /// Helper methods used by other parts of the HAL, such as PWM.
 pub(crate) trait TimerExt {
@@ -378,7 +379,8 @@ macro_rules! hal {
             }
         }
 
-        impl CountDown for CountDownTimer<$TIMERX> {
+        #[cfg(feature = "embedded-hal-02")]
+        impl embedded_hal_02::timer::CountDown for CountDownTimer<$TIMERX> {
             type Time = Hertz;
 
             fn start<T>(&mut self, timeout: T)
@@ -388,7 +390,7 @@ macro_rules! hal {
                 self.start(timeout);
             }
 
-            fn wait(&mut self) -> nb::Result<(), Void> {
+            fn wait(&mut self) -> nb::Result<(), void::Void> {
                 if !self.is_pending(Event::Update) {
                     Err(nb::Error::WouldBlock)
                 } else {
@@ -398,7 +400,8 @@ macro_rules! hal {
             }
         }
 
-        impl Cancel for CountDownTimer<$TIMERX> {
+        #[cfg(feature = "embedded-hal-02")]
+        impl embedded_hal_02::timer::Cancel for CountDownTimer<$TIMERX> {
             type Error = Error;
 
             fn cancel(&mut self) -> Result<(), Self::Error> {
@@ -406,7 +409,8 @@ macro_rules! hal {
             }
         }
 
-        impl Periodic for CountDownTimer<$TIMERX> {}
+        #[cfg(feature = "embedded-hal-02")]
+        impl embedded_hal_02::timer::Periodic for CountDownTimer<$TIMERX> {}
     };
 }
 

@@ -37,7 +37,6 @@ use crate::rcu::{Clocks, Enable, GetBusFreq, Reset, APB1};
 use crate::time::Hertz;
 use core::ops::Deref;
 use embedded_hal::i2c::{ErrorKind, ErrorType, NoAcknowledgeSource, Operation, SevenBitAddress};
-use embedded_hal_02::blocking::i2c::{Read, Write, WriteRead};
 
 /// I2C error
 #[derive(Debug, Eq, PartialEq)]
@@ -557,6 +556,7 @@ where
         ret
     }
 
+    #[cfg(feature = "embedded-hal-02")]
     fn write_without_stop(&mut self, addr: u8, bytes: &[u8]) -> Result<(), Error> {
         self.send_start_and_wait()?;
         self.send_addr_and_wait(addr, false)?;
@@ -692,7 +692,8 @@ where
     }
 }
 
-impl<I2C, SCLPIN, SDAPIN> Write for BlockingI2c<I2C, SCLPIN, SDAPIN>
+#[cfg(feature = "embedded-hal-02")]
+impl<I2C, SCLPIN, SDAPIN> embedded_hal_02::blocking::i2c::Write for BlockingI2c<I2C, SCLPIN, SDAPIN>
 where
     I2C: Deref<Target = I2cRegisterBlock>,
 {
@@ -707,7 +708,8 @@ where
     }
 }
 
-impl<I2C, SCLPIN, SDAPIN> Read for BlockingI2c<I2C, SCLPIN, SDAPIN>
+#[cfg(feature = "embedded-hal-02")]
+impl<I2C, SCLPIN, SDAPIN> embedded_hal_02::blocking::i2c::Read for BlockingI2c<I2C, SCLPIN, SDAPIN>
 where
     I2C: Deref<Target = I2cRegisterBlock>,
 {
@@ -720,13 +722,17 @@ where
     }
 }
 
-impl<I2C, SCLPIN, SDAPIN> WriteRead for BlockingI2c<I2C, SCLPIN, SDAPIN>
+#[cfg(feature = "embedded-hal-02")]
+impl<I2C, SCLPIN, SDAPIN> embedded_hal_02::blocking::i2c::WriteRead
+    for BlockingI2c<I2C, SCLPIN, SDAPIN>
 where
     I2C: Deref<Target = I2cRegisterBlock>,
 {
     type Error = Error;
 
     fn write_read(&mut self, addr: u8, bytes: &[u8], buffer: &mut [u8]) -> Result<(), Self::Error> {
+        use embedded_hal_02::blocking::i2c::Read;
+
         if !bytes.is_empty() {
             self.write_without_stop(addr, bytes)?;
         }
