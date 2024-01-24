@@ -455,7 +455,7 @@ where
     }
 
     /// Sends the (7-Bit) address on the I2C bus. The 8th bit on the bus is set
-    /// depending on wether it is a read or write transfer.
+    /// depending on whether it is a read or write transfer.
     fn send_addr(&self, addr: u8, read: bool) {
         self.i2c
             .data
