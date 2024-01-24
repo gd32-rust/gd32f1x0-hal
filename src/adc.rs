@@ -26,7 +26,7 @@ use core::{
 };
 use cortex_m::asm::delay;
 use embedded_dma::WriteBuffer;
-use embedded_hal_02::adc::{Channel, OneShot};
+use embedded_hal_02::adc::Channel;
 
 /// The number of ADC clock cycles to wait between powering on and starting calibration.
 const ADC_CALIBRATION_CYCLES: u32 = 14;
@@ -465,6 +465,10 @@ impl Adc {
         self.rb.rdata.read().rdata().bits()
     }
 
+    pub fn read_channel<PIN: Channel<ADC, ID = u8>>(&mut self, _pin: &PIN) -> u16 {
+        self.convert(PIN::channel())
+    }
+
     /// Configure the ADC to read from the given pin with DMA.
     pub fn with_dma<PIN>(mut self, pins: PIN, dma_ch: C0) -> AdcDma<PIN, Continuous>
     where
@@ -490,15 +494,15 @@ impl Adc {
     }
 }
 
-impl<WORD, PIN> OneShot<ADC, WORD, PIN> for Adc
+impl<WORD, PIN> embedded_hal_02::adc::OneShot<ADC, WORD, PIN> for Adc
 where
     WORD: From<u16>,
     PIN: Channel<ADC, ID = u8>,
 {
     type Error = Infallible;
 
-    fn read(&mut self, _pin: &mut PIN) -> nb::Result<WORD, Self::Error> {
-        let res = self.convert(PIN::channel());
+    fn read(&mut self, pin: &mut PIN) -> nb::Result<WORD, Self::Error> {
+        let res = self.read_channel(pin);
         // TODO: Should this also be scaled based on Vref?
         Ok(res.into())
     }
