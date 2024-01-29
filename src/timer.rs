@@ -133,12 +133,9 @@ impl CountDownTimer<SYST> {
     pub fn release(self) -> SYST {
         self.stop().release()
     }
-}
 
-impl CountDown for CountDownTimer<SYST> {
-    type Time = Hertz;
-
-    fn start<T>(&mut self, timeout: T)
+    /// Configures the timer to have the given timeout and enables it to start counting down.
+    pub fn start<T>(&mut self, timeout: T)
     where
         T: Into<Hertz>,
     {
@@ -151,8 +148,34 @@ impl CountDown for CountDownTimer<SYST> {
         self.timer.enable_counter();
     }
 
+    /// Returns whether the timer has finished counting down yet, and resets the flag if so.
+    pub fn has_elapsed(&mut self) -> bool {
+        self.timer.has_wrapped()
+    }
+
+    /// Disables the timer.
+    pub fn cancel(&mut self) -> Result<(), Error> {
+        if !self.timer.is_counter_enabled() {
+            return Err(Error::Canceled);
+        }
+
+        self.timer.disable_counter();
+        Ok(())
+    }
+}
+
+impl CountDown for CountDownTimer<SYST> {
+    type Time = Hertz;
+
+    fn start<T>(&mut self, timeout: T)
+    where
+        T: Into<Hertz>,
+    {
+        self.start(timeout);
+    }
+
     fn wait(&mut self) -> nb::Result<(), Void> {
-        if self.timer.has_wrapped() {
+        if self.has_elapsed() {
             Ok(())
         } else {
             Err(nb::Error::WouldBlock)
@@ -164,12 +187,7 @@ impl Cancel for CountDownTimer<SYST> {
     type Error = Error;
 
     fn cancel(&mut self) -> Result<(), Self::Error> {
-        if !self.timer.is_counter_enabled() {
-            return Err(Self::Error::Canceled);
-        }
-
-        self.timer.disable_counter();
-        Ok(())
+        self.cancel()
     }
 }
 
@@ -312,6 +330,34 @@ macro_rules! hal {
             pub fn reset(&mut self) {
                 self.timer.reset_counter();
             }
+
+            /// Configures the timer to have the given timeout and enables it to start counting down.
+            pub fn start<T>(&mut self, timeout: T)
+            where
+                T: Into<Hertz>,
+            {
+                // Pause counter.
+                self.timer.ctl0.modify(|_, w| w.cen().disabled());
+
+                self.timer.configure_prescaler_reload(timeout.into(), self.clock);
+                // Trigger an update event to load the prescaler value to the clock
+                self.timer.reset_counter();
+
+                // Start counter.
+                self.timer.ctl0.modify(|_, w| w.cen().enabled());
+            }
+
+            /// Disables the timer.
+            pub fn cancel(&mut self) -> Result<(), Error> {
+                let is_counter_enabled = self.timer.ctl0.read().cen().is_enabled();
+                if !is_counter_enabled {
+                    return Err(Error::Canceled);
+                }
+
+                // Pause counter.
+                self.timer.ctl0.modify(|_, w| w.cen().disabled());
+                Ok(())
+            }
         }
 
         impl TimerExt for $TIMERX {
@@ -339,15 +385,7 @@ macro_rules! hal {
             where
                 T: Into<Hertz>,
             {
-                // Pause counter.
-                self.timer.ctl0.modify(|_, w| w.cen().disabled());
-
-                self.timer.configure_prescaler_reload(timeout.into(), self.clock);
-                // Trigger an update event to load the prescaler value to the clock
-                self.timer.reset_counter();
-
-                // Start counter.
-                self.timer.ctl0.modify(|_, w| w.cen().enabled());
+                self.start(timeout);
             }
 
             fn wait(&mut self) -> nb::Result<(), Void> {
@@ -364,14 +402,7 @@ macro_rules! hal {
             type Error = Error;
 
             fn cancel(&mut self) -> Result<(), Self::Error> {
-                let is_counter_enabled = self.timer.ctl0.read().cen().is_enabled();
-                if !is_counter_enabled {
-                    return Err(Self::Error::Canceled);
-                }
-
-                // Pause counter.
-                self.timer.ctl0.modify(|_, w| w.cen().disabled());
-                Ok(())
+                self.cancel()
             }
         }
 
