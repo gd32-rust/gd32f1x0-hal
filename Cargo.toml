@@ -17,7 +17,7 @@ default-target = "x86_64-unknown-linux-gnu"
 [dependencies]
 bxcan = "0.7.0"
 cast = { version = "0.3.0", default-features = false }
-cortex-m = "0.7.7"
+cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.3"
 embedded-dma = "0.2.0"
 embedded-hal = "1.0.0"
