@@ -88,20 +88,33 @@ impl FreeWatchdog {
         self.fwdgt.ctl.write(|w| w.cmd().reset());
         a
     }
+
+    /// Configures the watchdog to use the given period and enables it.
+    pub fn start<T: Into<MilliSeconds>>(&mut self, period: T) {
+        self.setup(period.into().0);
+
+        self.fwdgt.ctl.write(|w| w.cmd().start());
+    }
+
+    /// Resets the watchdog.
+    ///
+    /// This must be done periodically once the watchdog is started to prevent the processor being
+    /// reset.
+    pub fn feed(&mut self) {
+        self.fwdgt.ctl.write(|w| w.cmd().reset());
+    }
 }
 
 impl WatchdogEnable for FreeWatchdog {
     type Time = MilliSeconds;
 
     fn start<T: Into<Self::Time>>(&mut self, period: T) {
-        self.setup(period.into().0);
-
-        self.fwdgt.ctl.write(|w| w.cmd().start());
+        self.start(period);
     }
 }
 
 impl Watchdog for FreeWatchdog {
     fn feed(&mut self) {
-        self.fwdgt.ctl.write(|w| w.cmd().reset());
+        self.feed();
     }
 }
