@@ -23,6 +23,9 @@ jobs:
           - gd32f190x4
           - gd32f190x6
           - gd32f190x8
+        extra-features:
+          - rt
+          - rt,embedded-hal-02
         rust:
           - stable
         include:
@@ -41,4 +44,4 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: check
-          args: --features=${{ matrix.mcu }},rt --examples
+          args: --features=${{ matrix.mcu }},${{ matrix.extra-features }} --examples

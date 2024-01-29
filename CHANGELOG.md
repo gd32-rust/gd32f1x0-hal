@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### Breaking changes
+
+- Moved `embedded-hal` 0.2 trait implementations behind the `embedded-hal-02` feature flag,
+  to make the dependency optional.
+
 ## [0.8.0]
 
 ### Breaking changes

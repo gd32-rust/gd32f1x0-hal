@@ -8,7 +8,6 @@ use crate::{
     pac::{DBG, FWDGT},
     time::MilliSeconds,
 };
-use embedded_hal_02::watchdog::{Watchdog, WatchdogEnable};
 
 /// Wraps the Free Watchdog (FWDGT) peripheral
 pub struct FreeWatchdog {
@@ -88,20 +87,35 @@ impl FreeWatchdog {
         self.fwdgt.ctl.write(|w| w.cmd().reset());
         a
     }
-}
 
-impl WatchdogEnable for FreeWatchdog {
-    type Time = MilliSeconds;
-
-    fn start<T: Into<Self::Time>>(&mut self, period: T) {
+    /// Configures the watchdog to use the given period and enables it.
+    pub fn start<T: Into<MilliSeconds>>(&mut self, period: T) {
         self.setup(period.into().0);
 
         self.fwdgt.ctl.write(|w| w.cmd().start());
     }
+
+    /// Resets the watchdog.
+    ///
+    /// This must be done periodically once the watchdog is started to prevent the processor being
+    /// reset.
+    pub fn feed(&mut self) {
+        self.fwdgt.ctl.write(|w| w.cmd().reset());
+    }
 }
 
-impl Watchdog for FreeWatchdog {
+#[cfg(feature = "embedded-hal-02")]
+impl embedded_hal_02::watchdog::WatchdogEnable for FreeWatchdog {
+    type Time = MilliSeconds;
+
+    fn start<T: Into<Self::Time>>(&mut self, period: T) {
+        self.start(period);
+    }
+}
+
+#[cfg(feature = "embedded-hal-02")]
+impl embedded_hal_02::watchdog::Watchdog for FreeWatchdog {
     fn feed(&mut self) {
-        self.fwdgt.ctl.write(|w| w.cmd().reset());
+        self.feed();
     }
 }

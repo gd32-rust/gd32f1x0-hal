@@ -376,6 +376,7 @@ impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>, RXPIN> W
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>, RXPIN>
     embedded_hal_02::serial::Write<u8> for Serial<USART, TXPIN, RXPIN>
 {
@@ -411,6 +412,7 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> WriteReady for Tx<USART> {
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl<USART: Deref<Target = usart0::RegisterBlock>> embedded_hal_02::serial::Write<u8>
     for Tx<USART>
 {
@@ -476,6 +478,7 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> ReadReady for Rx<USART> {
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN: RxPin<USART>>
     embedded_hal_02::serial::Read<u8> for Serial<USART, TXPIN, RXPIN>
 {
@@ -486,6 +489,7 @@ impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN: RxPin<USART>>
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl<USART: Deref<Target = usart0::RegisterBlock>> embedded_hal_02::serial::Read<u8> for Rx<USART> {
     type Error = Error;
 

@@ -16,7 +16,6 @@ use core::convert::Infallible;
 use core::marker::{Copy, PhantomData};
 use core::ops::Deref;
 use embedded_hal::pwm::{ErrorType, SetDutyCycle};
-use embedded_hal_02::PwmPin;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Channel {
@@ -189,26 +188,20 @@ impl<P0, P0N, P1, P1N, P2, P2N> ComplementaryPins
 {
 }
 
-impl<TIMER, PIN> PwmPin for PwmChannel<TIMER, PIN> {
-    type Duty = u16;
-
-    fn disable(&mut self) {
+impl<TIMER, PIN> PwmChannel<TIMER, PIN> {
+    pub fn disable(&mut self) {
         unsafe { &*self.timer }.disable_channel(self.channel, false);
     }
 
-    fn enable(&mut self) {
+    pub fn enable(&mut self) {
         unsafe { &*self.timer }.enable_channel(self.channel, false);
     }
 
-    fn get_duty(&self) -> u16 {
+    pub fn duty_cycle(&self) -> u16 {
         unsafe { &*self.timer }.get_duty(self.channel)
     }
 
-    fn get_max_duty(&self) -> u16 {
-        unsafe { &*self.timer }.get_max_duty()
-    }
-
-    fn set_duty(&mut self, duty: u16) {
+    fn set_duty_cycle(&mut self, duty: u16) {
         unsafe { &*self.timer }.set_duty(self.channel, duty);
     }
 }
@@ -219,36 +212,80 @@ impl<TIMER, PIN> ErrorType for PwmChannel<TIMER, PIN> {
 
 impl<TIMER, PIN> SetDutyCycle for PwmChannel<TIMER, PIN> {
     fn max_duty_cycle(&self) -> u16 {
-        self.get_max_duty()
+        unsafe { &*self.timer }.get_max_duty()
     }
 
     fn set_duty_cycle(&mut self, duty: u16) -> Result<(), Self::Error> {
-        self.set_duty(duty);
+        self.set_duty_cycle(duty);
         Ok(())
     }
 }
 
-impl<TIMER, PIN> PwmPin for PwmChannelComplementary<TIMER, PIN> {
+#[cfg(feature = "embedded-hal-02")]
+impl<TIMER, PIN> embedded_hal_02::PwmPin for PwmChannel<TIMER, PIN> {
     type Duty = u16;
 
     fn disable(&mut self) {
-        unsafe { &*self.pwm_channel.timer }.disable_channel(self.pwm_channel.channel, true);
+        self.disable();
     }
 
     fn enable(&mut self) {
-        unsafe { &*self.pwm_channel.timer }.enable_channel(self.pwm_channel.channel, true);
+        self.enable();
     }
 
     fn get_duty(&self) -> u16 {
-        self.pwm_channel.get_duty()
+        self.duty_cycle()
     }
 
     fn get_max_duty(&self) -> u16 {
-        self.pwm_channel.get_max_duty()
+        self.max_duty_cycle()
     }
 
     fn set_duty(&mut self, duty: u16) {
-        self.pwm_channel.set_duty(duty)
+        self.set_duty_cycle(duty);
+    }
+}
+
+impl<TIMER, PIN> PwmChannelComplementary<TIMER, PIN> {
+    pub fn disable(&mut self) {
+        unsafe { &*self.pwm_channel.timer }.disable_channel(self.pwm_channel.channel, true);
+    }
+
+    pub fn enable(&mut self) {
+        unsafe { &*self.pwm_channel.timer }.enable_channel(self.pwm_channel.channel, true);
+    }
+
+    pub fn duty_cycle(&self) -> u16 {
+        self.pwm_channel.duty_cycle()
+    }
+
+    fn set_duty_cycle(&mut self, duty: u16) {
+        self.pwm_channel.set_duty_cycle(duty)
+    }
+}
+
+#[cfg(feature = "embedded-hal-02")]
+impl<TIMER, PIN> embedded_hal_02::PwmPin for PwmChannelComplementary<TIMER, PIN> {
+    type Duty = u16;
+
+    fn disable(&mut self) {
+        self.disable();
+    }
+
+    fn enable(&mut self) {
+        self.enable();
+    }
+
+    fn get_duty(&self) -> u16 {
+        self.duty_cycle()
+    }
+
+    fn get_max_duty(&self) -> u16 {
+        self.max_duty_cycle()
+    }
+
+    fn set_duty(&mut self, duty: u16) {
+        self.set_duty_cycle(duty);
     }
 }
 
@@ -258,11 +295,11 @@ impl<TIMER, PIN> ErrorType for PwmChannelComplementary<TIMER, PIN> {
 
 impl<TIMER, PIN> SetDutyCycle for PwmChannelComplementary<TIMER, PIN> {
     fn max_duty_cycle(&self) -> u16 {
-        self.get_max_duty()
+        self.pwm_channel.max_duty_cycle()
     }
 
     fn set_duty_cycle(&mut self, duty: u16) -> Result<(), Self::Error> {
-        self.set_duty(duty);
+        self.set_duty_cycle(duty);
         Ok(())
     }
 }
@@ -505,6 +542,48 @@ macro_rules! hal {
                 }
             }
 
+
+            pub fn disable(&mut self, channel: Channel) {
+                assert!(self.pins.uses_channel(channel));
+                self.timer.disable_channel(channel, self.pins.uses_complementary_channel(channel));
+            }
+
+            pub fn enable(&mut self, channel: Channel) {
+                assert!(self.pins.uses_channel(channel));
+                self.timer.enable_channel(channel, self.pins.uses_complementary_channel(channel));
+            }
+
+            pub fn duty_cycle(&self, channel: Channel) -> u16 {
+                assert!(self.pins.uses_channel(channel));
+                self.timer.get_duty(channel)
+            }
+
+            pub fn set_duty_cycle(&mut self, channel: Channel, duty: u16) {
+                assert!(self.pins.uses_channel(channel));
+                self.timer.set_duty(channel, duty);
+            }
+
+            pub fn max_duty_cycle(&self) -> u16 {
+                self.timer.get_max_duty()
+            }
+
+            pub fn period(&self) -> Hertz {
+                let presaler: u32 = self.timer.psc.read().psc().bits().into();
+                let auto_reload_value: u32 = self.timer.car.read().car().bits().into();
+
+                // Length in ms of an internal clock pulse
+                (self.clock.0 / (presaler * auto_reload_value)).hz()
+            }
+
+            pub fn set_period<T>(&mut self, period: T)
+            where
+                T: Into<Hertz>,
+            {
+                self.timer
+                    .configure_prescaler_reload(period.into(), self.clock);
+                self.timer.reset_counter();
+            }
+
             $(
                 /// Disable PWM outputs, and prevent them from being automatically enabled.
                 pub fn output_disable(&mut self) {
@@ -566,6 +645,7 @@ macro_rules! hal {
             )?
         }
 
+        #[cfg(feature = "embedded-hal-02")]
         impl<PINS> embedded_hal_02::Pwm for Pwm<$TIMERX, PINS>
         where
             PINS: Pins<$TIMERX>,
@@ -575,44 +655,34 @@ macro_rules! hal {
             type Time = Hertz;
 
             fn disable(&mut self, channel: Self::Channel) {
-                assert!(self.pins.uses_channel(channel));
-                self.timer.disable_channel(channel, self.pins.uses_complementary_channel(channel));
+                self.disable(channel);
             }
 
             fn enable(&mut self, channel: Self::Channel) {
-                assert!(self.pins.uses_channel(channel));
-                self.timer.enable_channel(channel, self.pins.uses_complementary_channel(channel));
+                self.enable(channel);
             }
 
             fn get_duty(&self, channel: Self::Channel) -> Self::Duty {
-                assert!(self.pins.uses_channel(channel));
-                self.timer.get_duty(channel)
+                self.duty_cycle(channel)
             }
 
             fn set_duty(&mut self, channel: Self::Channel, duty: Self::Duty) {
-                assert!(self.pins.uses_channel(channel));
-                self.timer.set_duty(channel, duty);
+                self.set_duty_cycle(channel, duty);
             }
 
             fn get_max_duty(&self) -> Self::Duty {
-                self.timer.get_max_duty()
+                self.max_duty_cycle()
             }
 
             fn get_period(&self) -> Self::Time {
-                let presaler: u32 = self.timer.psc.read().psc().bits().into();
-                let auto_reload_value: u32 = self.timer.car.read().car().bits().into();
-
-                // Length in ms of an internal clock pulse
-                (self.clock.0 / (presaler * auto_reload_value)).hz()
+                self.period()
             }
 
             fn set_period<T>(&mut self, period: T)
             where
                 T: Into<Self::Time>,
             {
-                self.timer
-                    .configure_prescaler_reload(period.into(), self.clock);
-                self.timer.reset_counter();
+                self.set_period(period);
             }
         }
     };

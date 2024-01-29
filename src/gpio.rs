@@ -6,7 +6,6 @@ use crate::rcu::AHB;
 use core::convert::Infallible;
 use core::marker::PhantomData;
 use embedded_hal::digital::{ErrorType, InputPin, OutputPin, StatefulOutputPin};
-use embedded_hal_02::digital::v2::toggleable;
 
 /// Extension trait to split a GPIO peripheral in independent pins and registers
 pub trait GpioExt {
@@ -175,7 +174,8 @@ pub struct Pin<MODE> {
 unsafe impl<MODE> Sync for Pin<MODE> {}
 unsafe impl<MODE> Send for Pin<MODE> {}
 
-impl<MODE> toggleable::Default for Pin<Output<MODE>> {}
+#[cfg(feature = "embedded-hal-02")]
+impl<MODE> embedded_hal_02::digital::v2::toggleable::Default for Pin<Output<MODE>> {}
 
 impl<MODE> ErrorType for Pin<MODE> {
     type Error = Infallible;
@@ -197,6 +197,7 @@ impl<MODE> OutputPin for Pin<Output<MODE>> {
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl<MODE> embedded_hal_02::digital::v2::OutputPin for Pin<Output<MODE>> {
     type Error = Infallible;
 
@@ -225,6 +226,7 @@ impl<MODE> StatefulOutputPin for Pin<Output<MODE>> {
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl<MODE> embedded_hal_02::digital::v2::StatefulOutputPin for Pin<Output<MODE>> {
     fn is_set_high(&self) -> Result<bool, Self::Error> {
         self.is_set_low().map(|b| !b)
@@ -245,6 +247,7 @@ impl<MODE> InputPin for Pin<Input<MODE>> {
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl<MODE> embedded_hal_02::digital::v2::InputPin for Pin<Input<MODE>> {
     type Error = Infallible;
 
@@ -267,6 +270,7 @@ impl InputPin for Pin<Output<OpenDrain>> {
     }
 }
 
+#[cfg(feature = "embedded-hal-02")]
 impl embedded_hal_02::digital::v2::InputPin for Pin<Output<OpenDrain>> {
     type Error = Infallible;
 
@@ -492,7 +496,8 @@ macro_rules! gpio_core {
                 }
             }
 
-            impl<MODE> toggleable::Default for $PXi<Output<MODE>> {}
+            #[cfg(feature = "embedded-hal-02")]
+            impl<MODE> embedded_hal_02::digital::v2::toggleable::Default for $PXi<Output<MODE>> {}
 
             impl<MODE> ErrorType for $PXi<MODE> {
                 type Error = Infallible;
@@ -508,6 +513,7 @@ macro_rules! gpio_core {
                 }
             }
 
+            #[cfg(feature = "embedded-hal-02")]
             impl<MODE> embedded_hal_02::digital::v2::OutputPin for $PXi<Output<MODE>> {
                 type Error = Infallible;
 
@@ -530,6 +536,7 @@ macro_rules! gpio_core {
                 }
             }
 
+            #[cfg(feature = "embedded-hal-02")]
             impl<MODE> embedded_hal_02::digital::v2::StatefulOutputPin for $PXi<Output<MODE>> {
                 fn is_set_high(&self) -> Result<bool, Self::Error> {
                     self.is_set_low().map(|b| !b)
@@ -550,6 +557,7 @@ macro_rules! gpio_core {
                 }
             }
 
+            #[cfg(feature = "embedded-hal-02")]
             impl<MODE> embedded_hal_02::digital::v2::InputPin for $PXi<Input<MODE>> {
                 type Error = Infallible;
 
@@ -572,6 +580,7 @@ macro_rules! gpio_core {
                 }
             }
 
+            #[cfg(feature = "embedded-hal-02")]
             impl embedded_hal_02::digital::v2::InputPin for $PXi<Output<OpenDrain>> {
                 type Error = Infallible;
 

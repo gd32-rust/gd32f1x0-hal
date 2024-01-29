@@ -11,8 +11,6 @@ use crate::time::Hertz;
 use cast::{u16, u32, u64};
 use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
-use embedded_hal_02::timer::{Cancel, CountDown, Periodic};
-use void::Void;
 
 /// Interrupt events
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -133,12 +131,9 @@ impl CountDownTimer<SYST> {
     pub fn release(self) -> SYST {
         self.stop().release()
     }
-}
 
-impl CountDown for CountDownTimer<SYST> {
-    type Time = Hertz;
-
-    fn start<T>(&mut self, timeout: T)
+    /// Configures the timer to have the given timeout and enables it to start counting down.
+    pub fn start<T>(&mut self, timeout: T)
     where
         T: Into<Hertz>,
     {
@@ -151,21 +146,15 @@ impl CountDown for CountDownTimer<SYST> {
         self.timer.enable_counter();
     }
 
-    fn wait(&mut self) -> nb::Result<(), Void> {
-        if self.timer.has_wrapped() {
-            Ok(())
-        } else {
-            Err(nb::Error::WouldBlock)
-        }
+    /// Returns whether the timer has finished counting down yet, and resets the flag if so.
+    pub fn has_elapsed(&mut self) -> bool {
+        self.timer.has_wrapped()
     }
-}
 
-impl Cancel for CountDownTimer<SYST> {
-    type Error = Error;
-
-    fn cancel(&mut self) -> Result<(), Self::Error> {
+    /// Disables the timer.
+    pub fn cancel(&mut self) -> Result<(), Error> {
         if !self.timer.is_counter_enabled() {
-            return Err(Self::Error::Canceled);
+            return Err(Error::Canceled);
         }
 
         self.timer.disable_counter();
@@ -173,7 +162,37 @@ impl Cancel for CountDownTimer<SYST> {
     }
 }
 
-impl Periodic for CountDownTimer<SYST> {}
+#[cfg(feature = "embedded-hal-02")]
+impl embedded_hal_02::timer::CountDown for CountDownTimer<SYST> {
+    type Time = Hertz;
+
+    fn start<T>(&mut self, timeout: T)
+    where
+        T: Into<Hertz>,
+    {
+        self.start(timeout);
+    }
+
+    fn wait(&mut self) -> nb::Result<(), void::Void> {
+        if self.has_elapsed() {
+            Ok(())
+        } else {
+            Err(nb::Error::WouldBlock)
+        }
+    }
+}
+
+#[cfg(feature = "embedded-hal-02")]
+impl embedded_hal_02::timer::Cancel for CountDownTimer<SYST> {
+    type Error = Error;
+
+    fn cancel(&mut self) -> Result<(), Self::Error> {
+        self.cancel()
+    }
+}
+
+#[cfg(feature = "embedded-hal-02")]
+impl embedded_hal_02::timer::Periodic for CountDownTimer<SYST> {}
 
 /// Helper methods used by other parts of the HAL, such as PWM.
 pub(crate) trait TimerExt {
@@ -312,6 +331,34 @@ macro_rules! hal {
             pub fn reset(&mut self) {
                 self.timer.reset_counter();
             }
+
+            /// Configures the timer to have the given timeout and enables it to start counting down.
+            pub fn start<T>(&mut self, timeout: T)
+            where
+                T: Into<Hertz>,
+            {
+                // Pause counter.
+                self.timer.ctl0.modify(|_, w| w.cen().disabled());
+
+                self.timer.configure_prescaler_reload(timeout.into(), self.clock);
+                // Trigger an update event to load the prescaler value to the clock
+                self.timer.reset_counter();
+
+                // Start counter.
+                self.timer.ctl0.modify(|_, w| w.cen().enabled());
+            }
+
+            /// Disables the timer.
+            pub fn cancel(&mut self) -> Result<(), Error> {
+                let is_counter_enabled = self.timer.ctl0.read().cen().is_enabled();
+                if !is_counter_enabled {
+                    return Err(Error::Canceled);
+                }
+
+                // Pause counter.
+                self.timer.ctl0.modify(|_, w| w.cen().disabled());
+                Ok(())
+            }
         }
 
         impl TimerExt for $TIMERX {
@@ -332,25 +379,18 @@ macro_rules! hal {
             }
         }
 
-        impl CountDown for CountDownTimer<$TIMERX> {
+        #[cfg(feature = "embedded-hal-02")]
+        impl embedded_hal_02::timer::CountDown for CountDownTimer<$TIMERX> {
             type Time = Hertz;
 
             fn start<T>(&mut self, timeout: T)
             where
                 T: Into<Hertz>,
             {
-                // Pause counter.
-                self.timer.ctl0.modify(|_, w| w.cen().disabled());
-
-                self.timer.configure_prescaler_reload(timeout.into(), self.clock);
-                // Trigger an update event to load the prescaler value to the clock
-                self.timer.reset_counter();
-
-                // Start counter.
-                self.timer.ctl0.modify(|_, w| w.cen().enabled());
+                self.start(timeout);
             }
 
-            fn wait(&mut self) -> nb::Result<(), Void> {
+            fn wait(&mut self) -> nb::Result<(), void::Void> {
                 if !self.is_pending(Event::Update) {
                     Err(nb::Error::WouldBlock)
                 } else {
@@ -360,22 +400,17 @@ macro_rules! hal {
             }
         }
 
-        impl Cancel for CountDownTimer<$TIMERX> {
+        #[cfg(feature = "embedded-hal-02")]
+        impl embedded_hal_02::timer::Cancel for CountDownTimer<$TIMERX> {
             type Error = Error;
 
             fn cancel(&mut self) -> Result<(), Self::Error> {
-                let is_counter_enabled = self.timer.ctl0.read().cen().is_enabled();
-                if !is_counter_enabled {
-                    return Err(Self::Error::Canceled);
-                }
-
-                // Pause counter.
-                self.timer.ctl0.modify(|_, w| w.cen().disabled());
-                Ok(())
+                self.cancel()
             }
         }
 
-        impl Periodic for CountDownTimer<$TIMERX> {}
+        #[cfg(feature = "embedded-hal-02")]
+        impl embedded_hal_02::timer::Periodic for CountDownTimer<$TIMERX> {}
     };
 }
 

@@ -63,7 +63,7 @@
 //! Most of the examples require the following additional dependencies
 //! ```toml
 //! [dependencies]
-//! embedded-hal = "0.2.7"
+//! embedded-hal = "1.0.0"
 //! nb = "1.1.0"
 //! cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 //! cortex-m-rt = "0.7.3"

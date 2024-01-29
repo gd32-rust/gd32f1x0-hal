@@ -11,11 +11,9 @@
 
 use panic_halt as _;
 
-use nb::block;
-
+use core::hint::spin_loop;
 use cortex_m_rt::entry;
 use embedded_hal::digital::OutputPin;
-use embedded_hal_02::timer::CountDown;
 use gd32f1x0_hal::{pac, prelude::*, timer::Timer};
 
 #[entry]
@@ -45,9 +43,13 @@ fn main() -> ! {
 
     // Wait for the timer to trigger an update and change the state of the LED
     loop {
-        block!(timer.wait()).unwrap();
+        while !timer.has_elapsed() {
+            spin_loop();
+        }
         led.set_high().unwrap();
-        block!(timer.wait()).unwrap();
+        while !timer.has_elapsed() {
+            spin_loop();
+        }
         led.set_low().unwrap();
     }
 }
