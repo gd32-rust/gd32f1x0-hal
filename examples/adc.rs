@@ -6,7 +6,6 @@ use panic_semihosting as _;
 
 use cortex_m_rt::entry;
 use cortex_m_semihosting::hprintln;
-use embedded_hal_02::adc::OneShot;
 use gd32f1x0_hal::{adc::Adc, pac, prelude::*};
 
 #[entry]
@@ -34,7 +33,7 @@ fn main() -> ! {
     let mut ch0 = gpiob.pb0.into_analog(&mut gpiob.config);
 
     loop {
-        let data: u16 = adc.read(&mut ch0).unwrap();
+        let data: u16 = adc.read_channel(&mut ch0);
         hprintln!("adc1: {}", data);
     }
 }

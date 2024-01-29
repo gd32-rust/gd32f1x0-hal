@@ -8,7 +8,7 @@ use panic_halt as _;
 
 use cortex_m::asm;
 use cortex_m_rt::entry;
-use embedded_hal_02::{Pwm, PwmPin};
+use embedded_hal::pwm::SetDutyCycle;
 use gd32f1x0_hal::{
     gpio::{OutputMode, PullMode},
     pac,
@@ -81,23 +81,23 @@ fn main() -> ! {
 
     asm::bkpt();
 
-    let max = pwm.get_max_duty();
+    let max = pwm.max_duty_cycle();
 
     //// Operations affecting single channels can be accessed through
     //// the Pwm object or via dereferencing to the pin.
 
     // Use the Pwm object to set C2 to full strength
-    pwm.set_duty(Channel::C2, max);
+    pwm.set_duty_cycle(Channel::C2, max);
 
     asm::bkpt();
 
     // Use the Pwm object to set C2 to be dim
-    pwm.set_duty(Channel::C2, max / 4);
+    pwm.set_duty_cycle(Channel::C2, max / 4);
 
     asm::bkpt();
 
     // Use the Pwm object to set C2 to be zero
-    pwm.set_duty(Channel::C2, 0);
+    pwm.set_duty_cycle(Channel::C2, 0);
 
     asm::bkpt();
 
@@ -105,17 +105,17 @@ fn main() -> ! {
     let mut pwm_channel = pwm.split().2.unwrap();
 
     // Use the PwmChannel object to set C2 to be full strength
-    pwm_channel.set_duty(max);
+    pwm_channel.set_duty_cycle(max).unwrap();
 
     asm::bkpt();
 
     // Use the PwmChannel object to set C2 to be dim
-    pwm_channel.set_duty(max / 4);
+    pwm_channel.set_duty_cycle(max / 4).unwrap();
 
     asm::bkpt();
 
     // Use the PwmChannel object to set C2 to be zero
-    pwm_channel.set_duty(0);
+    pwm_channel.set_duty_cycle(0).unwrap();
 
     asm::bkpt();
 

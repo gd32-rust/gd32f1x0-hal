@@ -15,10 +15,7 @@ use panic_halt as _;
 use core::cell::RefCell;
 use cortex_m::{asm::wfi, interrupt::Mutex};
 use cortex_m_rt::entry;
-use embedded_hal_02::{
-    digital::v2::{OutputPin, ToggleableOutputPin},
-    timer::CountDown,
-};
+use embedded_hal::digital::{OutputPin, StatefulOutputPin};
 use gd32f1x0_hal::{
     gpio::{gpioc, Output, PushPull},
     pac::{interrupt, Interrupt, Peripherals, TIMER1},
@@ -57,8 +54,7 @@ fn TIMER1() {
     });
 
     let _ = led.toggle();
-    // TODO: Shouldn't this just return?
-    let _ = tim.wait();
+    tim.clear_interrupt_flag(Event::Update);
 }
 
 #[entry]
