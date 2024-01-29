@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## Other changes
 
 - Removed unused `bxcan` dependency.
+- Removed `cast` dependency.
 
 ## [0.9.0]
 

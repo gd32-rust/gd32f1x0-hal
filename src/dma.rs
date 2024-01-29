@@ -7,6 +7,7 @@
 use crate::pac::{dma, DMA};
 use crate::rcu::{Enable, AHB};
 use core::{
+    convert::TryFrom,
     marker::PhantomData,
     mem, ptr,
     sync::atomic::{self, compiler_fence, Ordering},
@@ -174,7 +175,7 @@ macro_rules! dma {
                 /// Number of bytes to transfer
                 pub fn set_transfer_length(&mut self, len: usize) {
                     unsafe { &(*DMA::ptr()).$chXcnt }
-                        .write(|w| w.cnt().bits(cast::u16(len).unwrap()));
+                        .write(|w| w.cnt().bits(u16::try_from(len).unwrap()));
                 }
 
                 /// Starts the DMA transfer
