@@ -26,7 +26,7 @@ embedded-hal-02 = { package = "embedded-hal", version = "0.2.7", features = [
 embedded-io = "0.6.1"
 gd32f1 = { version = "0.8.0", features = ["critical-section"] }
 nb = "1.1.0"
-void = { version = "1.0.2", default-features = false }
+void = { version = "1.0.2", default-features = false, optional = true }
 
 [dev-dependencies]
 byteorder = { version = "1.5.0", default-features = false }
@@ -47,6 +47,7 @@ serde_derive = "1.0.189"
 
 [features]
 device-selected = []
+embedded-hal-02 = ["dep:embedded-hal-02", "dep:void"]
 doc = []
 rt = ["gd32f1/rt"]
 gd32f130 = ["gd32f1/gd32f130", "device-selected"]
