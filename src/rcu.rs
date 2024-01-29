@@ -16,7 +16,6 @@ use crate::pac::{
     RCU,
 };
 use crate::time::Hertz;
-use cast::u32;
 use core::cmp;
 
 //use crate::backup_domain::BackupDomain;
@@ -307,7 +306,7 @@ impl CFGR {
             _ => (APB1PSC_A::DIV16, 16),
         };
 
-        let pclk1 = hclk / u32(ppre1);
+        let pclk1 = hclk / u32::from(ppre1);
 
         assert!(pclk1 <= 72_000_000);
 
@@ -320,7 +319,7 @@ impl CFGR {
             _ => (APB1PSC_A::DIV16, 16),
         };
 
-        let pclk2 = hclk / u32(ppre2);
+        let pclk2 = hclk / u32::from(ppre2);
 
         assert!(pclk2 <= 72_000_000);
 

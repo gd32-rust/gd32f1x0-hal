@@ -8,7 +8,7 @@ use crate::pac::{
 };
 use crate::rcu::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset, APB1, APB2};
 use crate::time::Hertz;
-use cast::{u16, u32, u64};
+use core::convert::TryFrom;
 use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
 
@@ -112,12 +112,12 @@ impl CountDownTimer<SYST> {
     /// it is very easy to lose an update event.
     pub fn micros_since(&self) -> u32 {
         let reload_value = SYST::get_reload();
-        let timer_clock = u64(self.clock.0);
-        let ticks = u64(reload_value - SYST::get_current());
+        let timer_clock = u64::from(self.clock.0);
+        let ticks = u64::from(reload_value - SYST::get_current());
 
         // It is safe to make this cast since the maximum ticks is (2^24 - 1) and the minimum sysclk
         // is 4Mhz, which gives a maximum period of ~4.2 seconds which is < (2^32 - 1) microseconds
-        u32(1_000_000 * ticks / timer_clock).unwrap()
+        u32::try_from(1_000_000 * ticks / timer_clock).unwrap()
     }
 
     /// Stops the timer
@@ -315,16 +315,16 @@ macro_rules! hal {
             /// it is very easy to lose an update event.
             pub fn micros_since(&self) -> u32 {
                 let timer_clock = self.clock.0;
-                let psc = u32(self.timer.psc.read().psc().bits());
+                let psc = u32::from(self.timer.psc.read().psc().bits());
 
                 // freq_divider is always bigger than 0, since (psc + 1) is always less than
                 // timer_clock
-                let freq_divider = u64(timer_clock / (psc + 1));
-                let cnt = u64(self.timer.cnt.read().cnt().bits());
+                let freq_divider = u64::from(timer_clock / (psc + 1));
+                let cnt = u64::from(self.timer.cnt.read().cnt().bits());
 
                 // It is safe to make this cast, because the maximum timer period in this HAL is
                 // 1s (1Hz), then 1 second < (2^32 - 1) microseconds
-                u32(1_000_000 * cnt / freq_divider).unwrap()
+                u32::try_from(1_000_000 * cnt / freq_divider).unwrap()
             }
 
             /// Resets the counter
@@ -417,8 +417,8 @@ macro_rules! hal {
 #[inline(always)]
 fn compute_prescaler_reload(freq: Hertz, clock: Hertz) -> (u16, u16) {
     let ticks = clock.0 / freq.0;
-    let psc = u16((ticks - 1) >> 16).unwrap();
-    let car = u16(ticks / u32(psc + 1)).unwrap();
+    let psc = u16::try_from((ticks - 1) >> 16).unwrap();
+    let car = u16::try_from(ticks / u32::from(psc + 1)).unwrap();
     (psc, car)
 }
 
