@@ -28,21 +28,12 @@ nb = "1.1.0"
 void = { version = "1.0.2", default-features = false, optional = true }
 
 [dev-dependencies]
-byteorder = { version = "1.5.0", default-features = false }
-cobs = { version = "0.2.3", default-features = false }
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rtic = "1.1.4"
 cortex-m-semihosting = "0.5.0"
-crc16 = { version = "0.4.0", default-features = false }
-either = { version = "1.9.0", default-features = false }
-heapless = "0.8.0"
-m = "0.1.1"
-mfrc522 = "0.7.0"
 panic-halt = "0.2.0"
 panic-itm = "0.4.2"
 panic-semihosting = "0.6.0"
-serde = { version = "1.0.189", default-features = false }
-serde_derive = "1.0.189"
 
 [features]
 device-selected = []
