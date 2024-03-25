@@ -6,14 +6,14 @@
 
 use crate::flash::WS;
 #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
-use crate::pac::rcu::cfg0::USBDPSC_A;
+use crate::pac::rcu::cfg0::Usbdpsc;
 use crate::pac::{
-    fmc::ws::WSCNT_A,
+    fmc::ws::Wscnt,
     rcu::{
         self,
-        cfg0::{ADCPSC_A, AHBPSC_A, APB1PSC_A, PLLSEL_A, SCS_A},
+        cfg0::{Adcpsc, Ahbpsc, Apb1psc, Pllsel, Scs},
     },
-    RCU,
+    Rcu as RCU,
 };
 use crate::time::Hertz;
 use core::cmp;
@@ -84,9 +84,9 @@ pub struct AHB {
 impl AHB {
     // TODO remove `allow`
     #[allow(dead_code)]
-    pub(crate) fn enr(&mut self) -> &rcu::AHBEN {
+    pub(crate) fn enr(&mut self) -> &rcu::Ahben {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).ahben }
+        unsafe { &(*RCU::ptr()).ahben() }
     }
 }
 
@@ -104,14 +104,14 @@ pub struct APB1 {
 }
 
 impl APB1 {
-    pub(crate) fn enr(&mut self) -> &rcu::APB1EN {
+    pub(crate) fn enr(&mut self) -> &rcu::Apb1en {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).apb1en }
+        unsafe { &(*RCU::ptr()).apb1en() }
     }
 
-    pub(crate) fn rstr(&mut self) -> &rcu::APB1RST {
+    pub(crate) fn rstr(&mut self) -> &rcu::Apb1rst {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).apb1rst }
+        unsafe { &(*RCU::ptr()).apb1rst() }
     }
 
     /// Set power interface clock (PWREN) bit in RCU_APB1ENR
@@ -134,14 +134,14 @@ pub struct APB2 {
 }
 
 impl APB2 {
-    pub(crate) fn enr(&mut self) -> &rcu::APB2EN {
+    pub(crate) fn enr(&mut self) -> &rcu::Apb2en {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).apb2en }
+        unsafe { &(*RCU::ptr()).apb2en() }
     }
 
-    pub(crate) fn rstr(&mut self) -> &rcu::APB2RST {
+    pub(crate) fn rstr(&mut self) -> &rcu::Apb2rst {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).apb2rst }
+        unsafe { &(*RCU::ptr()).apb2rst() }
     }
 }
 
@@ -160,15 +160,15 @@ pub struct ADDAPB1 {
 
 impl ADDAPB1 {
     #[allow(unused)]
-    pub(crate) fn enr(&mut self) -> &rcu::ADDEN {
+    pub(crate) fn enr(&mut self) -> &rcu::Adden {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).adden }
+        unsafe { &(*RCU::ptr()).adden() }
     }
 
     #[allow(unused)]
-    pub(crate) fn rstr(&mut self) -> &rcu::ADDRST {
+    pub(crate) fn rstr(&mut self) -> &rcu::Addrst {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).addrst }
+        unsafe { &(*RCU::ptr()).addrst() }
     }
 }
 
@@ -282,15 +282,15 @@ impl CFGR {
 
         let (ahbpsc, hclk) = match sysclk / self.hclk.unwrap_or(sysclk) {
             0 => unreachable!(),
-            1 => (AHBPSC_A::DIV1, sysclk),
-            2 => (AHBPSC_A::DIV2, sysclk / 2),
-            3..=5 => (AHBPSC_A::DIV4, sysclk / 4),
-            6..=11 => (AHBPSC_A::DIV8, sysclk / 8),
-            12..=39 => (AHBPSC_A::DIV16, sysclk / 16),
-            40..=95 => (AHBPSC_A::DIV64, sysclk / 64),
-            96..=191 => (AHBPSC_A::DIV128, sysclk / 128),
-            192..=383 => (AHBPSC_A::DIV256, sysclk / 256),
-            _ => (AHBPSC_A::DIV512, sysclk / 512),
+            1 => (Ahbpsc::Div1, sysclk),
+            2 => (Ahbpsc::Div2, sysclk / 2),
+            3..=5 => (Ahbpsc::Div4, sysclk / 4),
+            6..=11 => (Ahbpsc::Div8, sysclk / 8),
+            12..=39 => (Ahbpsc::Div16, sysclk / 16),
+            40..=95 => (Ahbpsc::Div64, sysclk / 64),
+            96..=191 => (Ahbpsc::Div128, sysclk / 128),
+            192..=383 => (Ahbpsc::Div256, sysclk / 256),
+            _ => (Ahbpsc::Div512, sysclk / 512),
         };
 
         assert!(hclk <= 72_000_000);
@@ -299,11 +299,11 @@ impl CFGR {
         let (apb1psc, ppre1) = match hclk / self.pclk1.unwrap_or_else(|| cmp::min(hclk, 36_000_000))
         {
             0 => unreachable!(),
-            1 => (APB1PSC_A::DIV1, 1),
-            2 => (APB1PSC_A::DIV2, 2),
-            3..=5 => (APB1PSC_A::DIV4, 4),
-            6..=11 => (APB1PSC_A::DIV8, 8),
-            _ => (APB1PSC_A::DIV16, 16),
+            1 => (Apb1psc::Div1, 1),
+            2 => (Apb1psc::Div2, 2),
+            3..=5 => (Apb1psc::Div4, 4),
+            6..=11 => (Apb1psc::Div8, 8),
+            _ => (Apb1psc::Div16, 16),
         };
 
         let pclk1 = hclk / u32::from(ppre1);
@@ -312,11 +312,11 @@ impl CFGR {
 
         let (apb2psc, ppre2) = match hclk / self.pclk2.unwrap_or(hclk) {
             0 => unreachable!(),
-            1 => (APB1PSC_A::DIV1, 1),
-            2 => (APB1PSC_A::DIV2, 2),
-            3..=5 => (APB1PSC_A::DIV4, 4),
-            6..=11 => (APB1PSC_A::DIV8, 8),
-            _ => (APB1PSC_A::DIV16, 16),
+            1 => (Apb1psc::Div1, 1),
+            2 => (Apb1psc::Div2, 2),
+            3..=5 => (Apb1psc::Div4, 4),
+            6..=11 => (Apb1psc::Div8, 8),
+            _ => (Apb1psc::Div16, 16),
         };
 
         let pclk2 = hclk / u32::from(ppre2);
@@ -326,11 +326,11 @@ impl CFGR {
         // adjust flash wait states
         ws.ws().write(|w| {
             w.wscnt().variant(if sysclk <= 24_000_000 {
-                WSCNT_A::WS0
+                Wscnt::Ws0
             } else if sysclk <= 48_000_000 {
-                WSCNT_A::WS1
+                Wscnt::Ws1
             } else {
-                WSCNT_A::WS2
+                Wscnt::Ws2
             })
         });
 
@@ -339,49 +339,49 @@ impl CFGR {
         // PLL output frequency is a supported one.
         // usbpre == false: divide clock by 1.5, otherwise no division
         let (usbpre, usbclk_valid) = match (self.hxtal, pllmf_bits, sysclk) {
-            (Some(_), Some(_), 72_000_000) => (USBDPSC_A::DIV1_5, true),
-            (Some(_), Some(_), 48_000_000) => (USBDPSC_A::DIV1, true),
-            _ => (USBDPSC_A::DIV1_5, false),
+            (Some(_), Some(_), 72_000_000) => (Usbdpsc::Div1_5, true),
+            (Some(_), Some(_), 48_000_000) => (Usbdpsc::Div1, true),
+            _ => (Usbdpsc::Div1_5, false),
         };
 
         let (adcpsc, adcclk) = match pclk2 / self.adcclk.unwrap_or(pclk2 / 8) {
-            0..=2 => (ADCPSC_A::DIV2, pclk2 / 2),
-            3..=4 => (ADCPSC_A::DIV4, pclk2 / 4),
-            5..=7 => (ADCPSC_A::DIV6, pclk2 / 6),
-            _ => (ADCPSC_A::DIV8, pclk2 / 8),
+            0..=2 => (Adcpsc::Div2, pclk2 / 2),
+            3..=4 => (Adcpsc::Div4, pclk2 / 4),
+            5..=7 => (Adcpsc::Div6, pclk2 / 6),
+            _ => (Adcpsc::Div8, pclk2 / 8),
         };
 
         let rcu = unsafe { &*RCU::ptr() };
 
         if self.hxtal.is_some() {
             // Enable HXTAL and wait for it to be ready.
-            rcu.ctl0.modify(|_, w| w.hxtalen().on());
-            while rcu.ctl0.read().hxtalstb().is_not_ready() {}
+            rcu.ctl0().modify(|_, w| w.hxtalen().on());
+            while rcu.ctl0().read().hxtalstb().is_not_ready() {}
         }
 
         if let Some(pllmf_bits) = pllmf_bits {
             // enable PLL and wait for it to be ready
 
-            rcu.cfg0.modify(|_, w| {
+            rcu.cfg0().modify(|_, w| {
                 w.pllmf()
                     .bits(pllmf_bits)
                     .pllmf_msb()
                     .bit(pllmf_msb)
                     .pllsel()
                     .variant(if self.hxtal.is_some() {
-                        PLLSEL_A::HXTAL
+                        Pllsel::Hxtal
                     } else {
-                        PLLSEL_A::IRC8M_2
+                        Pllsel::Irc8m2
                     })
             });
 
-            rcu.ctl0.modify(|_, w| w.pllen().on());
+            rcu.ctl0().modify(|_, w| w.pllen().on());
 
-            while rcu.ctl0.read().pllstb().is_not_ready() {}
+            while rcu.ctl0().read().pllstb().is_not_ready() {}
         }
 
         // set prescalers and clock source
-        rcu.cfg0.modify(|_, w| {
+        rcu.cfg0().modify(|_, w| {
             w.adcpsc()
                 .variant(adcpsc)
                 .apb2psc()
@@ -392,18 +392,19 @@ impl CFGR {
                 .variant(ahbpsc)
                 .scs()
                 .variant(if pllmf_bits.is_some() {
-                    SCS_A::PLL
+                    Scs::Pll
                 } else if self.hxtal.is_some() {
-                    SCS_A::HXTAL
+                    Scs::Hxtal
                 } else {
-                    SCS_A::IRC8M
+                    Scs::Irc8m
                 })
         });
         #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
         {
-            rcu.cfg0.modify(|_, w| w.usbdpsc().variant(usbpre));
+            rcu.cfg0().modify(|_, w| w.usbdpsc().variant(usbpre));
         }
-        rcu.cfg2.modify(|_, w| w.adcsel().apb2().usart0sel().apb2());
+        rcu.cfg2()
+            .modify(|_, w| w.adcsel().apb2().usart0sel().apb2());
 
         Clocks {
             hclk: Hertz(hclk),
@@ -625,43 +626,43 @@ macro_rules! ahb_bus {
 }
 
 bus! {
-    ADC => (APB2, adcen, adcrst),
-    I2C0 => (APB1, i2c0en, i2c0rst),
-    I2C1 => (APB1, i2c1en, i2c1rst),
-    SPI0 => (APB2, spi0en, spi0rst),
-    SPI1 => (APB1, spi1en, spi1rst),
-    SPI2 => (APB1, spi2en, spi2rst),
-    TIMER0 => (APB2, timer0en, timer0rst),
-    TIMER1 => (APB1, timer1en, timer1rst),
-    TIMER2 => (APB1, timer2en, timer2rst),
-    TIMER5 => (APB1, timer5en, timer5rst),
-    TIMER13 => (APB1, timer13en, timer13rst),
-    TIMER14 => (APB2, timer14en, timer14rst),
-    TIMER15 => (APB2, timer15en, timer15rst),
-    TIMER16 => (APB2, timer16en, timer16rst),
-    USART0 => (APB2, usart0en, usart0rst),
-    USART1 => (APB1, usart1en, usart1rst),
-    WWDGT => (APB1, wwdgten, wwdgtrst),
+    Adc => (APB2, adcen, adcrst),
+    I2c0 => (APB1, i2c0en, i2c0rst),
+    I2c1 => (APB1, i2c1en, i2c1rst),
+    Spi0 => (APB2, spi0en, spi0rst),
+    Spi1 => (APB1, spi1en, spi1rst),
+    Spi2 => (APB1, spi2en, spi2rst),
+    Timer0 => (APB2, timer0en, timer0rst),
+    Timer1 => (APB1, timer1en, timer1rst),
+    Timer2 => (APB1, timer2en, timer2rst),
+    Timer5 => (APB1, timer5en, timer5rst),
+    Timer13 => (APB1, timer13en, timer13rst),
+    Timer14 => (APB2, timer14en, timer14rst),
+    Timer15 => (APB2, timer15en, timer15rst),
+    Timer16 => (APB2, timer16en, timer16rst),
+    Usart0 => (APB2, usart0en, usart0rst),
+    Usart1 => (APB1, usart1en, usart1rst),
+    Wwdgt => (APB1, wwdgten, wwdgtrst),
 }
 
 #[cfg(feature = "gd32f150")]
 bus! {
-    USBD => (APB1, usbden, usbdrst),
+    Usbd => (APB1, usbden, usbdrst),
 }
 
 #[cfg(any(feature = "gd32f170", feature = "gd32f190"))]
 bus! {
-    CAN0 => (APB1, can0en, can0rst),
-    CAN1 => (APB1, can1en, can1rst),
-    I2C2 => (ADDAPB1, i2c2en, i2c2rst),
+    Can0 => (APB1, can0en, can0rst),
+    Can1 => (APB1, can1en, can1rst),
+    I2c2 => (ADDAPB1, i2c2en, i2c2rst),
 }
 
 ahb_bus! {
-    CRC => (crcen),
-    DMA => (dmaen),
-    GPIOA => (paen),
-    GPIOB => (pben),
-    GPIOC => (pcen),
-    GPIOD => (pden),
-    GPIOF => (pfen),
+    Crc => (crcen),
+    Dma => (dmaen),
+    Gpioa => (paen),
+    Gpiob => (pben),
+    Gpioc => (pcen),
+    Gpiod => (pden),
+    Gpiof => (pfen),
 }

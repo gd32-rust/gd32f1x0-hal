@@ -14,7 +14,7 @@ use crate::dma::{
 use crate::gpio::gpioa::{PA10, PA14, PA15, PA2, PA3, PA9};
 use crate::gpio::gpiob::{PB6, PB7};
 use crate::gpio::{Alternate, AF0, AF1};
-use crate::pac::{self, usart0, usart0::ctl1::STB_A, USART0};
+use crate::pac::{self, usart0, usart0::ctl1::Stb, Usart0};
 use crate::rcu::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset};
 use crate::time::{Bps, U32Ext};
 use core::convert::Infallible;
@@ -61,7 +61,7 @@ pub enum Parity {
     ParityOdd,
 }
 
-pub type StopBits = STB_A;
+pub type StopBits = Stb;
 
 pub struct Config {
     pub baudrate: Bps,
@@ -101,7 +101,7 @@ impl Default for Config {
         Config {
             baudrate: 115_200_u32.bps(),
             parity: Parity::ParityNone,
-            stopbits: StopBits::STOP1,
+            stopbits: StopBits::Stop1,
         }
     }
 }
@@ -119,10 +119,10 @@ pub enum Event {
 pub trait TxPin<USART> {}
 pub trait RxPin<USART> {}
 
-impl TxPin<USART0> for PA9<Alternate<AF1>> {}
-impl RxPin<USART0> for PA10<Alternate<AF1>> {}
-impl TxPin<USART0> for PB6<Alternate<AF0>> {}
-impl RxPin<USART0> for PB7<Alternate<AF0>> {}
+impl TxPin<Usart0> for PA9<Alternate<AF1>> {}
+impl RxPin<Usart0> for PA10<Alternate<AF1>> {}
+impl TxPin<Usart0> for PB6<Alternate<AF0>> {}
+impl RxPin<Usart0> for PB7<Alternate<AF0>> {}
 
 // Two USARTs
 #[cfg(any(
@@ -139,14 +139,14 @@ mod pins {
     use super::*;
     use crate::gpio::gpiob::PB0;
     use crate::gpio::{gpioa::PA8, AF4};
-    use crate::pac::USART1;
+    use crate::pac::Usart1;
 
-    impl TxPin<USART1> for PA2<Alternate<AF1>> {}
-    impl RxPin<USART1> for PA3<Alternate<AF1>> {}
-    impl TxPin<USART1> for PA8<Alternate<AF4>> {}
-    impl RxPin<USART1> for PB0<Alternate<AF4>> {}
-    impl TxPin<USART1> for PA14<Alternate<AF1>> {}
-    impl RxPin<USART1> for PA15<Alternate<AF1>> {}
+    impl TxPin<Usart1> for PA2<Alternate<AF1>> {}
+    impl RxPin<Usart1> for PA3<Alternate<AF1>> {}
+    impl TxPin<Usart1> for PA8<Alternate<AF4>> {}
+    impl RxPin<Usart1> for PB0<Alternate<AF4>> {}
+    impl TxPin<Usart1> for PA14<Alternate<AF1>> {}
+    impl RxPin<Usart1> for PA15<Alternate<AF1>> {}
 }
 
 // Only one USART
@@ -159,10 +159,10 @@ mod pins {
 mod pins {
     use super::*;
 
-    impl TxPin<USART0> for PA2<Alternate<AF1>> {}
-    impl RxPin<USART0> for PA3<Alternate<AF1>> {}
-    impl TxPin<USART0> for PA14<Alternate<AF1>> {}
-    impl RxPin<USART0> for PA15<Alternate<AF1>> {}
+    impl TxPin<Usart0> for PA2<Alternate<AF1>> {}
+    impl RxPin<Usart0> for PA3<Alternate<AF1>> {}
+    impl TxPin<Usart0> for PA14<Alternate<AF1>> {}
+    impl RxPin<Usart0> for PA15<Alternate<AF1>> {}
 }
 
 /// Serial abstraction
@@ -207,7 +207,7 @@ where
 
         // Enable transmitter, receiver and the USART as a whole.
         usart
-            .ctl0
+            .ctl0()
             .modify(|_, w| w.ten().enabled().ren().enabled().uen().enabled());
 
         Self { usart, pins }
@@ -246,7 +246,9 @@ where
         usart.enable_configure(config, clocks, bus);
 
         // Enable transmitter and the USART as a whole.
-        usart.ctl0.modify(|_, w| w.ten().enabled().uen().enabled());
+        usart
+            .ctl0()
+            .modify(|_, w| w.ten().enabled().uen().enabled());
 
         Self {
             usart,
@@ -281,7 +283,9 @@ where
         usart.enable_configure(config, clocks, bus);
 
         // Enable receiver and the USART as a whole.
-        usart.ctl0.modify(|_, w| w.ren().enabled().uen().enabled());
+        usart
+            .ctl0()
+            .modify(|_, w| w.ren().enabled().uen().enabled());
 
         Self {
             usart,
@@ -306,18 +310,18 @@ impl<USART: Deref<Target = usart0::RegisterBlock>, TXPIN, RXPIN> Serial<USART, T
     /// Enable an interrupt event.
     pub fn listen(&mut self, event: Event) {
         match event {
-            Event::Rbne => self.usart.ctl0.modify(|_, w| w.rbneie().enabled()),
-            Event::Tbe => self.usart.ctl0.modify(|_, w| w.tbeie().enabled()),
-            Event::Idle => self.usart.ctl0.modify(|_, w| w.idleie().enabled()),
+            Event::Rbne => self.usart.ctl0().modify(|_, w| w.rbneie().enabled()),
+            Event::Tbe => self.usart.ctl0().modify(|_, w| w.tbeie().enabled()),
+            Event::Idle => self.usart.ctl0().modify(|_, w| w.idleie().enabled()),
         }
     }
 
     /// Disable an interrupt event.
     pub fn unlisten(&mut self, event: Event) {
         match event {
-            Event::Rbne => self.usart.ctl0.modify(|_, w| w.rbneie().disabled()),
-            Event::Tbe => self.usart.ctl0.modify(|_, w| w.tbeie().disabled()),
-            Event::Idle => self.usart.ctl0.modify(|_, w| w.idleie().disabled()),
+            Event::Rbne => self.usart.ctl0().modify(|_, w| w.rbneie().disabled()),
+            Event::Tbe => self.usart.ctl0().modify(|_, w| w.tbeie().disabled()),
+            Event::Idle => self.usart.ctl0().modify(|_, w| w.idleie().disabled()),
         }
     }
 }
@@ -326,14 +330,14 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> Rx<USART> {
     /// Enable the RBNE interrupt.
     pub fn listen(&mut self) {
         unsafe { &*self.usart }
-            .ctl0
+            .ctl0()
             .modify(|_, w| w.rbneie().enabled());
     }
 
     /// Disable the RBNE interrupt.
     pub fn unlisten(&mut self) {
         unsafe { &*self.usart }
-            .ctl0
+            .ctl0()
             .modify(|_, w| w.rbneie().disabled());
     }
 }
@@ -342,14 +346,14 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> Tx<USART> {
     /// Enable the TBE interrupt.
     pub fn listen(&mut self) {
         unsafe { &*self.usart }
-            .ctl0
+            .ctl0()
             .modify(|_, w| w.tbeie().enabled());
     }
 
     /// Disable the TBE interrupt.
     pub fn unlisten(&mut self) {
         unsafe { &*self.usart }
-            .ctl0
+            .ctl0()
             .modify(|_, w| w.tbeie().disabled());
     }
 }
@@ -520,26 +524,26 @@ where
         // Configure baud rate.
         let baud_rate_ratio = <USART as RcuBus>::Bus::get_frequency(&clocks).0 / config.baudrate.0;
         assert!((16..=0xFFFF).contains(&baud_rate_ratio));
-        self.baud.write(|w| unsafe { w.bits(baud_rate_ratio) });
+        self.baud().write(|w| unsafe { w.bits(baud_rate_ratio) });
 
         // Configure parity. Note that the parity bit counts towards the word length, so we have to
         // increase it to 9 bits if parity is enabled so as to still get 8 data bits.
         match config.parity {
             Parity::ParityNone => {
-                self.ctl0.modify(|_, w| w.pcen().disabled().wl().bit8());
+                self.ctl0().modify(|_, w| w.pcen().disabled().wl().bit8());
             }
             Parity::ParityEven => {
-                self.ctl0
+                self.ctl0()
                     .modify(|_, w| w.pcen().enabled().wl().bit9().pm().even());
             }
             Parity::ParityOdd => {
-                self.ctl0
+                self.ctl0()
                     .modify(|_, w| w.pcen().enabled().wl().bit9().pm().odd());
             }
         }
 
         // Configure stop bits.
-        self.ctl1.modify(|_, w| w.stb().variant(config.stopbits));
+        self.ctl1().modify(|_, w| w.stb().variant(config.stopbits));
     }
 }
 
@@ -598,35 +602,35 @@ trait UsartReadWrite {
 
 impl<USART: Deref<Target = usart0::RegisterBlock>> UsartReadWrite for USART {
     fn read(&mut self) -> nb::Result<u8, Error> {
-        let status = self.stat.read();
+        let status = self.stat().read();
 
         if status.perr().bit_is_set() {
-            self.intc.write(|w| w.pec().clear());
+            self.intc().write(|w| w.pec().clear());
             Err(nb::Error::Other(Error::Parity))
         } else if status.ferr().bit_is_set() {
-            self.intc.write(|w| w.fec().clear());
+            self.intc().write(|w| w.fec().clear());
             Err(nb::Error::Other(Error::Framing))
         } else if status.nerr().bit_is_set() {
-            self.intc.write(|w| w.nec().clear());
+            self.intc().write(|w| w.nec().clear());
             Err(nb::Error::Other(Error::Noise))
         } else if status.orerr().bit_is_set() {
-            self.intc.write(|w| w.orec().clear());
+            self.intc().write(|w| w.orec().clear());
             // Discard the previous received byte.
-            self.cmd.write(|w| w.rxfcmd().discard());
+            self.cmd().write(|w| w.rxfcmd().discard());
             Err(nb::Error::Other(Error::Overrun))
         } else if status.rbne().bit_is_set() {
-            Ok(self.rdata.read().rdata().bits() as u8)
+            Ok(self.rdata().read().rdata().bits() as u8)
         } else {
             Err(nb::Error::WouldBlock)
         }
     }
 
     fn read_ready(&self) -> bool {
-        self.stat.read().rbne().bit_is_set()
+        self.stat().read().rbne().bit_is_set()
     }
 
     fn flush(&mut self) -> nb::Result<(), Infallible> {
-        let status = self.stat.read();
+        let status = self.stat().read();
         if status.tc().bit_is_set() {
             Ok(())
         } else {
@@ -635,9 +639,10 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> UsartReadWrite for USART {
     }
 
     fn write(&mut self, byte: u8) -> nb::Result<(), Infallible> {
-        let status = self.stat.read();
+        let status = self.stat().read();
         if status.tbe().bit_is_set() {
-            self.tdata.write(|w| unsafe { w.tdata().bits(byte.into()) });
+            self.tdata()
+                .write(|w| unsafe { w.tdata().bits(byte.into()) });
             Ok(())
         } else {
             Err(nb::Error::WouldBlock)
@@ -645,7 +650,7 @@ impl<USART: Deref<Target = usart0::RegisterBlock>> UsartReadWrite for USART {
     }
 
     fn write_ready(&self) -> bool {
-        self.stat.read().tbe().bit_is_set()
+        self.stat().read().tbe().bit_is_set()
     }
 }
 
@@ -736,7 +741,7 @@ macro_rules! serialdma {
                     // until the end of the transfer.
                     let (ptr, len) = unsafe { buffer.write_buffer() };
                     self.channel
-                        .set_peripheral_address(unsafe { &(*<$USARTX>::ptr()).rdata as *const _ as u32 }, false);
+                        .set_peripheral_address(unsafe { &(*<$USARTX>::ptr()).rdata() as *const _ as u32 }, false);
                     self.channel.set_memory_address(ptr as u32, true);
                     self.channel.set_transfer_length(len);
 
@@ -760,7 +765,7 @@ macro_rules! serialdma {
                     // until the end of the transfer.
                     let (ptr, len) = unsafe { buffer.write_buffer() };
                     self.channel
-                        .set_peripheral_address(unsafe { &(*<$USARTX>::ptr()).rdata as *const _ as u32 }, false);
+                        .set_peripheral_address(unsafe { &(*<$USARTX>::ptr()).rdata() as *const _ as u32 }, false);
                     self.channel.set_memory_address(ptr as u32, true);
                     self.channel.set_transfer_length(len);
 
@@ -780,7 +785,7 @@ macro_rules! serialdma {
                 fn write(mut self, buffer: B) -> Transfer<R, B, Self> {
                     // Clear transmission complete bit.
                     unsafe { &*self.payload.usart }
-                        .intc
+                        .intc()
                         .write(|w| w.tcc().clear());
 
                     // NOTE(unsafe) We own the buffer now and we won't call other `&mut` on it
@@ -788,7 +793,7 @@ macro_rules! serialdma {
                     let (ptr, len) = unsafe { buffer.read_buffer() };
 
                     self.channel
-                        .set_peripheral_address(unsafe { &(*<$USARTX>::ptr()).tdata as *const _ as u32 }, false);
+                        .set_peripheral_address(unsafe { &(*<$USARTX>::ptr()).tdata() as *const _ as u32 }, false);
 
                     self.channel.set_memory_address(ptr as u32, true);
                     self.channel.set_transfer_length(len);
@@ -807,7 +812,7 @@ macro_rules! serialdma {
 }
 
 serialdma! {
-    pac::USART0: (
+    pac::Usart0: (
         RxDma0,
         TxDma0,
         dma::C2,
@@ -826,7 +831,7 @@ serialdma! {
     feature = "gd32f190x8",
 ))]
 serialdma! {
-    pac::USART1: (
+    pac::Usart1: (
         RxDma1,
         TxDma1,
         dma::C4,

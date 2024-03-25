@@ -5,13 +5,13 @@
 //! Watchdog peripherals
 
 use crate::{
-    pac::{DBG, FWDGT},
+    pac::{Dbg, Fwdgt},
     time::MilliSeconds,
 };
 
 /// Wraps the Free Watchdog (FWDGT) peripheral
 pub struct FreeWatchdog {
-    fwdgt: FWDGT,
+    fwdgt: Fwdgt,
 }
 
 const LSI_KHZ: u32 = 40;
@@ -20,13 +20,13 @@ const MAX_RELOAD: u16 = 0xFFF;
 
 impl FreeWatchdog {
     /// Wrap and start the watchdog
-    pub fn new(fwdgt: FWDGT) -> Self {
+    pub fn new(fwdgt: Fwdgt) -> Self {
         FreeWatchdog { fwdgt }
     }
 
     /// Debug free watchdog stopped when core is halted
-    pub fn stop_on_debug(&self, dbg: &DBG, stop: bool) {
-        dbg.ctl0.modify(|_, w| w.fwdgt_hold().bit(stop));
+    pub fn stop_on_debug(&self, dbg: &Dbg, stop: bool) {
+        dbg.ctl0().modify(|_, w| w.fwdgt_hold().bit(stop));
     }
 
     fn setup(&self, timeout_ms: u32) {
@@ -41,21 +41,21 @@ impl FreeWatchdog {
         let reload = (timeout_ms * max_reload / max_period).min(max_reload) as u16;
 
         self.access_registers(|fwdgt| {
-            fwdgt.psc.modify(|_, w| w.psc().bits(prescaler));
-            fwdgt.rld.modify(|_, w| w.rld().bits(reload));
+            fwdgt.psc().modify(|_, w| w.psc().bits(prescaler));
+            fwdgt.rld().modify(|_, w| w.rld().bits(reload));
         });
     }
 
     fn is_prescaler_updating(&self) -> bool {
-        self.fwdgt.stat.read().pud().is_ongoing()
+        self.fwdgt.stat().read().pud().is_ongoing()
     }
 
     /// Returns the interval in ms
     pub fn interval(&self) -> MilliSeconds {
         while self.is_prescaler_updating() {}
 
-        let prescaler = self.fwdgt.psc.read().psc().bits();
-        let reload = self.fwdgt.rld.read().rld().bits();
+        let prescaler = self.fwdgt.psc().read().psc().bits();
+        let reload = self.fwdgt.rld().read().rld().bits();
         let ms = Self::timeout_period(prescaler, reload);
         MilliSeconds(ms)
     }
@@ -78,13 +78,13 @@ impl FreeWatchdog {
         (u32::from(reload) + 1) * divider / LSI_KHZ
     }
 
-    fn access_registers<A, F: FnMut(&FWDGT) -> A>(&self, mut f: F) -> A {
+    fn access_registers<A, F: FnMut(&Fwdgt) -> A>(&self, mut f: F) -> A {
         // Unprotect write access to registers
-        self.fwdgt.ctl.write(|w| w.cmd().enable());
+        self.fwdgt.ctl().write(|w| w.cmd().enable());
         let a = f(&self.fwdgt);
 
         // Protect again
-        self.fwdgt.ctl.write(|w| w.cmd().reset());
+        self.fwdgt.ctl().write(|w| w.cmd().reset());
         a
     }
 
@@ -92,7 +92,7 @@ impl FreeWatchdog {
     pub fn start<T: Into<MilliSeconds>>(&mut self, period: T) {
         self.setup(period.into().0);
 
-        self.fwdgt.ctl.write(|w| w.cmd().start());
+        self.fwdgt.ctl().write(|w| w.cmd().start());
     }
 
     /// Resets the watchdog.
@@ -100,7 +100,7 @@ impl FreeWatchdog {
     /// This must be done periodically once the watchdog is started to prevent the processor being
     /// reset.
     pub fn feed(&mut self) {
-        self.fwdgt.ctl.write(|w| w.cmd().reset());
+        self.fwdgt.ctl().write(|w| w.cmd().reset());
     }
 }
 

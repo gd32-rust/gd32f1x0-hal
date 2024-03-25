@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::pac::{
-    dbg::ctl0::TIMER0_HOLD_A, dbg::ctl1::TIMER14_HOLD_A, DBG, TIMER0, TIMER1, TIMER13, TIMER14,
-    TIMER15, TIMER16, TIMER2, TIMER5,
+    dbg::ctl0::Timer0Hold, dbg::ctl1::Timer14Hold, Dbg, Timer0, Timer1, Timer13, Timer14, Timer15,
+    Timer16, Timer2, Timer5,
 };
 use crate::rcu::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset, APB1, APB2};
 use crate::time::Hertz;
@@ -42,20 +42,20 @@ pub enum DebugHold {
     Stop,
 }
 
-impl From<DebugHold> for TIMER0_HOLD_A {
+impl From<DebugHold> for Timer0Hold {
     fn from(hold: DebugHold) -> Self {
         match hold {
-            DebugHold::Continue => TIMER0_HOLD_A::CONTINUE,
-            DebugHold::Stop => TIMER0_HOLD_A::STOP,
+            DebugHold::Continue => Timer0Hold::Continue,
+            DebugHold::Stop => Timer0Hold::Stop,
         }
     }
 }
 
-impl From<DebugHold> for TIMER14_HOLD_A {
+impl From<DebugHold> for Timer14Hold {
     fn from(hold: DebugHold) -> Self {
         match hold {
-            DebugHold::Continue => TIMER14_HOLD_A::CONTINUE,
-            DebugHold::Stop => TIMER14_HOLD_A::STOP,
+            DebugHold::Continue => Timer14Hold::Continue,
+            DebugHold::Stop => Timer14Hold::Stop,
         }
     }
 }
@@ -235,14 +235,14 @@ macro_rules! hal {
                 pub fn start_master<T>(
                     self,
                     timeout: T,
-                    mode: crate::pac::$master_timerbase::ctl1::MMC_A,
+                    mode: crate::pac::$master_timerbase::ctl1::Mmc,
                 ) -> CountDownTimer<$TIMERX>
                 where
                     T: Into<Hertz>,
                 {
                     let Self { timer, clock } = self;
                     let mut timer = CountDownTimer { timer, clock };
-                    timer.timer.ctl1.modify(|_, w| w.mmc().variant(mode));
+                    timer.timer.ctl1().modify(|_, w| w.mmc().variant(mode));
                     timer.start(timeout);
                     timer
                 }
@@ -258,8 +258,8 @@ macro_rules! hal {
             ///
             /// Stopping timer in debug mode can cause troubles when sampling the signal.
             #[inline(always)]
-            pub fn stop_in_debug(&mut self, dbg: &mut DBG, hold: DebugHold) {
-                dbg.$dbg_ctlX.modify(|_, w| w.$timerX_hold().variant(hold.into()));
+            pub fn stop_in_debug(&mut self, dbg: &mut Dbg, hold: DebugHold) {
+                dbg.$dbg_ctlX().modify(|_, w| w.$timerX_hold().variant(hold.into()));
             }
 
             /// Releases the TIMER Peripheral.
@@ -273,20 +273,20 @@ macro_rules! hal {
             /// Starts listening for an `event`.
             pub fn listen(&mut self, event: Event) {
                 match event {
-                    Event::Update => self.timer.dmainten.modify(|_, w| w.upie().enabled()),
+                    Event::Update => self.timer.dmainten().modify(|_, w| w.upie().enabled()),
                 }
             }
 
             /// Stops listening for an `event`.
             pub fn unlisten(&mut self, event: Event) {
                 match event {
-                    Event::Update => self.timer.dmainten.modify(|_, w| w.upie().disabled()),
+                    Event::Update => self.timer.dmainten().modify(|_, w| w.upie().disabled()),
                 }
             }
 
             /// Stops the timer
             pub fn stop(self) -> Timer<$TIMERX> {
-                self.timer.ctl0.modify(|_, w| w.cen().disabled());
+                self.timer.ctl0().modify(|_, w| w.cen().disabled());
                 let Self { timer, clock } = self;
                 Timer { timer, clock }
             }
@@ -294,14 +294,14 @@ macro_rules! hal {
             /// Returns true if the given `event` interrupt is pending.
             pub fn is_pending(&self, event: Event) -> bool {
                 match event {
-                    Event::Update => self.timer.intf.read().upif().is_update_pending(),
+                    Event::Update => self.timer.intf().read().upif().is_update_pending(),
                 }
             }
 
             /// Clears the given event interrupt flag.
             pub fn clear_interrupt_flag(&mut self, event: Event) {
                 match event {
-                    Event::Update => self.timer.intf.modify(|_, w| w.upif().clear()),
+                    Event::Update => self.timer.intf().modify(|_, w| w.upif().clear()),
                 }
             }
 
@@ -315,12 +315,12 @@ macro_rules! hal {
             /// it is very easy to lose an update event.
             pub fn micros_since(&self) -> u32 {
                 let timer_clock = self.clock.0;
-                let psc = u32::from(self.timer.psc.read().psc().bits());
+                let psc = u32::from(self.timer.psc().read().psc().bits());
 
                 // freq_divider is always bigger than 0, since (psc + 1) is always less than
                 // timer_clock
                 let freq_divider = u64::from(timer_clock / (psc + 1));
-                let cnt = u64::from(self.timer.cnt.read().cnt().bits());
+                let cnt = u64::from(self.timer.cnt().read().cnt().bits());
 
                 // It is safe to make this cast, because the maximum timer period in this HAL is
                 // 1s (1Hz), then 1 second < (2^32 - 1) microseconds
@@ -338,25 +338,25 @@ macro_rules! hal {
                 T: Into<Hertz>,
             {
                 // Pause counter.
-                self.timer.ctl0.modify(|_, w| w.cen().disabled());
+                self.timer.ctl0().modify(|_, w| w.cen().disabled());
 
                 self.timer.configure_prescaler_reload(timeout.into(), self.clock);
                 // Trigger an update event to load the prescaler value to the clock
                 self.timer.reset_counter();
 
                 // Start counter.
-                self.timer.ctl0.modify(|_, w| w.cen().enabled());
+                self.timer.ctl0().modify(|_, w| w.cen().enabled());
             }
 
             /// Disables the timer.
             pub fn cancel(&mut self) -> Result<(), Error> {
-                let is_counter_enabled = self.timer.ctl0.read().cen().is_enabled();
+                let is_counter_enabled = self.timer.ctl0().read().cen().is_enabled();
                 if !is_counter_enabled {
                     return Err(Error::Canceled);
                 }
 
                 // Pause counter.
-                self.timer.ctl0.modify(|_, w| w.cen().disabled());
+                self.timer.ctl0().modify(|_, w| w.cen().disabled());
                 Ok(())
             }
         }
@@ -364,18 +364,18 @@ macro_rules! hal {
         impl TimerExt for $TIMERX {
             fn reset_counter(&mut self) {
                 // Sets the UPS bit to prevent an interrupt from being triggered by the UPG bit.
-                self.ctl0.modify(|_, w| w.ups().counter_only());
+                self.ctl0().modify(|_, w| w.ups().counter_only());
 
-                self.swevg.write(|w| w.upg().update());
-                self.ctl0.modify(|_, w| w.ups().any_event());
+                self.swevg().write(|w| w.upg().update());
+                self.ctl0().modify(|_, w| w.ups().any_event());
             }
 
             fn configure_prescaler_reload(&mut self, timeout: Hertz, clock: Hertz) {
                 // Calculate prescaler and reload values.
                 let (prescaler, auto_reload_value) = compute_prescaler_reload(timeout, clock);
-                self.psc.write(|w| w.psc().bits(prescaler));
+                self.psc().write(|w| w.psc().bits(prescaler));
                 // TODO: Support 32-bit counters
-                self.car.write(|w| w.car().bits(auto_reload_value.into()));
+                self.car().write(|w| w.car().bits(auto_reload_value.into()));
             }
         }
 
@@ -422,11 +422,11 @@ fn compute_prescaler_reload(freq: Hertz, clock: Hertz) -> (u16, u16) {
     (psc, car)
 }
 
-hal!(TIMER0: (timer0, APB2, ctl0, timer0_hold, timer0));
-hal!(TIMER1: (timer1, APB1, ctl0, timer1_hold, timer1));
-hal!(TIMER2: (timer2, APB1, ctl0, timer2_hold, timer1));
-hal!(TIMER5: (timer5, APB1, ctl0, timer5_hold, timer5));
-hal!(TIMER13: (timer13, APB1, ctl0, timer13_hold));
-hal!(TIMER14: (timer14, APB2, ctl1, timer14_hold, timer14));
-hal!(TIMER15: (timer15, APB2, ctl1, timer15_hold));
-hal!(TIMER16: (timer16, APB2, ctl1, timer16_hold));
+hal!(Timer0: (timer0, APB2, ctl0, timer0_hold, timer0));
+hal!(Timer1: (timer1, APB1, ctl0, timer1_hold, timer1));
+hal!(Timer2: (timer2, APB1, ctl0, timer2_hold, timer1));
+hal!(Timer5: (timer5, APB1, ctl0, timer5_hold, timer5));
+hal!(Timer13: (timer13, APB1, ctl0, timer13_hold));
+hal!(Timer14: (timer14, APB2, ctl1, timer14_hold, timer14));
+hal!(Timer15: (timer15, APB2, ctl1, timer15_hold));
+hal!(Timer16: (timer16, APB2, ctl1, timer16_hold));

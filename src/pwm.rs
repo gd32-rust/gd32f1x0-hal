@@ -8,7 +8,7 @@ use crate::gpio::{
     gpioc::{PC6, PC7, PC8, PC9},
     Alternate, AF0, AF1, AF2,
 };
-use crate::pac::{timer0, timer1, timer13, timer14, timer15, TIMER0, TIMER1, TIMER2};
+use crate::pac::{timer0, timer1, timer13, timer14, timer15, Timer0, Timer1, Timer2};
 use crate::time::Hertz;
 use crate::time::U32Ext;
 use crate::timer::{Event, Timer, TimerExt};
@@ -31,11 +31,11 @@ pub enum Polarity {
     Inverted,
 }
 
-impl From<Polarity> for timer0::chctl2::CH0P_A {
+impl From<Polarity> for timer0::chctl2::Ch0p {
     fn from(polarity: Polarity) -> Self {
         match polarity {
-            Polarity::NotInverted => Self::NOT_INVERTED,
-            Polarity::Inverted => Self::INVERTED,
+            Polarity::NotInverted => Self::NotInverted,
+            Polarity::Inverted => Self::Inverted,
         }
     }
 }
@@ -46,20 +46,20 @@ pub enum IdleState {
     High,
 }
 
-impl From<IdleState> for timer0::ctl1::ISO0_A {
+impl From<IdleState> for timer0::ctl1::Iso0 {
     fn from(idle_state: IdleState) -> Self {
         match idle_state {
-            IdleState::Low => Self::LOW,
-            IdleState::High => Self::HIGH,
+            IdleState::Low => Self::Low,
+            IdleState::High => Self::High,
         }
     }
 }
 
-impl From<IdleState> for timer0::ctl1::ISO0N_A {
+impl From<IdleState> for timer0::ctl1::Iso0n {
     fn from(idle_state: IdleState) -> Self {
         match idle_state {
-            IdleState::Low => Self::LOW,
-            IdleState::High => Self::HIGH,
+            IdleState::Low => Self::Low,
+            IdleState::High => Self::High,
         }
     }
 }
@@ -79,11 +79,11 @@ pub enum Alignment {
     Center,
 }
 
-impl From<Alignment> for timer0::ctl0::CAM_A {
+impl From<Alignment> for timer0::ctl0::Cam {
     fn from(alignment: Alignment) -> Self {
         match alignment {
-            Alignment::Edge => Self::EDGE_ALIGNED,
-            Alignment::Center => Self::CENTER_ALIGNED_COUNTING_UP,
+            Alignment::Edge => Self::EdgeAligned,
+            Alignment::Center => Self::CenterAlignedCountingUp,
         }
     }
 }
@@ -353,7 +353,7 @@ macro_rules! hal {
                 $(
                     // Some timers have a break function that deactivates the outputs. This bit
                     // automatically activates the output when no break input is present.
-                    self.timer.$cchp.modify(|_, w| w.oaen().automatic().prot().disabled());
+                    self.timer.$cchp().modify(|_, w| w.oaen().automatic().prot().disabled());
                 )?
 
                 let Self { timer, clock } = self;
@@ -394,7 +394,7 @@ macro_rules! hal {
             // Trigger an update event to load the prescaler value to the clock
             timer.reset_counter();
 
-            timer.ctl0.write(|w| {
+            timer.ctl0().write(|w| {
                 w.cam()
                     .edge_aligned()
                     .dir()
@@ -489,15 +489,15 @@ macro_rules! hal {
         {
             /// Stop the timer and release it and the pins to be used for something else.
             pub fn stop(self) -> (Timer<$TIMERX>, PINS) {
-                self.timer.chctl2.reset();
+                self.timer.chctl2().reset();
                 self.timer.chctl0_output().reset();
                 self.timer.chctl1_output().reset();
-                self.timer.ch0cv.reset();
-                self.timer.ch1cv.reset();
-                self.timer.ch2cv.reset();
-                self.timer.ch3cv.reset();
+                self.timer.ch0cv().reset();
+                self.timer.ch1cv().reset();
+                self.timer.ch2cv().reset();
+                self.timer.ch3cv().reset();
                 $(
-                    self.timer.$cchp.reset();
+                    self.timer.$cchp().reset();
                 )?
                 (
                     Timer {
@@ -511,34 +511,34 @@ macro_rules! hal {
             /// Configure the given alignment mode, to control how pulses on different channels of
             /// this PWM module are aligned with each other.
             pub fn set_alignment(&self, alignment: Alignment) {
-                self.timer.ctl0.modify(|_, w| w.cam().variant(alignment.into()));
+                self.timer.ctl0().modify(|_, w| w.cam().variant(alignment.into()));
             }
 
             /// Starts listening for an `event`.
             pub fn listen(&mut self, event: Event) {
                 match event {
-                    Event::Update => self.timer.dmainten.modify(|_, w| w.upie().enabled()),
+                    Event::Update => self.timer.dmainten().modify(|_, w| w.upie().enabled()),
                 }
             }
 
             /// Stops listening for an `event`.
             pub fn unlisten(&mut self, event: Event) {
                 match event {
-                    Event::Update => self.timer.dmainten.modify(|_, w| w.upie().disabled()),
+                    Event::Update => self.timer.dmainten().modify(|_, w| w.upie().disabled()),
                 }
             }
 
             /// Returns true if the given `event` interrupt is pending.
             pub fn is_pending(&self, event: Event) -> bool {
                 match event {
-                    Event::Update => self.timer.intf.read().upif().is_update_pending(),
+                    Event::Update => self.timer.intf().read().upif().is_update_pending(),
                 }
             }
 
             /// Clears the given `event` interrupt flag.
             pub fn clear_interrupt_flag(&mut self, event: Event) {
                 match event {
-                    Event::Update => self.timer.intf.modify(|_, w| w.upif().clear()),
+                    Event::Update => self.timer.intf().modify(|_, w| w.upif().clear()),
                 }
             }
 
@@ -568,8 +568,8 @@ macro_rules! hal {
             }
 
             pub fn period(&self) -> Hertz {
-                let presaler: u32 = self.timer.psc.read().psc().bits().into();
-                let auto_reload_value: u32 = self.timer.car.read().car().bits().into();
+                let presaler: u32 = self.timer.psc().read().psc().bits().into();
+                let auto_reload_value: u32 = self.timer.car().read().car().bits().into();
 
                 // Length in ms of an internal clock pulse
                 (self.clock.0 / (presaler * auto_reload_value)).hz()
@@ -587,42 +587,42 @@ macro_rules! hal {
             $(
                 /// Disable PWM outputs, and prevent them from being automatically enabled.
                 pub fn output_disable(&mut self) {
-                    self.timer.$cchp.modify(|_, w| w.oaen().manual().poen().disabled());
+                    self.timer.$cchp().modify(|_, w| w.oaen().manual().poen().disabled());
                 }
 
                 /// Automatically enable outputs at the next update event, if the break input is not
                 /// active.
                 pub fn automatic_output_enable(&mut self) {
-                    self.timer.$cchp.modify(|_, w| w.oaen().automatic());
+                    self.timer.$cchp().modify(|_, w| w.oaen().automatic());
                 }
 
                 /// Configure the given break mode.
                 pub fn break_enable(&self, break_mode: BreakMode) {
                     match break_mode {
-                        BreakMode::Disabled => self.timer.$cchp.modify(|_, w| w.brken().disabled()),
-                        BreakMode::ActiveLow => self.timer.$cchp.modify(|_, w| w.brken().enabled().brkp().inverted()),
-                        BreakMode::ActiveHigh => self.timer.$cchp.modify(|_, w| w.brken().enabled().brkp().not_inverted()),
+                        BreakMode::Disabled => self.timer.$cchp().modify(|_, w| w.brken().disabled()),
+                        BreakMode::ActiveLow => self.timer.$cchp().modify(|_, w| w.brken().enabled().brkp().inverted()),
+                        BreakMode::ActiveHigh => self.timer.$cchp().modify(|_, w| w.brken().enabled().brkp().not_inverted()),
                     }
                 }
 
                 /// Configure the run mode off-state.
                 pub fn run_mode_off_state(&mut self, enabled: bool) {
-                    self.timer.$cchp.modify(|_, w| w.ros().variant(
+                    self.timer.$cchp().modify(|_, w| w.ros().variant(
                         if enabled {
-                            timer0::cchp::ROS_A::ENABLED
+                            timer0::cchp::Ros::Enabled
                         } else {
-                            timer0::cchp::ROS_A::DISABLED
+                            timer0::cchp::Ros::Disabled
                         }
                     ));
                 }
 
                 /// Configure the idle mode off-state.
                 pub fn idle_mode_off_state(&mut self, enabled: bool) {
-                    self.timer.$cchp.modify(|_, w| w.ios().variant(
+                    self.timer.$cchp().modify(|_, w| w.ios().variant(
                         if enabled {
-                            timer0::cchp::IOS_A::ENABLED
+                            timer0::cchp::Ios::Enabled
                         } else {
-                            timer0::cchp::IOS_A::DISABLED
+                            timer0::cchp::Ios::Disabled
                         }
                     ));
                 }
@@ -640,7 +640,7 @@ macro_rules! hal {
                     } else {
                         panic!("Invalid dead time {}", dead_time);
                     };
-                    self.timer.$cchp.modify(|_, w| w.dtcfg().bits(dtcfg));
+                    self.timer.$cchp().modify(|_, w| w.dtcfg().bits(dtcfg));
                 }
             )?
         }
@@ -694,7 +694,7 @@ macro_rules! timer_reg_ext {
             fn disable_channel(&self, channel: Channel, uses_complementary: bool) {
                 match channel {
                     $(
-                        Channel::$channel => self.chctl2.modify(|_, w| w.$en().disabled()),
+                        Channel::$channel => self.chctl2().modify(|_, w| w.$en().disabled()),
                     )+
                     #[allow(unreachable_patterns)]
                     _ => panic!("No such channel {:?}", channel),
@@ -702,7 +702,7 @@ macro_rules! timer_reg_ext {
                 if uses_complementary {
                     match channel {
                         $($(
-                            Channel::$channel => self.chctl2.modify(|_, w| w.$nen().disabled()),
+                            Channel::$channel => self.chctl2().modify(|_, w| w.$nen().disabled()),
                         )?)+
                         _ => {}
                     }
@@ -712,7 +712,7 @@ macro_rules! timer_reg_ext {
             fn enable_channel(&self, channel: Channel, uses_complementary: bool) {
                 match channel {
                     $(
-                        Channel::$channel => self.chctl2.modify(|_, w| w.$en().enabled()),
+                        Channel::$channel => self.chctl2().modify(|_, w| w.$en().enabled()),
                     )+
                     #[allow(unreachable_patterns)]
                     _ => panic!("No such channel {:?}", channel),
@@ -720,7 +720,7 @@ macro_rules! timer_reg_ext {
                 if uses_complementary {
                     match channel {
                         $($(
-                            Channel::$channel => self.chctl2.modify(|_, w| w.$nen().enabled()),
+                            Channel::$channel => self.chctl2().modify(|_, w| w.$nen().enabled()),
                         )?)*
                         _ => {}
                     }
@@ -730,7 +730,7 @@ macro_rules! timer_reg_ext {
             fn get_duty(&self, channel: Channel) -> u16 {
                 match channel {
                     $(
-                        Channel::$channel => self.$cv.read().$val().bits() as u16,
+                        Channel::$channel => self.$cv().read().$val().bits() as u16,
                     )+
                     #[allow(unreachable_patterns)]
                     _ => panic!("No such channel {:?}", channel),
@@ -741,7 +741,7 @@ macro_rules! timer_reg_ext {
                 let duty = duty.into();
                 match channel {
                     $(
-                        Channel::$channel => self.$cv.write(|w| w.$val().bits(duty)),
+                        Channel::$channel => self.$cv().write(|w| w.$val().bits(duty)),
                     )+
                     #[allow(unreachable_patterns)]
                     _ => panic!("No such channel {:?}", channel),
@@ -752,11 +752,11 @@ macro_rules! timer_reg_ext {
                 match (channel, complementary) {
                     $(
                         (Channel::$channel, false) => {
-                            self.chctl2.modify(|_, w| w.$p().variant(polarity.into()))
+                            self.chctl2().modify(|_, w| w.$p().variant(polarity.into()))
                         }
                         $(
                             (Channel::$channel, true) => {
-                                self.chctl2.modify(|_, w| w.$np().variant(polarity.into()))
+                                self.chctl2().modify(|_, w| w.$np().variant(polarity.into()))
                             }
                         )?
                     )+
@@ -766,7 +766,7 @@ macro_rules! timer_reg_ext {
             }
 
             fn get_max_duty(&self) -> u16 {
-                self.car.read().car().bits() as u16
+                self.car().read().car().bits() as u16
             }
         }
     };
@@ -779,11 +779,11 @@ macro_rules! timer_idle_reg_ext {
                 match (channel, complementary) {
                     $(
                         (Channel::$channel, false) => {
-                            self.ctl1.modify(|_, w| w.$iso().variant(idle_state.into()))
+                            self.ctl1().modify(|_, w| w.$iso().variant(idle_state.into()))
                         }
                         $(
                             (Channel::$channel, true) => {
-                                self.ctl1.modify(|_, w| w.$ison().variant(idle_state.into()))
+                                self.ctl1().modify(|_, w| w.$ison().variant(idle_state.into()))
                             }
                             )?
                     )+
@@ -795,35 +795,35 @@ macro_rules! timer_idle_reg_ext {
     };
 }
 
-impl Pin<TIMER0, Ch0> for PA8<Alternate<AF2>> {}
-impl Pin<TIMER0, Ch1> for PA9<Alternate<AF2>> {}
-impl Pin<TIMER0, Ch2> for PA10<Alternate<AF2>> {}
-impl Pin<TIMER0, Ch3> for PA11<Alternate<AF2>> {}
+impl Pin<Timer0, Ch0> for PA8<Alternate<AF2>> {}
+impl Pin<Timer0, Ch1> for PA9<Alternate<AF2>> {}
+impl Pin<Timer0, Ch2> for PA10<Alternate<AF2>> {}
+impl Pin<Timer0, Ch3> for PA11<Alternate<AF2>> {}
 
-impl ComplementaryPin<TIMER0, Ch0> for PB13<Alternate<AF2>> {}
-impl ComplementaryPin<TIMER0, Ch1> for PB14<Alternate<AF2>> {}
-impl ComplementaryPin<TIMER0, Ch2> for PB15<Alternate<AF2>> {}
+impl ComplementaryPin<Timer0, Ch0> for PB13<Alternate<AF2>> {}
+impl ComplementaryPin<Timer0, Ch1> for PB14<Alternate<AF2>> {}
+impl ComplementaryPin<Timer0, Ch2> for PB15<Alternate<AF2>> {}
 
-impl Pin<TIMER1, Ch0> for PA0<Alternate<AF2>> {}
-impl Pin<TIMER1, Ch0> for PA5<Alternate<AF2>> {}
-impl Pin<TIMER1, Ch0> for PA15<Alternate<AF2>> {}
-impl Pin<TIMER1, Ch1> for PA1<Alternate<AF2>> {}
-impl Pin<TIMER1, Ch1> for PB3<Alternate<AF2>> {}
-impl Pin<TIMER1, Ch2> for PA2<Alternate<AF2>> {}
-impl Pin<TIMER1, Ch2> for PB10<Alternate<AF2>> {}
-impl Pin<TIMER1, Ch3> for PA3<Alternate<AF2>> {}
-impl Pin<TIMER1, Ch3> for PB11<Alternate<AF2>> {}
+impl Pin<Timer1, Ch0> for PA0<Alternate<AF2>> {}
+impl Pin<Timer1, Ch0> for PA5<Alternate<AF2>> {}
+impl Pin<Timer1, Ch0> for PA15<Alternate<AF2>> {}
+impl Pin<Timer1, Ch1> for PA1<Alternate<AF2>> {}
+impl Pin<Timer1, Ch1> for PB3<Alternate<AF2>> {}
+impl Pin<Timer1, Ch2> for PA2<Alternate<AF2>> {}
+impl Pin<Timer1, Ch2> for PB10<Alternate<AF2>> {}
+impl Pin<Timer1, Ch3> for PA3<Alternate<AF2>> {}
+impl Pin<Timer1, Ch3> for PB11<Alternate<AF2>> {}
 
-impl Pin<TIMER2, Ch0> for PA6<Alternate<AF1>> {}
-impl Pin<TIMER2, Ch0> for PB4<Alternate<AF1>> {}
-impl Pin<TIMER2, Ch0> for PC6<Alternate<AF0>> {}
-impl Pin<TIMER2, Ch1> for PA7<Alternate<AF1>> {}
-impl Pin<TIMER2, Ch1> for PB5<Alternate<AF1>> {}
-impl Pin<TIMER2, Ch1> for PC7<Alternate<AF0>> {}
-impl Pin<TIMER2, Ch2> for PB0<Alternate<AF1>> {}
-impl Pin<TIMER2, Ch2> for PC8<Alternate<AF0>> {}
-impl Pin<TIMER2, Ch3> for PB1<Alternate<AF1>> {}
-impl Pin<TIMER2, Ch3> for PC9<Alternate<AF0>> {}
+impl Pin<Timer2, Ch0> for PA6<Alternate<AF1>> {}
+impl Pin<Timer2, Ch0> for PB4<Alternate<AF1>> {}
+impl Pin<Timer2, Ch0> for PC6<Alternate<AF0>> {}
+impl Pin<Timer2, Ch1> for PA7<Alternate<AF1>> {}
+impl Pin<Timer2, Ch1> for PB5<Alternate<AF1>> {}
+impl Pin<Timer2, Ch1> for PC7<Alternate<AF0>> {}
+impl Pin<Timer2, Ch2> for PB0<Alternate<AF1>> {}
+impl Pin<Timer2, Ch2> for PC8<Alternate<AF0>> {}
+impl Pin<Timer2, Ch3> for PB1<Alternate<AF1>> {}
+impl Pin<Timer2, Ch3> for PC9<Alternate<AF0>> {}
 
 // Some timers share the same PAC types so we don't need this for all of them.
 timer_reg_ext!(timer0, (
@@ -863,6 +863,6 @@ timer_idle_reg_ext!(timer15, (
     C0: iso0/iso0n;
 ));
 
-hal!(TIMER0: (timer0, cchp));
-hal!(TIMER1: (timer1));
-hal!(TIMER2: (timer2));
+hal!(Timer0: (timer0, cchp));
+hal!(Timer1: (timer1));
+hal!(Timer2: (timer2));
