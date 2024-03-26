@@ -8,7 +8,7 @@ name = "gd32f1x0-hal"
 repository = "https://github.com/gd32-rust/gd32f1x0-hal"
 readme = "README.md"
 edition = "2018"
-version = "0.9.1"
+version = "0.10.0"
 
 [package.metadata.docs.rs]
 features = ["gd32f130x8", "rt"]
