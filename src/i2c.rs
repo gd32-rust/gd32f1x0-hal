@@ -29,13 +29,14 @@ use crate::gpio::gpiof::{PF6, PF7};
 use crate::gpio::AF0;
 use crate::gpio::{Alternate, AF1, AF4};
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-use crate::pac::I2C2;
-use crate::pac::{DWT, I2C0, I2C1};
+use crate::pac::I2c2;
+use crate::pac::{I2c0, I2c1};
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
 use crate::rcu::ADDAPB1;
 use crate::rcu::{Clocks, Enable, GetBusFreq, Reset, APB1};
 use crate::time::Hertz;
 use core::ops::Deref;
+use cortex_m::peripheral::DWT;
 use embedded_hal::i2c::{ErrorKind, ErrorType, NoAcknowledgeSource, Operation, SevenBitAddress};
 
 /// I2C error
@@ -115,30 +116,30 @@ pub trait SclPin<I2C> {}
 pub trait SdaPin<I2C> {}
 
 // Pins for I2C0
-impl SclPin<I2C0> for PA9<Alternate<AF4>> {}
-impl SdaPin<I2C0> for PA10<Alternate<AF4>> {}
-impl SclPin<I2C0> for PB6<Alternate<AF1>> {}
-impl SdaPin<I2C0> for PB7<Alternate<AF1>> {}
-impl SclPin<I2C0> for PB8<Alternate<AF1>> {}
-impl SdaPin<I2C0> for PB9<Alternate<AF1>> {}
+impl SclPin<I2c0> for PA9<Alternate<AF4>> {}
+impl SdaPin<I2c0> for PA10<Alternate<AF4>> {}
+impl SclPin<I2c0> for PB6<Alternate<AF1>> {}
+impl SdaPin<I2c0> for PB7<Alternate<AF1>> {}
+impl SclPin<I2c0> for PB8<Alternate<AF1>> {}
+impl SdaPin<I2c0> for PB9<Alternate<AF1>> {}
 #[cfg(any(feature = "gd32f170x4", feature = "gd32f190x4"))]
-impl SclPin<I2C0> for PB10<Alternate<AF1>> {}
+impl SclPin<I2c0> for PB10<Alternate<AF1>> {}
 #[cfg(any(feature = "gd32f170x4", feature = "gd32f190x4"))]
-impl SdaPin<I2C0> for PB11<Alternate<AF1>> {}
+impl SdaPin<I2c0> for PB11<Alternate<AF1>> {}
 #[cfg(any(
     feature = "gd32f130x4",
     feature = "gd32f130x6",
     feature = "gd32f170x4",
     feature = "gd32f190x4",
 ))]
-impl SclPin<I2C0> for PF6<Alternate<AF0>> {}
+impl SclPin<I2c0> for PF6<Alternate<AF0>> {}
 #[cfg(any(
     feature = "gd32f130x4",
     feature = "gd32f130x6",
     feature = "gd32f170x4",
     feature = "gd32f190x4",
 ))]
-impl SdaPin<I2C0> for PF7<Alternate<AF0>> {}
+impl SdaPin<I2c0> for PF7<Alternate<AF0>> {}
 
 // Pins for I2C1
 #[cfg(any(
@@ -147,46 +148,46 @@ impl SdaPin<I2C0> for PF7<Alternate<AF0>> {}
     feature = "gd32f170x8",
     feature = "gd32f190x8",
 ))]
-impl SclPin<I2C1> for PA0<Alternate<AF4>> {}
+impl SclPin<I2c1> for PA0<Alternate<AF4>> {}
 #[cfg(any(
     feature = "gd32f130x8",
     feature = "gd32f150x8",
     feature = "gd32f170x8",
     feature = "gd32f190x8",
 ))]
-impl SdaPin<I2C1> for PA1<Alternate<AF4>> {}
+impl SdaPin<I2c1> for PA1<Alternate<AF4>> {}
 #[cfg(any(
     feature = "gd32f130x8",
     feature = "gd32f150x8",
     feature = "gd32f170x8",
     feature = "gd32f190x8",
 ))]
-impl SclPin<I2C1> for PB10<Alternate<AF1>> {}
+impl SclPin<I2c1> for PB10<Alternate<AF1>> {}
 #[cfg(any(
     feature = "gd32f130x8",
     feature = "gd32f150x8",
     feature = "gd32f170x8",
     feature = "gd32f190x8",
 ))]
-impl SdaPin<I2C1> for PB11<Alternate<AF1>> {}
+impl SdaPin<I2c1> for PB11<Alternate<AF1>> {}
 #[cfg(any(feature = "gd32f130x8", feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl SclPin<I2C1> for PF6<Alternate<AF0>> {}
+impl SclPin<I2c1> for PF6<Alternate<AF0>> {}
 #[cfg(any(feature = "gd32f130x8", feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl SdaPin<I2C1> for PF7<Alternate<AF0>> {}
+impl SdaPin<I2c1> for PF7<Alternate<AF0>> {}
 
 // Pins for I2C2
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl SclPin<I2C2> for PB6<Alternate<AF4>> {}
+impl SclPin<I2c2> for PB6<Alternate<AF4>> {}
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl SdaPin<I2C2> for PB7<Alternate<AF4>> {}
+impl SdaPin<I2c2> for PB7<Alternate<AF4>> {}
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl SclPin<I2C2> for PC0<Alternate<AF1>> {}
+impl SclPin<I2c2> for PC0<Alternate<AF1>> {}
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl SdaPin<I2C2> for PC1<Alternate<AF1>> {}
+impl SdaPin<I2c2> for PC1<Alternate<AF1>> {}
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl SclPin<I2C2> for PC7<Alternate<AF1>> {}
+impl SclPin<I2c2> for PC7<Alternate<AF1>> {}
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-impl SdaPin<I2C2> for PC8<Alternate<AF1>> {}
+impl SdaPin<I2c2> for PC8<Alternate<AF1>> {}
 
 /// I2C peripheral operating in master mode
 pub struct I2c<I2C, SCLPIN, SDAPIN> {
@@ -265,10 +266,10 @@ macro_rules! i2c_impl {
     };
 }
 
-i2c_impl!(I2C0, i2c0, APB1);
-i2c_impl!(I2C1, i2c1, APB1);
+i2c_impl!(I2c0, i2c0, APB1);
+i2c_impl!(I2c1, i2c1, APB1);
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
-i2c_impl!(I2C2, i2c2, ADDAPB1);
+i2c_impl!(I2c2, i2c2, ADDAPB1);
 
 /// Generates a blocking I2C instance from a universal I2C object.
 fn blocking_i2c<I2C, SCLPIN, SDAPIN>(
@@ -291,19 +292,19 @@ fn blocking_i2c<I2C, SCLPIN, SDAPIN>(
 
 macro_rules! wait_for_flag {
     ($i2c:expr, $flag:ident) => {{
-        let stat0 = $i2c.stat0.read();
+        let stat0 = $i2c.stat0().read();
 
         if stat0.berr().is_error() {
-            $i2c.stat0.write(|w| w.berr().no_error());
+            $i2c.stat0().write(|w| w.berr().no_error());
             Err(nb::Error::Other(Error::Bus))
         } else if stat0.lostarb().is_lost() {
-            $i2c.stat0.write(|w| w.lostarb().no_lost());
+            $i2c.stat0().write(|w| w.lostarb().no_lost());
             Err(nb::Error::Other(Error::Arbitration))
         } else if stat0.aerr().is_error() {
-            $i2c.stat0.write(|w| w.aerr().no_error());
+            $i2c.stat0().write(|w| w.aerr().no_error());
             Err(nb::Error::Other(Error::Acknowledge))
         } else if stat0.ouerr().is_overrun() {
-            $i2c.stat0.write(|w| w.ouerr().no_overrun());
+            $i2c.stat0().write(|w| w.ouerr().no_overrun());
             Err(nb::Error::Other(Error::Overrun))
         } else if stat0.$flag().bit_is_set() {
             Ok(())
@@ -385,25 +386,25 @@ where
         let pclk1_mhz = (self.pclk1 / 1000000) as u16;
 
         self.i2c
-            .ctl1
+            .ctl1()
             .write(|w| unsafe { w.i2cclk().bits(pclk1_mhz as u8) });
-        self.i2c.ctl0.write(|w| w.i2cen().disabled());
+        self.i2c.ctl0().write(|w| w.i2cen().disabled());
 
         match self.mode {
             Mode::Standard { .. } => {
                 self.i2c
-                    .rt
-                    .write(|w| unsafe { w.risetime().bits((pclk1_mhz + 1) as u8) });
+                    .rt()
+                    .write(|w| w.risetime().bits((pclk1_mhz + 1) as u8));
                 self.i2c
-                    .ckcfg
+                    .ckcfg()
                     .write(|w| w.clkc().bits(((self.pclk1 / (freq.0 * 2)) as u16).max(4)));
             }
             Mode::Fast { ref duty_cycle, .. } => {
                 self.i2c
-                    .rt
-                    .write(|w| unsafe { w.risetime().bits((pclk1_mhz * 300 / 1000 + 1) as u8) });
+                    .rt()
+                    .write(|w| w.risetime().bits((pclk1_mhz * 300 / 1000 + 1) as u8));
 
-                self.i2c.ckcfg.write(|w| {
+                self.i2c.ckcfg().write(|w| {
                     let (freq, duty) = match duty_cycle {
                         DutyCycle::Ratio2to1 => {
                             (((self.pclk1 / (freq.0 * 3)) as u16).max(1), false)
@@ -418,21 +419,21 @@ where
             }
         };
 
-        self.i2c.ctl0.modify(|_, w| w.i2cen().enabled());
+        self.i2c.ctl0().modify(|_, w| w.i2cen().enabled());
     }
 
     /// Perform an I2C software reset
     fn reset(&mut self) {
         self.i2c
-            .ctl0
+            .ctl0()
             .write(|w| w.i2cen().enabled().sreset().reset());
-        self.i2c.ctl0.reset();
+        self.i2c.ctl0().reset();
         self.init();
     }
 
     /// Generate START condition
     fn send_start(&mut self) {
-        self.i2c.ctl0.modify(|_, w| w.start().start());
+        self.i2c.ctl0().modify(|_, w| w.start().start());
     }
 
     /// Check if START condition is generated. If the condition is not generated, this
@@ -446,7 +447,7 @@ where
     /// method returns `WouldBlock` so the program can act accordingly
     /// (busy wait, async, ...)
     fn wait_for_stop(&mut self) -> nb::Result<(), Error> {
-        if self.i2c.ctl0.read().stop().is_no_stop() {
+        if self.i2c.ctl0().read().stop().is_no_stop() {
             Ok(())
         } else {
             Err(nb::Error::WouldBlock)
@@ -457,13 +458,13 @@ where
     /// depending on whether it is a read or write transfer.
     fn send_addr(&self, addr: u8, read: bool) {
         self.i2c
-            .data
+            .data()
             .write(|w| w.trb().bits(addr << 1 | (if read { 1 } else { 0 })));
     }
 
     /// Generate STOP condition
     fn send_stop(&self) {
-        self.i2c.ctl0.modify(|_, w| w.stop().stop());
+        self.i2c.ctl0().modify(|_, w| w.stop().stop());
     }
 
     /// Releases the I2C peripheral and associated pins
@@ -524,7 +525,7 @@ where
     }
 
     fn send_addr_and_wait(&mut self, addr: u8, read: bool) -> Result<(), Error> {
-        self.nb.i2c.stat0.read();
+        self.nb.i2c.stat0().read();
         self.nb.send_addr(addr, read);
         let ret = busy_wait_cycles!(wait_for_flag!(self.nb.i2c, addsend), self.addr_timeout);
         if ret == Err(Error::Acknowledge) {
@@ -534,14 +535,14 @@ where
     }
 
     fn write_bytes_and_wait(&mut self, bytes: &[u8]) -> Result<(), Error> {
-        self.nb.i2c.stat0.read();
-        self.nb.i2c.stat1.read();
+        self.nb.i2c.stat0().read();
+        self.nb.i2c.stat1().read();
 
-        self.nb.i2c.data.write(|w| w.trb().bits(bytes[0]));
+        self.nb.i2c.data().write(|w| w.trb().bits(bytes[0]));
 
         for byte in &bytes[1..] {
             busy_wait_cycles!(wait_for_flag!(self.nb.i2c, tbe), self.data_timeout)?;
-            self.nb.i2c.data.write(|w| w.trb().bits(*byte));
+            self.nb.i2c.data().write(|w| w.trb().bits(*byte));
         }
         busy_wait_cycles!(wait_for_flag!(self.nb.i2c, btc), self.data_timeout)?;
 
@@ -566,59 +567,59 @@ where
     fn read_without_start(&mut self, buffer: &mut [u8]) -> Result<(), Error> {
         match buffer.len() {
             1 => {
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().nak());
-                self.nb.i2c.stat0.read();
-                self.nb.i2c.stat1.read();
+                self.nb.i2c.ctl0().modify(|_, w| w.acken().nak());
+                self.nb.i2c.stat0().read();
+                self.nb.i2c.stat1().read();
                 self.nb.send_stop();
 
                 busy_wait_cycles!(wait_for_flag!(self.nb.i2c, rbne), self.data_timeout)?;
-                buffer[0] = self.nb.i2c.data.read().trb().bits();
+                buffer[0] = self.nb.i2c.data().read().trb().bits();
 
                 busy_wait_cycles!(self.nb.wait_for_stop(), self.data_timeout)?;
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().ack());
+                self.nb.i2c.ctl0().modify(|_, w| w.acken().ack());
             }
             2 => {
                 self.nb
                     .i2c
-                    .ctl0
+                    .ctl0()
                     .modify(|_, w| w.poap().next().acken().ack());
-                self.nb.i2c.stat0.read();
-                self.nb.i2c.stat1.read();
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().nak());
+                self.nb.i2c.stat0().read();
+                self.nb.i2c.stat1().read();
+                self.nb.i2c.ctl0().modify(|_, w| w.acken().nak());
 
                 busy_wait_cycles!(wait_for_flag!(self.nb.i2c, btc), self.data_timeout)?;
                 self.nb.send_stop();
-                buffer[0] = self.nb.i2c.data.read().trb().bits();
-                buffer[1] = self.nb.i2c.data.read().trb().bits();
+                buffer[0] = self.nb.i2c.data().read().trb().bits();
+                buffer[1] = self.nb.i2c.data().read().trb().bits();
 
                 busy_wait_cycles!(self.nb.wait_for_stop(), self.data_timeout)?;
                 self.nb
                     .i2c
-                    .ctl0
+                    .ctl0()
                     .modify(|_, w| w.poap().current().acken().nak());
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().ack());
+                self.nb.i2c.ctl0().modify(|_, w| w.acken().ack());
             }
             buffer_len => {
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().ack());
-                self.nb.i2c.stat0.read();
-                self.nb.i2c.stat1.read();
+                self.nb.i2c.ctl0().modify(|_, w| w.acken().ack());
+                self.nb.i2c.stat0().read();
+                self.nb.i2c.stat1().read();
 
                 let (first_bytes, last_three_bytes) = buffer.split_at_mut(buffer_len - 3);
                 for byte in first_bytes {
                     busy_wait_cycles!(wait_for_flag!(self.nb.i2c, rbne), self.data_timeout)?;
-                    *byte = self.nb.i2c.data.read().trb().bits();
+                    *byte = self.nb.i2c.data().read().trb().bits();
                 }
 
                 busy_wait_cycles!(wait_for_flag!(self.nb.i2c, btc), self.data_timeout)?;
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().nak());
-                last_three_bytes[0] = self.nb.i2c.data.read().trb().bits();
+                self.nb.i2c.ctl0().modify(|_, w| w.acken().nak());
+                last_three_bytes[0] = self.nb.i2c.data().read().trb().bits();
                 self.nb.send_stop();
-                last_three_bytes[1] = self.nb.i2c.data.read().trb().bits();
+                last_three_bytes[1] = self.nb.i2c.data().read().trb().bits();
                 busy_wait_cycles!(wait_for_flag!(self.nb.i2c, rbne), self.data_timeout)?;
-                last_three_bytes[2] = self.nb.i2c.data.read().trb().bits();
+                last_three_bytes[2] = self.nb.i2c.data().read().trb().bits();
 
                 busy_wait_cycles!(self.nb.wait_for_stop(), self.data_timeout)?;
-                self.nb.i2c.ctl0.modify(|_, w| w.acken().ack());
+                self.nb.i2c.ctl0().modify(|_, w| w.acken().ack());
             }
         }
 
@@ -626,13 +627,13 @@ where
     }
 
     fn read_without_start_or_stop(&mut self, buffer: &mut [u8]) -> Result<(), Error> {
-        self.nb.i2c.ctl0.modify(|_, w| w.acken().ack());
-        self.nb.i2c.stat0.read();
-        self.nb.i2c.stat1.read();
+        self.nb.i2c.ctl0().modify(|_, w| w.acken().ack());
+        self.nb.i2c.stat0().read();
+        self.nb.i2c.stat1().read();
 
         for byte in buffer {
             busy_wait_cycles!(wait_for_flag!(self.nb.i2c, rbne), self.data_timeout)?;
-            *byte = self.nb.i2c.data.read().trb().bits();
+            *byte = self.nb.i2c.data().read().trb().bits();
         }
 
         Ok(())

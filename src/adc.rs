@@ -12,11 +12,11 @@ use crate::gpio::Analog;
 use crate::gpio::{gpioa, gpiob, gpioc};
 use crate::pac::{
     adc::{
-        ctl1::{CTN_A, DAL_A, TSVREN_A, VBATEN_A},
-        sampt0::SPT10_A,
-        sampt1::SPT0_A,
+        ctl1::{Ctn, Dal, Tsvren, Vbaten},
+        sampt0::Spt10,
+        sampt1::Spt0,
     },
-    ADC,
+    Adc as ADC,
 };
 use crate::rcu::{Clocks, Enable, Reset, APB2};
 use core::{
@@ -90,32 +90,32 @@ impl Default for SampleTime {
     }
 }
 
-impl From<SampleTime> for SPT0_A {
+impl From<SampleTime> for Spt0 {
     fn from(sample_time: SampleTime) -> Self {
         match sample_time {
-            SampleTime::Cycles1_5 => Self::CYCLES1_5,
-            SampleTime::Cycles7_5 => Self::CYCLES7_5,
-            SampleTime::Cycles13_5 => Self::CYCLES13_5,
-            SampleTime::Cycles28_5 => Self::CYCLES28_5,
-            SampleTime::Cycles41_5 => Self::CYCLES41_5,
-            SampleTime::Cycles55_5 => Self::CYCLES55_5,
-            SampleTime::Cycles71_5 => Self::CYCLES71_5,
-            SampleTime::Cycles239_5 => Self::CYCLES239_5,
+            SampleTime::Cycles1_5 => Self::Cycles1_5,
+            SampleTime::Cycles7_5 => Self::Cycles7_5,
+            SampleTime::Cycles13_5 => Self::Cycles13_5,
+            SampleTime::Cycles28_5 => Self::Cycles28_5,
+            SampleTime::Cycles41_5 => Self::Cycles41_5,
+            SampleTime::Cycles55_5 => Self::Cycles55_5,
+            SampleTime::Cycles71_5 => Self::Cycles71_5,
+            SampleTime::Cycles239_5 => Self::Cycles239_5,
         }
     }
 }
 
-impl From<SampleTime> for SPT10_A {
+impl From<SampleTime> for Spt10 {
     fn from(sample_time: SampleTime) -> Self {
         match sample_time {
-            SampleTime::Cycles1_5 => Self::CYCLES1_5,
-            SampleTime::Cycles7_5 => Self::CYCLES7_5,
-            SampleTime::Cycles13_5 => Self::CYCLES13_5,
-            SampleTime::Cycles28_5 => Self::CYCLES28_5,
-            SampleTime::Cycles41_5 => Self::CYCLES41_5,
-            SampleTime::Cycles55_5 => Self::CYCLES55_5,
-            SampleTime::Cycles71_5 => Self::CYCLES71_5,
-            SampleTime::Cycles239_5 => Self::CYCLES239_5,
+            SampleTime::Cycles1_5 => Self::Cycles1_5,
+            SampleTime::Cycles7_5 => Self::Cycles7_5,
+            SampleTime::Cycles13_5 => Self::Cycles13_5,
+            SampleTime::Cycles28_5 => Self::Cycles28_5,
+            SampleTime::Cycles41_5 => Self::Cycles41_5,
+            SampleTime::Cycles55_5 => Self::Cycles55_5,
+            SampleTime::Cycles71_5 => Self::Cycles71_5,
+            SampleTime::Cycles239_5 => Self::Cycles239_5,
         }
     }
 }
@@ -136,11 +136,11 @@ impl Default for Align {
     }
 }
 
-impl From<Align> for DAL_A {
+impl From<Align> for Dal {
     fn from(alignment: Align) -> Self {
         match alignment {
-            Align::Right => Self::RIGHT,
-            Align::Left => Self::LEFT,
+            Align::Right => Self::Right,
+            Align::Left => Self::Left,
         }
     }
 }
@@ -182,117 +182,117 @@ impl Adc {
     }
 
     fn power_up(&mut self) {
-        self.rb.ctl1.modify(|_, w| w.adcon().enabled());
+        self.rb.ctl1().modify(|_, w| w.adcon().enabled());
     }
 
     fn power_down(&mut self) {
-        self.rb.ctl1.modify(|_, w| w.adcon().disabled());
+        self.rb.ctl1().modify(|_, w| w.adcon().disabled());
     }
 
     fn calibrate(&mut self) {
         // Reset calibration.
-        self.rb.ctl1.modify(|_, w| w.rstclb().start());
-        while self.rb.ctl1.read().rstclb().is_not_complete() {}
+        self.rb.ctl1().modify(|_, w| w.rstclb().start());
+        while self.rb.ctl1().read().rstclb().is_not_complete() {}
 
         // Calibrate.
-        self.rb.ctl1.modify(|_, w| w.clb().start());
-        while self.rb.ctl1.read().clb().is_not_complete() {}
+        self.rb.ctl1().modify(|_, w| w.clb().start());
+        while self.rb.ctl1().read().clb().is_not_complete() {}
     }
 
     fn setup_oneshot(&mut self) {
         self.rb
-            .ctl1
+            .ctl1()
             .modify(|_, w| w.ctn().single().eterc().enabled().etsrc().swrcst());
 
         self.rb
-            .ctl0
+            .ctl0()
             .modify(|_, w| w.sm().disabled().disrc().enabled());
 
         // One channel in regular group
-        self.rb.rsq0.modify(|_, w| w.rl().bits(0));
+        self.rb.rsq0().modify(|_, w| w.rl().bits(0));
     }
 
     fn set_channel_sample_time(&mut self, channel: u8, sample_time: SampleTime) {
         match channel {
             0 => self
                 .rb
-                .sampt1
+                .sampt1()
                 .modify(|_, w| w.spt0().variant(sample_time.into())),
             1 => self
                 .rb
-                .sampt1
+                .sampt1()
                 .modify(|_, w| w.spt1().variant(sample_time.into())),
             2 => self
                 .rb
-                .sampt1
+                .sampt1()
                 .modify(|_, w| w.spt2().variant(sample_time.into())),
             3 => self
                 .rb
-                .sampt1
+                .sampt1()
                 .modify(|_, w| w.spt3().variant(sample_time.into())),
             4 => self
                 .rb
-                .sampt1
+                .sampt1()
                 .modify(|_, w| w.spt4().variant(sample_time.into())),
             5 => self
                 .rb
-                .sampt1
+                .sampt1()
                 .modify(|_, w| w.spt5().variant(sample_time.into())),
             6 => self
                 .rb
-                .sampt1
+                .sampt1()
                 .modify(|_, w| w.spt6().variant(sample_time.into())),
             7 => self
                 .rb
-                .sampt1
+                .sampt1()
                 .modify(|_, w| w.spt7().variant(sample_time.into())),
             8 => self
                 .rb
-                .sampt1
+                .sampt1()
                 .modify(|_, w| w.spt8().variant(sample_time.into())),
             9 => self
                 .rb
-                .sampt1
+                .sampt1()
                 .modify(|_, w| w.spt9().variant(sample_time.into())),
 
             10 => self
                 .rb
-                .sampt0
+                .sampt0()
                 .modify(|_, w| w.spt10().variant(sample_time.into())),
             11 => self
                 .rb
-                .sampt0
+                .sampt0()
                 .modify(|_, w| w.spt11().variant(sample_time.into())),
             12 => self
                 .rb
-                .sampt0
+                .sampt0()
                 .modify(|_, w| w.spt12().variant(sample_time.into())),
             13 => self
                 .rb
-                .sampt0
+                .sampt0()
                 .modify(|_, w| w.spt13().variant(sample_time.into())),
             14 => self
                 .rb
-                .sampt0
+                .sampt0()
                 .modify(|_, w| w.spt14().variant(sample_time.into())),
             15 => self
                 .rb
-                .sampt0
+                .sampt0()
                 .modify(|_, w| w.spt15().variant(sample_time.into())),
             16 => self
                 .rb
-                .sampt0
+                .sampt0()
                 .modify(|_, w| w.spt16().variant(sample_time.into())),
             17 => self
                 .rb
-                .sampt0
+                .sampt0()
                 .modify(|_, w| w.spt17().variant(sample_time.into())),
             18 => {
                 #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
                 self.set_channel_sample_time(0, sample_time);
                 #[cfg(any(feature = "gd32f170", feature = "gd32f190"))]
                 self.rb
-                    .sampt0
+                    .sampt0()
                     .modify(|_, w| w.spt18().variant(sample_time.into()));
             }
             _ => unreachable!(),
@@ -352,22 +352,22 @@ impl Adc {
 
     /// Enables or disables the internal channel for the backup battery voltage.
     pub fn enable_vbat(&mut self, enabled: bool) {
-        self.rb.ctl1.modify(|_, w| {
+        self.rb.ctl1().modify(|_, w| {
             w.vbaten().variant(if enabled {
-                VBATEN_A::ENABLED
+                Vbaten::Enabled
             } else {
-                VBATEN_A::DISABLED
+                Vbaten::Disabled
             })
         });
     }
 
     /// Enables or disables the auxiliary channels for the internal temperature sensor and Vref.
     pub fn enable_aux(&mut self, enabled: bool) {
-        self.rb.ctl1.modify(|_, w| {
+        self.rb.ctl1().modify(|_, w| {
             w.tsvren().variant(if enabled {
-                TSVREN_A::ENABLED
+                Tsvren::Enabled
             } else {
-                TSVREN_A::DISABLED
+                Tsvren::Disabled
             })
         });
     }
@@ -377,8 +377,8 @@ impl Adc {
     /// This method automatically enables the channel if necessary, so there is no need to call
     /// `enable_vbat` first.
     pub fn read_vbat(&mut self) -> u16 {
-        let vbat_off = if self.rb.ctl1.read().vbaten().is_disabled() {
-            self.rb.ctl1.modify(|_, w| w.vbaten().enabled());
+        let vbat_off = if self.rb.ctl1().read().vbaten().is_disabled() {
+            self.rb.ctl1().modify(|_, w| w.vbaten().enabled());
             true
         } else {
             false
@@ -387,7 +387,7 @@ impl Adc {
         let value = self.convert(VBat::channel());
 
         if vbat_off {
-            self.rb.ctl1.modify(|_, w| w.vbaten().disabled());
+            self.rb.ctl1().modify(|_, w| w.vbaten().disabled());
         }
 
         // Vbat/2 is connected to ADC channel 18, so we need to double it again.
@@ -399,8 +399,8 @@ impl Adc {
     /// This method automatically enables the channels if necessary, so there is no need to call
     /// `enable_aux` first.
     fn read_aux(&mut self, channel: u8) -> u16 {
-        let tsv_off = if self.rb.ctl1.read().tsvren().is_disabled() {
-            self.rb.ctl1.modify(|_, w| w.tsvren().enabled());
+        let tsv_off = if self.rb.ctl1().read().tsvren().is_disabled() {
+            self.rb.ctl1().modify(|_, w| w.tsvren().enabled());
             true
         } else {
             false
@@ -409,7 +409,7 @@ impl Adc {
         let val = self.convert(channel);
 
         if tsv_off {
-            self.rb.ctl1.modify(|_, w| w.tsvren().disabled());
+            self.rb.ctl1().modify(|_, w| w.tsvren().disabled());
         }
 
         val
@@ -423,7 +423,7 @@ impl Adc {
             .take(6)
             .enumerate()
             .fold(0u32, |s, (i, c)| s | ((*c as u32) << (i * 5)));
-        self.rb.rsq2.write(|w| unsafe { w.bits(bits) });
+        self.rb.rsq2().write(|w| unsafe { w.bits(bits) });
         if len > 6 {
             let bits = channels
                 .iter()
@@ -431,7 +431,7 @@ impl Adc {
                 .take(6)
                 .enumerate()
                 .fold(0u32, |s, (i, c)| s | ((*c as u32) << (i * 5)));
-            self.rb.rsq1.write(|w| unsafe { w.bits(bits) });
+            self.rb.rsq1().write(|w| unsafe { w.bits(bits) });
         }
         if len > 12 {
             let bits = channels
@@ -440,9 +440,9 @@ impl Adc {
                 .take(4)
                 .enumerate()
                 .fold(0u32, |s, (i, c)| s | ((*c as u32) << (i * 5)));
-            self.rb.rsq0.write(|w| unsafe { w.bits(bits) });
+            self.rb.rsq0().write(|w| unsafe { w.bits(bits) });
         }
-        self.rb.rsq0.modify(|_, w| w.rl().bits((len - 1) as u8));
+        self.rb.rsq0().modify(|_, w| w.rl().bits((len - 1) as u8));
     }
 
     /// Performs an ADC conversion for a single channel, with the default sample time.
@@ -456,21 +456,21 @@ impl Adc {
         // Dummy read in case something accidentally triggered
         // a conversion by writing to CR2 without changing any
         // of the bits
-        self.rb.rdata.read().rdata().bits();
+        self.rb.rdata().read().rdata().bits();
 
         self.set_channel_sample_time(chan, self.sample_time);
         self.set_regular_sequence_channels(&[chan]);
 
         // Start conversion of regular sequence.
         self.rb
-            .ctl1
+            .ctl1()
             .modify(|_, w| w.swrcst().start().dal().variant(self.align.into()));
-        while self.rb.ctl1.read().swrcst().is_not_started() {}
+        while self.rb.ctl1().read().swrcst().is_not_started() {}
 
         // Wait for conversion results.
-        while self.rb.stat.read().eoc().is_not_complete() {}
+        while self.rb.stat().read().eoc().is_not_complete() {}
 
-        self.rb.rdata.read().rdata().bits()
+        self.rb.rdata().read().rdata().bits()
     }
 
     pub fn read_channel<PIN: Channel<ADC>>(&mut self, _pin: &PIN) -> u16 {
@@ -482,13 +482,13 @@ impl Adc {
     where
         PIN: Channel<ADC>,
     {
-        self.rb.ctl0.modify(|_, w| w.disrc().disabled());
+        self.rb.ctl0().modify(|_, w| w.disrc().disabled());
         self.rb
-            .ctl1
+            .ctl1()
             .modify(|_, w| w.dal().variant(self.align.into()));
         self.set_channel_sample_time(PIN::channel(), self.sample_time);
         self.set_regular_sequence_channels(&[PIN::channel()]);
-        self.rb.ctl1.modify(|_, w| w.dma().enabled());
+        self.rb.ctl1().modify(|_, w| w.dma().enabled());
 
         let payload = AdcPayload {
             adc: self,
@@ -528,8 +528,11 @@ impl SequenceAdc {
     ///
     /// When continuous conversion is enabled conversion does not stop at the last selected group
     /// channel but continues again from the first selected group channel.
-    pub fn set_continuous_mode(&mut self, continuous: CTN_A) {
-        self.adc.rb.ctl1.modify(|_, w| w.ctn().variant(continuous));
+    pub fn set_continuous_mode(&mut self, continuous: Ctn) {
+        self.adc
+            .rb
+            .ctl1()
+            .modify(|_, w| w.ctn().variant(continuous));
     }
 
     /// Sets ADC discontinuous mode
@@ -537,7 +540,7 @@ impl SequenceAdc {
     /// It can be used to convert a short sequence of conversions (up to 8) which is a part of the
     /// regular sequence of conversions.
     pub fn set_discontinuous_mode(&mut self, channels_count: Option<u8>) {
-        self.adc.rb.ctl0.modify(|_, w| match channels_count {
+        self.adc.rb.ctl0().modify(|_, w| match channels_count {
             Some(count) => w.disrc().enabled().disnum().bits(count),
             None => w.disrc().disabled(),
         });
@@ -546,7 +549,7 @@ impl SequenceAdc {
     /// Resets the ADC to one-shot mode, and releases the sequence that was previously configured.
     pub fn release(mut self) -> (Adc, Sequence) {
         // Reset configuration
-        self.adc.rb.ctl0.modify(|_, w| w.disnum().bits(0));
+        self.adc.rb.ctl0().modify(|_, w| w.disnum().bits(0));
         self.adc.setup_oneshot();
         (self.adc, self.sequence)
     }
@@ -557,10 +560,10 @@ impl SequenceAdc {
     pub fn with_scan_dma(
         mut self,
         dma_ch: C0,
-        continuous: CTN_A,
+        continuous: Ctn,
         discontinuous_channels_count: Option<u8>,
     ) -> AdcDma<Sequence, Scan> {
-        self.adc.rb.ctl1.modify(|_, w| {
+        self.adc.rb.ctl1().modify(|_, w| {
             w.adcon()
                 .disabled()
                 .dma()
@@ -572,13 +575,13 @@ impl SequenceAdc {
         });
         self.adc
             .rb
-            .ctl0
+            .ctl0()
             .modify(|_, w| w.sm().enabled().disrc().disabled());
         self.set_continuous_mode(continuous);
         self.set_discontinuous_mode(discontinuous_channels_count);
         self.adc
             .rb
-            .ctl1
+            .ctl1()
             .modify(|_, w| w.dma().enabled().adcon().enabled());
 
         let payload = AdcPayload {
@@ -711,21 +714,33 @@ pub struct Scan;
 impl<PINS> TransferPayload for AdcDma<PINS, Continuous> {
     fn start(&mut self) {
         self.channel.start();
-        self.payload.adc.rb.ctl1.modify(|_, w| w.ctn().continuous());
+        self.payload
+            .adc
+            .rb
+            .ctl1()
+            .modify(|_, w| w.ctn().continuous());
         // TODO: Is this a reliable way to trigger?
-        self.payload.adc.rb.ctl1.modify(|_, w| w.adcon().enabled());
+        self.payload
+            .adc
+            .rb
+            .ctl1()
+            .modify(|_, w| w.adcon().enabled());
     }
 
     fn stop(&mut self) {
         self.channel.stop();
-        self.payload.adc.rb.ctl1.modify(|_, w| w.ctn().single());
+        self.payload.adc.rb.ctl1().modify(|_, w| w.ctn().single());
     }
 }
 
 impl TransferPayload for AdcDma<Sequence, Scan> {
     fn start(&mut self) {
         self.channel.start();
-        self.payload.adc.rb.ctl1.modify(|_, w| w.adcon().enabled());
+        self.payload
+            .adc
+            .rb
+            .ctl1()
+            .modify(|_, w| w.adcon().enabled());
     }
 
     fn stop(&mut self) {
@@ -741,8 +756,8 @@ where
         self.stop();
 
         let AdcDma { payload, channel } = self;
-        payload.adc.rb.ctl1.modify(|_, w| w.dma().disabled());
-        payload.adc.rb.ctl0.modify(|_, w| w.disrc().enabled());
+        payload.adc.rb.ctl1().modify(|_, w| w.dma().disabled());
+        payload.adc.rb.ctl0().modify(|_, w| w.disrc().enabled());
 
         (payload.adc, payload.pins, channel)
     }
@@ -756,11 +771,11 @@ where
         self.stop();
 
         let AdcDma { payload, channel } = self;
-        payload.adc.rb.ctl1.modify(|_, w| w.dma().disabled());
+        payload.adc.rb.ctl1().modify(|_, w| w.dma().disabled());
         payload
             .adc
             .rb
-            .ctl0
+            .ctl0()
             .modify(|_, w| w.disrc().enabled().sm().disabled());
 
         (payload.adc, payload.pins, channel)
@@ -778,7 +793,7 @@ where
         // until the end of the transfer.
         let (ptr, len) = unsafe { buffer.write_buffer() };
         self.channel
-            .set_peripheral_address(unsafe { &(*ADC::ptr()).rdata as *const _ as u32 }, false);
+            .set_peripheral_address(unsafe { &(*ADC::ptr()).rdata() as *const _ as u32 }, false);
         self.channel.set_memory_address(ptr as u32, true);
         self.channel.set_transfer_length(len);
 
@@ -807,7 +822,7 @@ where
         // until the end of the transfer.
         let (ptr, len) = unsafe { buffer.write_buffer() };
         self.channel
-            .set_peripheral_address(unsafe { &(*ADC::ptr()).rdata as *const _ as u32 }, false);
+            .set_peripheral_address(unsafe { &(*ADC::ptr()).rdata() as *const _ as u32 }, false);
         self.channel.set_memory_address(ptr as u32, true);
         self.channel.set_transfer_length(len);
 

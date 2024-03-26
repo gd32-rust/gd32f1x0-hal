@@ -12,8 +12,8 @@ use gd32f1x0_hal::{adc::Adc, pac, prelude::*};
 fn main() -> ! {
     // Acquire peripherals
     let p = pac::Peripherals::take().unwrap();
-    let mut rcu = p.RCU.constrain();
-    let mut flash = p.FMC.constrain();
+    let mut rcu = p.rcu.constrain();
+    let mut flash = p.fmc.constrain();
 
     // Configure ADC clocks
     // Default value is the slowest possible ADC clock: PCLK2 / 8. Meanwhile ADC
@@ -24,10 +24,10 @@ fn main() -> ! {
     hprintln!("adc freq: {}", clocks.adcclk().0);
 
     // Setup ADC
-    let mut adc = Adc::new(p.ADC, &mut rcu.apb2, clocks);
+    let mut adc = Adc::new(p.adc, &mut rcu.apb2, clocks);
 
     // Setup GPIOB
-    let mut gpiob = p.GPIOB.split(&mut rcu.ahb);
+    let mut gpiob = p.gpiob.split(&mut rcu.ahb);
 
     // Configure pb0 as an analog input
     let mut ch0 = gpiob.pb0.into_analog(&mut gpiob.config);

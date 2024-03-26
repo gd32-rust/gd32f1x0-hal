@@ -21,15 +21,15 @@ use gd32f1x0_hal::{
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
-    let mut flash = p.FMC.constrain();
-    let mut rcu = p.RCU.constrain();
+    let mut flash = p.fmc.constrain();
+    let mut rcu = p.rcu.constrain();
 
     let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
-    let channels = p.DMA.split(&mut rcu.ahb);
+    let channels = p.dma.split(&mut rcu.ahb);
 
-    let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
-    // let mut gpiob = p.GPIOB.split(&mut rcu.ahb);
+    let mut gpioa = p.gpioa.split(&mut rcu.ahb);
+    // let mut gpiob = p.gpiob.split(&mut rcu.ahb);
 
     // USART0
     let tx = gpioa
@@ -48,7 +48,7 @@ fn main() -> ! {
     //     .into_alternate(&mut gpioa.config, PullMode::Floating, OutputMode::PushPull);
 
     let serial = Serial::usart(
-        p.USART0,
+        p.usart0,
         (tx, rx),
         Config::default().baudrate(9_600.bps()),
         clocks,

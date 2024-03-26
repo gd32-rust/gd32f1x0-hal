@@ -325,19 +325,19 @@ macro_rules! gpio_core {
 
         impl GpioRegExt for $gpiox::RegisterBlock {
             unsafe fn is_low(&self, pin_index: u8) -> bool {
-                self.istat.read().bits() & (1 << pin_index) == 0
+                self.istat().read().bits() & (1 << pin_index) == 0
             }
 
             unsafe fn is_set_low(&self, pin_index: u8) -> bool {
-                self.octl.read().bits() & (1 << pin_index) == 0
+                self.octl().read().bits() & (1 << pin_index) == 0
             }
 
             unsafe fn set_low(&self, pin_index: u8) {
-                self.bc.write(|w| w.bits(1 << pin_index))
+                self.bc().write(|w| w.bits(1 << pin_index))
             }
 
             unsafe fn set_high(&self, pin_index: u8) {
-                self.bop.write(|w| w.bits(1 << pin_index))
+                self.bop().write(|w| w.bits(1 << pin_index))
             }
         }
 
@@ -351,12 +351,12 @@ macro_rules! gpio_core {
         ) {
             let offset = 2 * pin_index;
             let reg = &(*$GPIOX::ptr());
-            reg.pud
+            reg.pud()
                 .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((pud as u32) << offset)));
-            reg.omode.modify(|r, w| {
+            reg.omode().modify(|r, w| {
                 w.bits((r.bits() & !(0b1 << pin_index)) | ((output_mode as u32) << pin_index))
             });
-            reg.ctl
+            reg.ctl()
                 .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((ctl as u32) << offset)));
         }
 
@@ -364,7 +364,7 @@ macro_rules! gpio_core {
         unsafe fn set_speed(_config: &mut Config, pin_index: u8, speed: Speed) {
             let offset = 2 * pin_index;
             let reg = &(*$GPIOX::ptr());
-            reg.ospd
+            reg.ospd()
                 .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((speed as u32) << offset)));
         }
 
@@ -613,10 +613,10 @@ macro_rules! gpio_af {
             let offset = (4 * pin_index) % 32;
             let reg = &(*$GPIOX::ptr());
             if pin_index < 8 {
-                reg.afsel0
+                reg.afsel0()
                     .modify(|r, w| w.bits((r.bits() & !(0b1111 << offset)) | (mode << offset)));
             } else {
-                reg.afsel1
+                reg.afsel1()
                     .modify(|r, w| w.bits((r.bits() & !(0b1111 << offset)) | (mode << offset)));
             }
             set_mode(config, pin_index, Mode::Alternate, pull_mode, output_mode);
@@ -689,7 +689,7 @@ macro_rules! gpio_noaf {
     }
 }
 
-gpio!(GPIOA, gpioa, [
+gpio!(Gpioa, gpioa, [
     PA0: (pa0, 0, Input<Floating>),
     PA1: (pa1, 1, Input<Floating>),
     PA2: (pa2, 2, Input<Floating>),
@@ -708,7 +708,7 @@ gpio!(GPIOA, gpioa, [
     PA15: (pa15, 15, Input<Floating>),
 ]);
 
-gpio!(GPIOB, gpiob, [
+gpio!(Gpiob, gpiob, [
     PB0: (pb0, 0, Input<Floating>),
     PB1: (pb1, 1, Input<Floating>),
     PB2: (pb2, 2, Input<Floating>),
@@ -727,7 +727,7 @@ gpio!(GPIOB, gpiob, [
     PB15: (pb15, 15, Input<Floating>),
 ]);
 
-gpio!(GPIOC, gpioc, [
+gpio!(Gpioc, gpioc, [
     PC0: (pc0, 0, Input<Floating>),
     PC1: (pc1, 1, Input<Floating>),
     PC2: (pc2, 2, Input<Floating>),
@@ -746,7 +746,7 @@ gpio!(GPIOC, gpioc, [
     PC15: (pc15, 15, Input<Floating>),
 ]);
 
-gpio_noaf!(GPIOD, gpiod, [
+gpio_noaf!(Gpiod, gpiod, [
     PD0: (pd0, 0, Input<Floating>),
     PD1: (pd1, 1, Input<Floating>),
     PD2: (pd2, 2, Input<Floating>),
@@ -765,7 +765,7 @@ gpio_noaf!(GPIOD, gpiod, [
     PD15: (pd15, 15, Input<Floating>),
 ]);
 
-gpio_noaf!(GPIOF, gpiof, [
+gpio_noaf!(Gpiof, gpiof, [
     PF0: (pf0, 0, Input<Floating>),
     PF1: (pf1, 1, Input<Floating>),
     PF2: (pf2, 2, Input<Floating>),

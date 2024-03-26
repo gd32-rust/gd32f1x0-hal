@@ -22,13 +22,13 @@ use gd32f1x0_hal::{
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
-    let mut rcu = p.RCU.constrain();
-    let mut flash = p.FMC.constrain();
+    let mut rcu = p.rcu.constrain();
+    let mut flash = p.fmc.constrain();
 
     let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
-    let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
-    let mut gpiob = p.GPIOB.split(&mut rcu.ahb);
+    let mut gpioa = p.gpioa.split(&mut rcu.ahb);
+    let mut gpiob = p.gpiob.split(&mut rcu.ahb);
 
     // TIMER0
     let c0 = gpioa
@@ -54,7 +54,7 @@ fn main() -> ! {
             .into_alternate(&mut gpiob.config, PullMode::Floating, OutputMode::PushPull);
     let pins = (Some((c0, cn0)), Some((c1, cn1)), Some((c2, cn2)));
 
-    let mut pwm = Timer::timer0(p.TIMER0, &clocks, &mut rcu.apb2).pwm(pins, 1.khz());
+    let mut pwm = Timer::timer0(p.timer0, &clocks, &mut rcu.apb2).pwm(pins, 1.khz());
 
     // Configure polarity for C2.
     pwm.set_polarity(Channel::C2, Polarity::NotInverted);

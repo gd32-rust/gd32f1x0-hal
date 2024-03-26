@@ -13,8 +13,8 @@ use cortex_m_semihosting::hprintln;
 fn main() -> ! {
     // Acquire peripherals
     let p = pac::Peripherals::take().unwrap();
-    let mut rcu = p.RCU.constrain();
-    let mut flash = p.FMC.constrain();
+    let mut rcu = p.rcu.constrain();
+    let mut flash = p.fmc.constrain();
 
     let clocks = rcu
         .cfgr
@@ -27,7 +27,7 @@ fn main() -> ! {
     hprintln!("adc freq: {}", clocks.adcclk().0);
 
     // Setup ADC
-    let mut adc = Adc::new(p.ADC, &mut rcu.apb2, clocks);
+    let mut adc = Adc::new(p.adc, &mut rcu.apb2, clocks);
 
     // Read temperature sensor
     loop {

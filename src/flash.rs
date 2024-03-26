@@ -4,7 +4,7 @@
 
 //! Flash memory
 
-use crate::pac::{fmc, FMC};
+use crate::pac::{fmc, Fmc};
 
 pub const FLASH_START: u32 = 0x0800_0000;
 pub const FLASH_END: u32 = 0x080F_FFFF;
@@ -296,7 +296,7 @@ pub trait FlashExt {
     fn constrain(self) -> Parts;
 }
 
-impl FlashExt for FMC {
+impl FlashExt for Fmc {
     fn constrain(self) -> Parts {
         Parts {
             ws: WS { _0: () },
@@ -355,9 +355,9 @@ pub struct WS {
 
 #[allow(dead_code)]
 impl WS {
-    pub(crate) fn ws(&mut self) -> &fmc::WS {
+    pub(crate) fn ws(&mut self) -> &fmc::Ws {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).ws }
+        unsafe { &(*Fmc::ptr()).ws() }
     }
 }
 
@@ -367,9 +367,9 @@ pub struct ADDR {
 }
 
 impl ADDR {
-    pub(crate) fn addr(&mut self) -> &fmc::ADDR {
+    pub(crate) fn addr(&mut self) -> &fmc::Addr {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).addr }
+        unsafe { &(*Fmc::ptr()).addr() }
     }
 }
 
@@ -379,9 +379,9 @@ pub struct CTL {
 }
 
 impl CTL {
-    pub(crate) fn ctl(&mut self) -> &fmc::CTL {
+    pub(crate) fn ctl(&mut self) -> &fmc::Ctl {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).ctl }
+        unsafe { &(*Fmc::ptr()).ctl() }
     }
 }
 
@@ -391,9 +391,9 @@ pub struct KEY {
 }
 
 impl KEY {
-    pub(crate) fn keyr(&mut self) -> &fmc::KEY {
+    pub(crate) fn keyr(&mut self) -> &fmc::Key {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).key }
+        unsafe { &(*Fmc::ptr()).key() }
     }
 }
 
@@ -404,9 +404,9 @@ pub struct OBSTAT {
 
 #[allow(dead_code)]
 impl OBSTAT {
-    pub(crate) fn obstat(&mut self) -> &fmc::OBSTAT {
+    pub(crate) fn obstat(&mut self) -> &fmc::Obstat {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).obstat }
+        unsafe { &(*Fmc::ptr()).obstat() }
     }
 }
 
@@ -417,9 +417,9 @@ pub struct OBKEY {
 
 #[allow(dead_code)]
 impl OBKEY {
-    pub(crate) fn optkeyr(&mut self) -> &fmc::OBKEY {
+    pub(crate) fn optkeyr(&mut self) -> &fmc::Obkey {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).obkey }
+        unsafe { &(*Fmc::ptr()).obkey() }
     }
 }
 
@@ -429,9 +429,9 @@ pub struct STAT {
 }
 
 impl STAT {
-    pub(crate) fn stat(&mut self) -> &fmc::STAT {
+    pub(crate) fn stat(&mut self) -> &fmc::Stat {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).stat }
+        unsafe { &(*Fmc::ptr()).stat() }
     }
 }
 
@@ -442,8 +442,8 @@ pub struct WP {
 
 #[allow(dead_code)]
 impl WP {
-    pub(crate) fn wp(&mut self) -> &fmc::WP {
+    pub(crate) fn wp(&mut self) -> &fmc::Wp {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*FMC::ptr()).wp }
+        unsafe { &(*Fmc::ptr()).wp() }
     }
 }

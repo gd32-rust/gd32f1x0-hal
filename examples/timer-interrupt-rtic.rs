@@ -32,7 +32,7 @@ mod app {
 
     #[shared]
     struct Shared {
-        timer_handler: CountDownTimer<pac::TIMER0>,
+        timer_handler: CountDownTimer<pac::Timer0>,
         led: Led,
     }
 
@@ -43,15 +43,15 @@ mod app {
     fn init(cx: init::Context) -> (Shared, Local, init::Monotonics) {
         // Take ownership over the raw flash and rcu devices and convert them into the corresponding
         // HAL structs
-        let mut flash = cx.device.FMC.constrain();
-        let mut rcu = cx.device.RCU.constrain();
+        let mut flash = cx.device.fmc.constrain();
+        let mut rcu = cx.device.rcu.constrain();
 
         // Freeze the configuration of all the clocks in the system and store the frozen frequencies
         // in `clocks`
         let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
         // Acquire the GPIOC peripheral
-        let mut gpioc = cx.device.GPIOC.split(&mut rcu.ahb);
+        let mut gpioc = cx.device.gpioc.split(&mut rcu.ahb);
 
         // Configure gpio C pin 13 as a push-pull output. The `crh` register is passed to the
         // function in order to configure the port. For pins 0-7, crl should be passed instead
@@ -59,7 +59,7 @@ mod app {
         led.set_high().unwrap();
         // Configure TIMER0 to trigger an update every second and enables interrupt
         let mut timer =
-            Timer::timer0(cx.device.TIMER0, &clocks, &mut rcu.apb2).start_count_down(1.hz());
+            Timer::timer0(cx.device.timer0, &clocks, &mut rcu.apb2).start_count_down(1.hz());
         timer.listen(Event::Update);
 
         // Init the static resources to use them later through RTIC

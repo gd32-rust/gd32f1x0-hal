@@ -15,12 +15,12 @@ fn main() -> ! {
     let dp = pac::Peripherals::take().unwrap();
     let cp = cortex_m::Peripherals::take().unwrap();
 
-    let mut rcu = dp.RCU.constrain();
-    let mut flash = dp.FMC.constrain();
+    let mut rcu = dp.rcu.constrain();
+    let mut flash = dp.fmc.constrain();
 
     let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
-    let mut gpioc = dp.GPIOC.split(&mut rcu.ahb);
+    let mut gpioc = dp.gpioc.split(&mut rcu.ahb);
 
     let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.config);
 

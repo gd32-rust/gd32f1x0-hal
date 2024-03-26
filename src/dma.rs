@@ -4,7 +4,7 @@
 
 //! # Direct Memory Access
 
-use crate::pac::{dma, DMA};
+use crate::pac::{dma, Dma as DMA};
 use crate::rcu::{Enable, AHB};
 use core::{
     convert::TryFrom,
@@ -160,33 +160,33 @@ macro_rules! dma {
                 ///
                 /// `inc` indicates whether the address will be incremented after every byte transfer
                 pub fn set_peripheral_address(&mut self, address: u32, inc: bool) {
-                    unsafe { &(*DMA::ptr()).$chXpaddr }.write(|w| unsafe { w.paddr().bits(address) });
-                    unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.pnaga().bit(inc));
+                    unsafe { &(*DMA::ptr()).$chXpaddr() }.write(|w| unsafe { w.paddr().bits(address) });
+                    unsafe { &(*DMA::ptr()).$chXctl() }.modify(|_, w| w.pnaga().bit(inc));
                 }
 
                 /// `address` where from/to data will be read/write
                 ///
                 /// `inc` indicates whether the address will be incremented after every byte transfer
                 pub fn set_memory_address(&mut self, address: u32, inc: bool) {
-                    unsafe { &(*DMA::ptr()).$chXmaddr }.write(|w| unsafe { w.maddr().bits(address) });
-                    unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.mnaga().bit(inc));
+                    unsafe { &(*DMA::ptr()).$chXmaddr() }.write(|w| unsafe { w.maddr().bits(address) });
+                    unsafe { &(*DMA::ptr()).$chXctl() }.modify(|_, w| w.mnaga().bit(inc));
                 }
 
                 /// Number of bytes to transfer
                 pub fn set_transfer_length(&mut self, len: usize) {
-                    unsafe { &(*DMA::ptr()).$chXcnt }
+                    unsafe { &(*DMA::ptr()).$chXcnt() }
                         .write(|w| w.cnt().bits(u16::try_from(len).unwrap()));
                 }
 
                 /// Starts the DMA transfer
                 pub fn start(&mut self) {
-                    unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.chen().enabled());
+                    unsafe { &(*DMA::ptr()).$chXctl() }.modify(|_, w| w.chen().enabled());
                 }
 
                 /// Stops the DMA transfer
                 pub fn stop(&mut self) {
                     self.intc().write(|w| w.$gifcX().clear());
-                    unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.chen().disabled());
+                    unsafe { &(*DMA::ptr()).$chXctl() }.modify(|_, w| w.chen().disabled());
                 }
 
                 /// Returns `true` if there's a transfer in progress
@@ -196,15 +196,15 @@ macro_rules! dma {
 
                 pub fn listen(&mut self, event: Event) {
                     match event {
-                        Event::HalfTransfer => unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.htfie().enabled()),
-                        Event::TransferComplete => unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.ftfie().enabled()),
+                        Event::HalfTransfer => unsafe { &(*DMA::ptr()).$chXctl() }.modify(|_, w| w.htfie().enabled()),
+                        Event::TransferComplete => unsafe { &(*DMA::ptr()).$chXctl() }.modify(|_, w| w.ftfie().enabled()),
                     }
                 }
 
                 pub fn unlisten(&mut self, event: Event) {
                     match event {
-                        Event::HalfTransfer => unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.htfie().disabled()),
-                        Event::TransferComplete => unsafe { &(*DMA::ptr()).$chXctl }.modify(|_, w| w.ftfie().disabled()),
+                        Event::HalfTransfer => unsafe { &(*DMA::ptr()).$chXctl() }.modify(|_, w| w.htfie().disabled()),
+                        Event::TransferComplete => unsafe { &(*DMA::ptr()).$chXctl() }.modify(|_, w| w.ftfie().disabled()),
                     }
                 }
 
@@ -218,7 +218,7 @@ macro_rules! dma {
                     circular: bool,
                 ) {
                     unsafe {
-                        (*DMA::ptr()).$chXctl.modify(|_, w| {
+                        (*DMA::ptr()).$chXctl().modify(|_, w| {
                             w.m2m()
                                 .disabled()
                                 .dir()
@@ -245,7 +245,7 @@ macro_rules! dma {
                     circular: bool,
                 ) {
                     unsafe {
-                        (*DMA::ptr()).$chXctl.modify(|_, w| {
+                        (*DMA::ptr()).$chXctl().modify(|_, w| {
                             w.m2m()
                                 .disabled()
                                 .dir()
@@ -264,15 +264,15 @@ macro_rules! dma {
 
                 fn intf(&self) -> dma::intf::R {
                     // NOTE(unsafe) atomic read with no side effects
-                    unsafe { (*DMA::ptr()).intf.read() }
+                    unsafe { (*DMA::ptr()).intf().read() }
                 }
 
-                fn intc(&self) -> &dma::INTC {
-                    unsafe { &(*DMA::ptr()).intc }
+                fn intc(&self) -> &dma::Intc {
+                    unsafe { &(*DMA::ptr()).intc() }
                 }
 
                 fn get_cnt(&self) -> u16 {
-                    unsafe { &(*DMA::ptr()).$chXcnt }.read().cnt().bits()
+                    unsafe { &(*DMA::ptr()).$chXcnt() }.read().cnt().bits()
                 }
             }
 
@@ -458,7 +458,7 @@ macro_rules! dma {
 
                 // reset the DMA control registers (stops all on-going transfers)
                 $(
-                    self.$chXctl.reset();
+                    self.$chXctl().reset();
                 )+
 
                 Channels($($CX { _0: () }),+)
