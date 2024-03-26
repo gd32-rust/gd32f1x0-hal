@@ -18,7 +18,7 @@ use cortex_m_rt::entry;
 use embedded_hal::digital::{OutputPin, StatefulOutputPin};
 use gd32f1x0_hal::{
     gpio::{gpioc, Output, PushPull},
-    pac::{interrupt, Interrupt, Peripherals, TIMER1},
+    pac::{interrupt, Interrupt, Peripherals, Timer1},
     prelude::*,
     timer::{CountDownTimer, Event, Timer},
 };
@@ -30,14 +30,14 @@ type LedPin = gpioc::PC13<Output<PushPull>>;
 static G_LED: Mutex<RefCell<Option<LedPin>>> = Mutex::new(RefCell::new(None));
 
 // Make timer interrupt registers globally available
-static G_TIM: Mutex<RefCell<Option<CountDownTimer<TIMER1>>>> = Mutex::new(RefCell::new(None));
+static G_TIM: Mutex<RefCell<Option<CountDownTimer<Timer1>>>> = Mutex::new(RefCell::new(None));
 
 // Define an interupt handler, i.e. function to call when interrupt occurs.
 // This specific interrupt will "trip" when the timer TIMER1 times out
 #[interrupt]
 fn TIMER1() {
     static mut LED: Option<LedPin> = None;
-    static mut TIM: Option<CountDownTimer<TIMER1>> = None;
+    static mut TIM: Option<CountDownTimer<Timer1>> = None;
 
     let led = LED.get_or_insert_with(|| {
         cortex_m::interrupt::free(|cs| {
@@ -61,8 +61,8 @@ fn TIMER1() {
 fn main() -> ! {
     let dp = Peripherals::take().unwrap();
 
-    let mut flash = dp.FMC.constrain();
-    let mut rcu = dp.RCU.constrain();
+    let mut flash = dp.fmc.constrain();
+    let mut rcu = dp.rcu.constrain();
     let clocks = rcu
         .cfgr
         .sysclk(8.mhz())
@@ -70,7 +70,7 @@ fn main() -> ! {
         .freeze(&mut flash.ws);
 
     // Configure PC13 pin to blink LED
-    let mut gpioc = dp.GPIOC.split(&mut rcu.ahb);
+    let mut gpioc = dp.gpioc.split(&mut rcu.ahb);
     let mut led = gpioc.pc13.into_push_pull_output(&mut gpioc.config);
     let _ = led.set_high(); // Turn off
 
@@ -78,7 +78,7 @@ fn main() -> ! {
     cortex_m::interrupt::free(|cs| *G_LED.borrow(cs).borrow_mut() = Some(led));
 
     // Set up a timer expiring after 1s
-    let mut timer = Timer::timer1(dp.TIMER1, &clocks, &mut rcu.apb1).start_count_down(1.hz());
+    let mut timer = Timer::timer1(dp.timer1, &clocks, &mut rcu.apb1).start_count_down(1.hz());
 
     // Generate an interrupt when the timer expires
     timer.listen(Event::Update);

@@ -22,12 +22,12 @@ use gd32f1x0_hal::{
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
-    let mut rcu = p.RCU.constrain();
-    let mut flash = p.FMC.constrain();
+    let mut rcu = p.rcu.constrain();
+    let mut flash = p.fmc.constrain();
 
     let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
-    let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
+    let mut gpioa = p.gpioa.split(&mut rcu.ahb);
 
     // TIMER0
     let c0 = gpioa
@@ -42,7 +42,7 @@ fn main() -> ! {
     // If you don't want to use all channels, just leave some out
     let pins = (Some(c0), Some(c1), Some(c2), None::<PA11<_>>);
 
-    let mut pwm = Timer::timer0(p.TIMER0, &clocks, &mut rcu.apb2).pwm(pins, 1.khz());
+    let mut pwm = Timer::timer0(p.timer0, &clocks, &mut rcu.apb2).pwm(pins, 1.khz());
 
     // Enable clock on each of the channels
     pwm.enable(Channel::C0);

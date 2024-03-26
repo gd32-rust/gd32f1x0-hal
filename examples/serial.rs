@@ -25,15 +25,15 @@ fn main() -> ! {
 
     // Take ownership of the RCU and FMC peripherals and convert them into the corresponding HAL
     // structs.
-    let mut rcu = p.RCU.constrain();
-    let mut flash = p.FMC.constrain();
+    let mut rcu = p.rcu.constrain();
+    let mut flash = p.fmc.constrain();
 
     // Freeze the configuration of all the clocks in the system and store the frozen frequencies in
     // `clocks`.
     let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
     // Prepare the GPIOA peripheral
-    let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
+    let mut gpioa = p.gpioa.split(&mut rcu.ahb);
 
     // USART0
     // Configure pa9 and pa10 in alternate function mode for the USART.
@@ -55,7 +55,7 @@ fn main() -> ! {
     // Set up the usart device. Takes ownership of the USART registers and tx/rx pins. The rest of
     // the registers are used to enable and configure the device.
     let mut serial = Serial::usart(
-        p.USART0,
+        p.usart0,
         (tx, rx),
         Config::default().baudrate(9600.bps()),
         clocks,

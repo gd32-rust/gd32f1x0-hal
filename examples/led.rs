@@ -16,8 +16,8 @@ use gd32f1x0_hal::{pac, prelude::*};
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
-    let mut rcu = p.RCU.constrain();
-    let mut gpioc = p.GPIOC.split(&mut rcu.ahb);
+    let mut rcu = p.rcu.constrain();
+    let mut gpioc = p.gpioc.split(&mut rcu.ahb);
 
     gpioc
         .pc9

@@ -14,8 +14,8 @@ use gd32f1x0_hal::{pac, prelude::*};
 fn main() -> ! {
     let p = pac::Peripherals::take().unwrap();
 
-    let mut rcu = p.RCU.constrain();
-    let mut crc = p.CRC.constrain(&mut rcu.ahb);
+    let mut rcu = p.rcu.constrain();
+    let mut crc = p.crc.constrain(&mut rcu.ahb);
 
     crc.reset();
     crc.write(0x12345678);

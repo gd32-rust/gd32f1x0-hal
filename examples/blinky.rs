@@ -25,15 +25,15 @@ fn main() -> ! {
 
     // Take ownership over the raw rcu and flash devices and convert them into the corresponding HAL
     // structs.
-    let mut flash = dp.FMC.constrain();
-    let mut rcu = dp.RCU.constrain();
+    let mut flash = dp.fmc.constrain();
+    let mut rcu = dp.rcu.constrain();
 
     // Freeze the configuration of all the clocks in the system and store the frozen frequencies in
     // `clocks`
     let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
     // Acquire the GPIOC peripheral
-    let mut gpioc = dp.GPIOC.split(&mut rcu.ahb);
+    let mut gpioc = dp.gpioc.split(&mut rcu.ahb);
 
     // Configure gpio C pin 13 as a push-pull output. The `crh` register is passed to the function
     // in order to configure the port. For pins 0-7, crl should be passed instead.

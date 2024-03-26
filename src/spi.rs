@@ -17,7 +17,7 @@
 
   ```rust
     // Acquire the GPIOB peripheral
-    let mut gpiob = dp.GPIOB.split(&mut rcc.apb2);
+    let mut gpiob = dp.gpiob.split(&mut rcc.apb2);
 
     let pins = (
         gpiob.pb13.into_alternate_push_pull(&mut gpiob.crh),

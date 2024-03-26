@@ -13,8 +13,8 @@ use gd32f1x0_hal::{adc::Adc, pac, prelude::*};
 fn main() -> ! {
     // Acquire peripherals
     let p = pac::Peripherals::take().unwrap();
-    let mut rcu = p.RCU.constrain();
-    let mut flash = p.FMC.constrain();
+    let mut rcu = p.rcu.constrain();
+    let mut flash = p.fmc.constrain();
 
     // Configure ADC clocks
     // Default value is the slowest possible ADC clock: PCLK2 / 8. Meanwhile ADC
@@ -23,13 +23,13 @@ fn main() -> ! {
     // prescaler values 2/4/6/8.
     let clocks = rcu.cfgr.adcclk(2.mhz()).freeze(&mut flash.ws);
 
-    let dma_ch0 = p.DMA.split(&mut rcu.ahb).0;
+    let dma_ch0 = p.dma.split(&mut rcu.ahb).0;
 
     // Setup ADC
-    let adc = Adc::new(p.ADC, &mut rcu.apb2, clocks);
+    let adc = Adc::new(p.adc, &mut rcu.apb2, clocks);
 
     // Setup GPIOA
-    let mut gpioa = p.GPIOA.split(&mut rcu.ahb);
+    let mut gpioa = p.gpioa.split(&mut rcu.ahb);
 
     // Configure pa0 as an analog input
     let adc_ch0 = gpioa.pa0.into_analog(&mut gpioa.config);

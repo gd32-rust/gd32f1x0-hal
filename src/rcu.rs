@@ -53,7 +53,7 @@ impl RcuExt for RCU {
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcu = dp.RCU.constrain();
+/// let mut rcu = dp.rcu.constrain();
 /// ```
 pub struct Rcu {
     /// AMBA High-performance Bus (AHB) registers
@@ -74,7 +74,7 @@ pub struct Rcu {
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcu = dp.RCU.constrain();
+/// let mut rcu = dp.rcu.constrain();
 /// function_that_uses_ahb(&mut rcu.ahb)
 /// ```
 pub struct AHB {
@@ -96,7 +96,7 @@ impl AHB {
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcu = dp.RCU.constrain();
+/// let mut rcu = dp.rcu.constrain();
 /// function_that_uses_apb1(&mut rcu.apb1)
 /// ```
 pub struct APB1 {
@@ -126,7 +126,7 @@ impl APB1 {
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcu = dp.RCU.constrain();
+/// let mut rcu = dp.rcu.constrain();
 /// function_that_uses_apb2(&mut rcu.apb2);
 /// ```
 pub struct APB2 {
@@ -151,7 +151,7 @@ impl APB2 {
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcu = dp.RCU.constrain();
+/// let mut rcu = dp.rcu.constrain();
 /// function_that_uses_addapb1(&mut rcu.addapb1)
 /// ```
 pub struct ADDAPB1 {
@@ -259,7 +259,7 @@ impl CFGR {
     /// ```rust
     /// let dp = pac::Peripherals::take().unwrap();
     /// let mut flash = dp.FLASH.constrain();
-    /// let mut rcu = dp.RCU.constrain();
+    /// let mut rcu = dp.rcu.constrain();
     /// let clocks = rcu.cfgr.freeze(&mut flash.acr);
     /// ```
     pub fn freeze(self, ws: &mut WS) -> Clocks {
@@ -447,7 +447,7 @@ pub struct BKP {
 ///
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
-/// let mut rcu = dp.RCU.constrain();
+/// let mut rcu = dp.rcu.constrain();
 /// let mut flash = dp.FLASH.constrain();
 ///
 /// let clocks = rcu.cfgr.freeze(&mut flash.acr);

@@ -16,14 +16,14 @@ fn main() -> ! {
     let cp = cortex_m::Peripherals::take().unwrap();
     let dp = pac::Peripherals::take().unwrap();
 
-    let mut rcu = dp.RCU.constrain();
-    let mut flash = dp.FMC.constrain();
+    let mut rcu = dp.rcu.constrain();
+    let mut flash = dp.fmc.constrain();
 
     let clocks = rcu.cfgr.freeze(&mut flash.ws);
 
     // Acquire the GPIO peripherals
-    let mut gpioa = dp.GPIOA.split(&mut rcu.ahb);
-    let mut gpioc = dp.GPIOC.split(&mut rcu.ahb);
+    let mut gpioa = dp.gpioa.split(&mut rcu.ahb);
+    let mut gpioc = dp.gpioc.split(&mut rcu.ahb);
 
     // Configure the syst timer to trigger an update every second
     let mut timer = Timer::syst(cp.SYST, &clocks).start_count_down(1.hz());
