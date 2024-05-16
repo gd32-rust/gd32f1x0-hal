@@ -34,13 +34,11 @@ impl DelayNs for Delay {
         // The SysTick Reload Value register supports values between 1 and 0x00FFFFFF.
         const MAX_RVR: u32 = 0x00FF_FFFF;
 
-        let mut total_ticks = ns
-            .wrapping_mul(self.clocks.hclk().0)
-            .wrapping_div(1_000_000_000);
+        let mut total_ticks = u64::from(ns) * u64::from(self.clocks.hclk().0) / 1_000_000_000;
 
         while total_ticks != 0 {
-            let current_rvr = if total_ticks <= MAX_RVR {
-                total_ticks
+            let current_rvr = if total_ticks <= MAX_RVR.into() {
+                total_ticks as u32
             } else {
                 MAX_RVR
             };
@@ -50,7 +48,7 @@ impl DelayNs for Delay {
             self.syst.enable_counter();
 
             // Update the tracking variable while we are waiting...
-            total_ticks -= current_rvr;
+            total_ticks -= u64::from(current_rvr);
 
             while !self.syst.has_wrapped() {}
 
