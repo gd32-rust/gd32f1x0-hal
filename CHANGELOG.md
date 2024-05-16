@@ -5,19 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.10.1]
+
+### Bugfixes
+
+- Fixed integer overflow issue in `DelayNs` for `Delay`.
+
 ## [0.10.0]
 
 ### Breaking changes
 
 - Updated to `gd32f1` 0.9.1.
 
-## Other changes
+### Other changes
 
 - Removed unused dev-dependencies.
 
 ## [0.9.1]
 
-## Other changes
+### Other changes
 
 - Removed unused `bxcan` dependency.
 - Removed `cast` dependency.
@@ -113,7 +119,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 First release.
 
-[unreleased]: https://github.com/gd32-rust/gd32f1x0-hal/compare/0.10.0...HEAD
+[unreleased]: https://github.com/gd32-rust/gd32f1x0-hal/compare/0.10.1...HEAD
 [0.2.0]: https://github.com/gd32-rust/gd32f1x0-hal/compare/0.1.0...0.2.0
 [0.2.1]: https://github.com/gd32-rust/gd32f1x0-hal/compare/0.2.0...0.2.1
 [0.3.0]: https://github.com/gd32-rust/gd32f1x0-hal/compare/0.2.1...0.3.0
@@ -126,3 +132,4 @@ First release.
 [0.9.0]: https://github.com/gd32-rust/gd32f1x0-hal/compare/0.8.0...0.9.0
 [0.9.1]: https://github.com/gd32-rust/gd32f1x0-hal/compare/0.9.0...0.9.1
 [0.10.0]: https://github.com/gd32-rust/gd32f1x0-hal/compare/0.9.1...0.10.0
+[0.10.1]: https://github.com/gd32-rust/gd32f1x0-hal/compare/0.10.0...0.10.1
