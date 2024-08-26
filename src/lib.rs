@@ -173,3 +173,6 @@ pub mod timer;
 pub mod usb;*/
 #[cfg(feature = "device-selected")]
 pub mod watchdog;
+
+#[cfg(feature = "embassy")]
+pub mod embassy;
