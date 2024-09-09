@@ -1,7 +1,7 @@
 use core::cell::Cell;
 use core::convert::TryInto;
 use core::sync::atomic::{compiler_fence, AtomicU32, AtomicU8, Ordering};
-use core::{mem, ptr, u16};
+use core::u16;
 use critical_section::CriticalSection;
 use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
 use embassy_time_driver::{AlarmHandle, Driver, TICK_HZ};
@@ -62,11 +62,7 @@ fn timer() -> &'static RegisterBlock {
 
 struct AlarmState {
     timestamp: Cell<u64>,
-
-    // This is really a Option<(fn(*mut ()), *mut ())>
-    // but fn pointers aren't allowed in const yet
-    callback: Cell<*const ()>,
-    ctx: Cell<*mut ()>,
+    callback: Cell<Option<(fn(*mut ()), *mut ())>>,
 }
 
 unsafe impl Send for AlarmState {}
@@ -75,8 +71,7 @@ impl AlarmState {
     const fn new() -> Self {
         Self {
             timestamp: Cell::new(u64::MAX),
-            callback: Cell::new(ptr::null()),
-            ctx: Cell::new(ptr::null_mut()),
+            callback: Cell::new(None),
         }
     }
 }
@@ -235,11 +230,10 @@ impl EmbassyTimeDriver {
         alarm.timestamp.set(u64::MAX);
         // Call after clearing alarm, so the callback can set another alarm.
 
-        // Safety:
-        // - we can ignore the possibility of `f` being unset (null) because of the safety contract of `allocate_alarm`.
-        // - other than that we only store valid function pointers into alarm.callback
-        let f: fn(*mut ()) = unsafe { mem::transmute(alarm.callback.get()) };
-        f(alarm.ctx.get());
+        // The callback must have been set by `allocate_alarm` so this shouldn't panic.
+        let callback = alarm.callback.get().unwrap();
+        let f: fn(*mut ()) = callback.0;
+        f(callback.1);
     }
 
     fn on_interrupt(&self) {
@@ -321,8 +315,7 @@ impl Driver for EmbassyTimeDriver {
         critical_section::with(|cs| {
             let alarm = self.get_alarm(cs, alarm);
 
-            alarm.callback.set(callback as *const ());
-            alarm.ctx.set(ctx);
+            alarm.callback.set(Some((callback, ctx)));
         })
     }
 
