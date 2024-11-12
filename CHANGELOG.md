@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+
+### New features
+
+- All error types now implement `core::error::Error`, `Display` and other useful traits.
+
 ## [0.10.1]
 
 ### Bugfixes

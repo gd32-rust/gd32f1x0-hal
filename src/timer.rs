@@ -19,9 +19,10 @@ pub enum Event {
     Update,
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, thiserror::Error)]
 pub enum Error {
-    /// Timer is canceled
+    /// Timer is cancelled.
+    #[error("Timer is cancelled")]
     Canceled,
 }
 

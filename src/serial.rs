@@ -27,16 +27,20 @@ use embedded_dma::{ReadBuffer, WriteBuffer};
 use embedded_io::{ErrorKind, ErrorType, Read, ReadReady, Write, WriteReady};
 
 /// Serial error
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
     /// Framing error
+    #[error("Framing error")]
     Framing,
     /// Noise error
+    #[error("Noise error")]
     Noise,
     /// RX buffer overrun
+    #[error("RX buffer overrun")]
     Overrun,
     /// Parity check error
+    #[error("Parity check error")]
     Parity,
 }
 
