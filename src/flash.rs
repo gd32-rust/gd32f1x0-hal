@@ -17,17 +17,27 @@ pub const SZ_1K: u16 = 1024;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd, thiserror::Error)]
 pub enum Error {
+    #[error("Address larger than flash")]
     AddressLargerThanFlash,
+    #[error("Address misaligned")]
     AddressMisaligned,
+    #[error("Length is not a multiple of 2")]
     LengthNotMultiple2,
+    #[error("Length is too long")]
     LengthTooLong,
+    #[error("Erase error")]
     EraseError,
+    #[error("Programming error")]
     ProgrammingError,
+    #[error("Write error")]
     WriteError,
+    #[error("Verification error")]
     VerifyError,
+    #[error("Unlock error")]
     UnlockError,
+    #[error("Lock error")]
     LockError,
 }
 

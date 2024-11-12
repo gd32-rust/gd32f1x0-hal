@@ -40,18 +40,23 @@ use cortex_m::peripheral::DWT;
 use embedded_hal::i2c::{ErrorKind, ErrorType, NoAcknowledgeSource, Operation, SevenBitAddress};
 
 /// I2C error
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
     /// Bus error
+    #[error("I2C bus error")]
     Bus,
     /// Arbitration loss
+    #[error("I2C arbitration loss")]
     Arbitration,
     /// No ack received
+    #[error("No acknowledge received")]
     Acknowledge,
     /// Overrun/underrun
+    #[error("Overrun or underrun")]
     Overrun,
     /// Timed out waiting for something.
+    #[error("Timed out")]
     Timeout,
     // Pec, // SMBUS mode only
     // Timeout, // SMBUS mode only

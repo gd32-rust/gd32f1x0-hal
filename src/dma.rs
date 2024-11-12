@@ -14,9 +14,10 @@ use core::{
 };
 use embedded_dma::{ReadBuffer, WriteBuffer};
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
+    #[error("DMA overrun")]
     Overrun,
 }
 
