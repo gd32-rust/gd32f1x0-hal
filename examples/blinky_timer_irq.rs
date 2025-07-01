@@ -17,8 +17,8 @@ use cortex_m::{asm::wfi, interrupt::Mutex};
 use cortex_m_rt::entry;
 use embedded_hal::digital::{OutputPin, StatefulOutputPin};
 use gd32f1x0_hal::{
-    gpio::{gpioc, Output, PushPull},
-    pac::{interrupt, Interrupt, Peripherals, Timer1},
+    gpio::{Output, PushPull, gpioc},
+    pac::{Interrupt, Peripherals, Timer1, interrupt},
     prelude::*,
     timer::{CountDownTimer, Event, Timer},
 };

@@ -3,14 +3,14 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::pac::{
-    dbg::ctl0::Timer0Hold, dbg::ctl1::Timer14Hold, Dbg, Timer0, Timer1, Timer13, Timer14, Timer15,
-    Timer16, Timer2, Timer5,
+    Dbg, Timer0, Timer1, Timer2, Timer5, Timer13, Timer14, Timer15, Timer16, dbg::ctl0::Timer0Hold,
+    dbg::ctl1::Timer14Hold,
 };
-use crate::rcu::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset, APB1, APB2};
+use crate::rcu::{APB1, APB2, Clocks, Enable, GetBusFreq, Reset, sealed::RcuBus};
 use crate::time::Hertz;
 use core::convert::TryFrom;
-use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
+use cortex_m::peripheral::syst::SystClkSource;
 
 /// Interrupt events
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

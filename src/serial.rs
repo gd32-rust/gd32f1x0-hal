@@ -8,14 +8,14 @@
 //! synchronous asynchronous receiver transmitter).
 
 use crate::dma::{
-    self, CircBuffer, CircReadDma, Priority, ReadDma, Receive, RxDma, Transfer, TransferPayload,
-    Transmit, TxDma, Width, WriteDma, R, W,
+    self, CircBuffer, CircReadDma, Priority, R, ReadDma, Receive, RxDma, Transfer, TransferPayload,
+    Transmit, TxDma, W, Width, WriteDma,
 };
-use crate::gpio::gpioa::{PA10, PA14, PA15, PA2, PA3, PA9};
+use crate::gpio::gpioa::{PA2, PA3, PA9, PA10, PA14, PA15};
 use crate::gpio::gpiob::{PB6, PB7};
-use crate::gpio::{Alternate, AF0, AF1};
-use crate::pac::{self, usart0, usart0::ctl1::Stb, Usart0};
-use crate::rcu::{sealed::RcuBus, Clocks, Enable, GetBusFreq, Reset};
+use crate::gpio::{AF0, AF1, Alternate};
+use crate::pac::{self, Usart0, usart0, usart0::ctl1::Stb};
+use crate::rcu::{Clocks, Enable, GetBusFreq, Reset, sealed::RcuBus};
 use crate::time::{Bps, U32Ext};
 use core::convert::Infallible;
 use core::fmt;
@@ -142,7 +142,7 @@ impl RxPin<Usart0> for PB7<Alternate<AF0>> {}
 mod pins {
     use super::*;
     use crate::gpio::gpiob::PB0;
-    use crate::gpio::{gpioa::PA8, AF4};
+    use crate::gpio::{AF4, gpioa::PA8};
     use crate::pac::Usart1;
 
     impl TxPin<Usart1> for PA2<Alternate<AF1>> {}
@@ -192,10 +192,10 @@ pub struct Tx<USART> {
 unsafe impl<USART> Send for Tx<USART> {}
 
 impl<
-        USART: RcuBus + Enable + Reset + Deref<Target = usart0::RegisterBlock>,
-        TXPIN: TxPin<USART>,
-        RXPIN: RxPin<USART>,
-    > Serial<USART, TXPIN, RXPIN>
+    USART: RcuBus + Enable + Reset + Deref<Target = usart0::RegisterBlock>,
+    TXPIN: TxPin<USART>,
+    RXPIN: RxPin<USART>,
+> Serial<USART, TXPIN, RXPIN>
 where
     USART::Bus: GetBusFreq,
 {
@@ -232,10 +232,8 @@ where
     }
 }
 
-impl<
-        USART: RcuBus + Enable + Reset + Deref<Target = usart0::RegisterBlock>,
-        TXPIN: TxPin<USART>,
-    > Serial<USART, TXPIN, ()>
+impl<USART: RcuBus + Enable + Reset + Deref<Target = usart0::RegisterBlock>, TXPIN: TxPin<USART>>
+    Serial<USART, TXPIN, ()>
 where
     USART::Bus: GetBusFreq,
 {
@@ -269,10 +267,8 @@ where
     }
 }
 
-impl<
-        USART: RcuBus + Enable + Reset + Deref<Target = usart0::RegisterBlock>,
-        RXPIN: RxPin<USART>,
-    > Serial<USART, (), RXPIN>
+impl<USART: RcuBus + Enable + Reset + Deref<Target = usart0::RegisterBlock>, RXPIN: RxPin<USART>>
+    Serial<USART, (), RXPIN>
 where
     USART::Bus: GetBusFreq,
 {

@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 name = "gd32f1x0-hal"
 repository = "https://github.com/gd32-rust/gd32f1x0-hal"
 readme = "README.md"
-edition = "2018"
+edition = "2024"
 version = "0.10.1"
 
 [package.metadata.docs.rs]

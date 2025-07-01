@@ -8,12 +8,12 @@ use crate::flash::WS;
 #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
 use crate::pac::rcu::cfg0::Usbdpsc;
 use crate::pac::{
+    Rcu as RCU,
     fmc::ws::Wscnt,
     rcu::{
         self,
         cfg0::{Adcpsc, Ahbpsc, Apb1psc, Pllsel, Scs},
     },
-    Rcu as RCU,
 };
 use crate::time::Hertz;
 use core::cmp;

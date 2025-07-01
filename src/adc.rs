@@ -5,20 +5,20 @@
 //! # API for the Analog to Digital converter
 
 use crate::dma::{
-    CircBuffer, CircReadDma, Priority, ReadDma, Receive, RxDma, Transfer, TransferPayload, Width,
-    C0, W,
+    C0, CircBuffer, CircReadDma, Priority, ReadDma, Receive, RxDma, Transfer, TransferPayload, W,
+    Width,
 };
 use crate::gpio::Analog;
 use crate::gpio::{gpioa, gpiob, gpioc};
 use crate::pac::{
+    Adc as ADC,
     adc::{
         ctl1::{Ctn, Dal, Tsvren, Vbaten},
         sampt0::Spt10,
         sampt1::Spt0,
     },
-    Adc as ADC,
 };
-use crate::rcu::{Clocks, Enable, Reset, APB2};
+use crate::rcu::{APB2, Clocks, Enable, Reset};
 use core::{
     marker::PhantomData,
     sync::atomic::{self, Ordering},
@@ -648,7 +648,7 @@ pub struct VRef;
 pub struct VBat;
 
 macro_rules! adc_pins {
-    ($ADC:ident, $($pin:ty => $chan:expr),+ $(,)*) => {
+    ($ADC:ident, $($pin:ty => $chan:expr_2021),+ $(,)*) => {
         $(
             #[cfg(feature = "embedded-hal-02")]
             impl embedded_hal_02::adc::Channel<$ADC> for $pin {

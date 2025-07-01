@@ -3,12 +3,12 @@
 // SPDX-License-Identifier: MIT OR Apache-2.0
 
 use crate::gpio::{
-    gpioa::{PA0, PA1, PA10, PA11, PA15, PA2, PA3, PA5, PA6, PA7, PA8, PA9},
-    gpiob::{PB0, PB1, PB10, PB11, PB13, PB14, PB15, PB3, PB4, PB5},
+    AF0, AF1, AF2, Alternate,
+    gpioa::{PA0, PA1, PA2, PA3, PA5, PA6, PA7, PA8, PA9, PA10, PA11, PA15},
+    gpiob::{PB0, PB1, PB3, PB4, PB5, PB10, PB11, PB13, PB14, PB15},
     gpioc::{PC6, PC7, PC8, PC9},
-    Alternate, AF0, AF1, AF2,
 };
-use crate::pac::{timer0, timer1, timer13, timer14, timer15, Timer0, Timer1, Timer2};
+use crate::pac::{Timer0, Timer1, Timer2, timer0, timer1, timer13, timer14, timer15};
 use crate::time::Hertz;
 use crate::time::U32Ext;
 use crate::timer::{Event, Timer, TimerExt};

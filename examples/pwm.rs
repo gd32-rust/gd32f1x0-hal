@@ -10,7 +10,7 @@ use cortex_m::asm;
 use cortex_m_rt::entry;
 use embedded_hal::pwm::SetDutyCycle;
 use gd32f1x0_hal::{
-    gpio::{gpioa::PA11, OutputMode, PullMode},
+    gpio::{OutputMode, PullMode, gpioa::PA11},
     pac,
     prelude::*,
     pwm::Channel,

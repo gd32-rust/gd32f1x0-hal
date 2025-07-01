@@ -4,7 +4,7 @@
 
 //! Flash memory
 
-use crate::pac::{fmc, Fmc};
+use crate::pac::{Fmc, fmc};
 
 pub const FLASH_START: u32 = 0x0800_0000;
 pub const FLASH_END: u32 = 0x080F_FFFF;

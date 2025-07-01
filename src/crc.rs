@@ -1,7 +1,7 @@
 //! CRC
 
 use crate::pac::Crc as CRC;
-use crate::rcu::{Enable, AHB};
+use crate::rcu::{AHB, Enable};
 
 /// Extension trait to constrain the CRC peripheral
 pub trait CrcExt {

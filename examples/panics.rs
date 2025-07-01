@@ -8,7 +8,7 @@ use panic_semihosting as _;
 use cortex_m_semihosting::hprintln;
 use gd32f1x0_hal as _;
 
-use cortex_m_rt::{entry, exception, ExceptionFrame};
+use cortex_m_rt::{ExceptionFrame, entry, exception};
 
 #[entry]
 fn main() -> ! {

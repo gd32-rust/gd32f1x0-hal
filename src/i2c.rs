@@ -3,6 +3,16 @@
 // This document describes a correct I2C implementation and is what parts of this code is based on:
 // https://www.st.com/content/ccc/resource/technical/document/application_note/5d/ae/a3/6f/08/69/4e/9b/CD00209826.pdf/files/CD00209826.pdf/jcr:content/translations/en.CD00209826.pdf
 
+#[cfg(any(
+    feature = "gd32f130x4",
+    feature = "gd32f130x6",
+    feature = "gd32f130x8",
+    feature = "gd32f170x4",
+    feature = "gd32f170x8",
+    feature = "gd32f190x4",
+    feature = "gd32f190x8",
+))]
+use crate::gpio::AF0;
 use crate::gpio::gpioa::*;
 use crate::gpio::gpiob::*;
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
@@ -17,23 +27,13 @@ use crate::gpio::gpioc::{PC0, PC1, PC7, PC8};
     feature = "gd32f190x8",
 ))]
 use crate::gpio::gpiof::{PF6, PF7};
-#[cfg(any(
-    feature = "gd32f130x4",
-    feature = "gd32f130x6",
-    feature = "gd32f130x8",
-    feature = "gd32f170x4",
-    feature = "gd32f170x8",
-    feature = "gd32f190x4",
-    feature = "gd32f190x8",
-))]
-use crate::gpio::AF0;
-use crate::gpio::{Alternate, AF1, AF4};
+use crate::gpio::{AF1, AF4, Alternate};
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
 use crate::pac::I2c2;
 use crate::pac::{I2c0, I2c1};
 #[cfg(any(feature = "gd32f170x8", feature = "gd32f190x8"))]
 use crate::rcu::ADDAPB1;
-use crate::rcu::{Clocks, Enable, GetBusFreq, Reset, APB1};
+use crate::rcu::{APB1, Clocks, Enable, GetBusFreq, Reset};
 use crate::time::Hertz;
 use core::ops::Deref;
 use cortex_m::peripheral::DWT;
@@ -296,7 +296,7 @@ fn blocking_i2c<I2C, SCLPIN, SDAPIN>(
 }
 
 macro_rules! wait_for_flag {
-    ($i2c:expr, $flag:ident) => {{
+    ($i2c:expr_2021, $flag:ident) => {{
         let stat0 = $i2c.stat0().read();
 
         if stat0.berr().is_error() {
@@ -320,7 +320,7 @@ macro_rules! wait_for_flag {
 }
 
 macro_rules! busy_wait {
-    ($nb_expr:expr, $exit_cond:expr) => {{
+    ($nb_expr:expr_2021, $exit_cond:expr_2021) => {{
         loop {
             let res = $nb_expr;
             if res != Err(nb::Error::WouldBlock) {
@@ -334,7 +334,7 @@ macro_rules! busy_wait {
 }
 
 macro_rules! busy_wait_cycles {
-    ($nb_expr:expr, $cycles:expr) => {{
+    ($nb_expr:expr_2021, $cycles:expr_2021) => {{
         let started = DWT::cycle_count();
         let cycles = $cycles;
         match busy_wait!($nb_expr, DWT::cycle_count().wrapping_sub(started) >= cycles) {

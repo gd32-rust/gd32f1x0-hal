@@ -15,7 +15,7 @@ use rtic::app;
 
 use embedded_hal::digital::OutputPin;
 use gd32f1x0_hal::{
-    gpio::{gpioc::PC13, Output, PushPull},
+    gpio::{Output, PushPull, gpioc::PC13},
     pac,
     prelude::*,
     timer::{CountDownTimer, Event, Timer},

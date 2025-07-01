@@ -5,8 +5,8 @@
 //! # Delays
 
 use crate::rcu::Clocks;
-use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m::peripheral::SYST;
+use cortex_m::peripheral::syst::SystClkSource;
 use embedded_hal::delay::DelayNs;
 
 /// System timer (SysTick) as a delay provider

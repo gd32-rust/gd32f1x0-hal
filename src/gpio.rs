@@ -286,7 +286,7 @@ impl embedded_hal_02::digital::v2::InputPin for Pin<Output<OpenDrain>> {
 /// Generates core code for a GPIO port, not including alternate function support.
 macro_rules! gpio_core {
     ($GPIOX:ident, $gpiox:ident, [
-        $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
+        $($PXi:ident: ($pxi:ident, $i:expr_2021, $MODE:ty),)+
     ]) => {
         use super::*;
         use crate::pac::{$gpiox, $GPIOX};
@@ -333,11 +333,11 @@ macro_rules! gpio_core {
             }
 
             unsafe fn set_low(&self, pin_index: u8) {
-                self.bc().write(|w| w.bits(1 << pin_index))
+                self.bc().write(|w| unsafe { w.bits(1 << pin_index) })
             }
 
             unsafe fn set_high(&self, pin_index: u8) {
-                self.bop().write(|w| w.bits(1 << pin_index))
+                self.bop().write(|w| unsafe { w.bits(1 << pin_index) })
             }
         }
 
@@ -350,22 +350,22 @@ macro_rules! gpio_core {
             output_mode: OutputMode,
         ) {
             let offset = 2 * pin_index;
-            let reg = &(*$GPIOX::ptr());
+            let reg = unsafe { &(*$GPIOX::ptr()) };
             reg.pud()
-                .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((pud as u32) << offset)));
-            reg.omode().modify(|r, w| {
+                .modify(|r, w| unsafe { w.bits((r.bits() & !(0b11 << offset)) | ((pud as u32) << offset)) });
+            reg.omode().modify(|r, w| unsafe {
                 w.bits((r.bits() & !(0b1 << pin_index)) | ((output_mode as u32) << pin_index))
             });
             reg.ctl()
-                .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((ctl as u32) << offset)));
+                .modify(|r, w| unsafe { w.bits((r.bits() & !(0b11 << offset)) | ((ctl as u32) << offset)) });
         }
 
         /// Sets the max slew rate of a pin.
         unsafe fn set_speed(_config: &mut Config, pin_index: u8, speed: Speed) {
             let offset = 2 * pin_index;
-            let reg = &(*$GPIOX::ptr());
+            let reg = unsafe { &(*$GPIOX::ptr()) };
             reg.ospd()
-                .modify(|r, w| w.bits((r.bits() & !(0b11 << offset)) | ((speed as u32) << offset)));
+                .modify(|r, w| unsafe { w.bits((r.bits() & !(0b11 << offset)) | ((speed as u32) << offset)) });
         }
 
         // Struct for each pin
@@ -600,7 +600,7 @@ macro_rules! gpio_core {
 /// support it.
 macro_rules! gpio_af {
     ($GPIOX:ident, $gpiox:ident, [
-        $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
+        $($PXi:ident: ($pxi:ident, $i:expr_2021, $MODE:ty),)+
     ]) => {
         /// Configures the given pin to have the given alternate function mode
         unsafe fn set_alternate_mode(
@@ -611,15 +611,17 @@ macro_rules! gpio_af {
             output_mode: OutputMode,
         ) {
             let offset = (4 * pin_index) % 32;
-            let reg = &(*$GPIOX::ptr());
+            let reg = unsafe { &(*$GPIOX::ptr()) };
             if pin_index < 8 {
                 reg.afsel0()
-                    .modify(|r, w| w.bits((r.bits() & !(0b1111 << offset)) | (mode << offset)));
+                    .modify(|r, w| unsafe { w.bits((r.bits() & !(0b1111 << offset)) | (mode << offset)) });
             } else {
                 reg.afsel1()
-                    .modify(|r, w| w.bits((r.bits() & !(0b1111 << offset)) | (mode << offset)));
+                    .modify(|r, w| unsafe { w.bits((r.bits() & !(0b1111 << offset)) | (mode << offset)) });
             }
-            set_mode(config, pin_index, Mode::Alternate, pull_mode, output_mode);
+            unsafe {
+                set_mode(config, pin_index, Mode::Alternate, pull_mode, output_mode);
+            }
         }
 
         // Struct for each pin
@@ -655,7 +657,7 @@ macro_rules! gpio_af {
 /// Generates module for GPIO port with alternate functions.
 macro_rules! gpio {
     ($GPIOX:ident, $gpiox:ident, [
-        $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
+        $($PXi:ident: ($pxi:ident, $i:expr_2021, $MODE:ty),)+
     ]) => {
         /// GPIO
         pub mod $gpiox {
@@ -676,7 +678,7 @@ macro_rules! gpio {
 /// Generates module for GPIO port without alternate functions.
 macro_rules! gpio_noaf {
     ($GPIOX:ident, $gpiox:ident, [
-        $($PXi:ident: ($pxi:ident, $i:expr, $MODE:ty),)+
+        $($PXi:ident: ($pxi:ident, $i:expr_2021, $MODE:ty),)+
     ]) => {
         /// GPIO
         pub mod $gpiox {
