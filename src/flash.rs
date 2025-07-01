@@ -367,7 +367,7 @@ pub struct WS {
 impl WS {
     pub(crate) fn ws(&mut self) -> &fmc::Ws {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*Fmc::ptr()).ws() }
+        unsafe { (*Fmc::ptr()).ws() }
     }
 }
 
@@ -379,7 +379,7 @@ pub struct ADDR {
 impl ADDR {
     pub(crate) fn addr(&mut self) -> &fmc::Addr {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*Fmc::ptr()).addr() }
+        unsafe { (*Fmc::ptr()).addr() }
     }
 }
 
@@ -391,7 +391,7 @@ pub struct CTL {
 impl CTL {
     pub(crate) fn ctl(&mut self) -> &fmc::Ctl {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*Fmc::ptr()).ctl() }
+        unsafe { (*Fmc::ptr()).ctl() }
     }
 }
 
@@ -403,7 +403,7 @@ pub struct KEY {
 impl KEY {
     pub(crate) fn keyr(&mut self) -> &fmc::Key {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*Fmc::ptr()).key() }
+        unsafe { (*Fmc::ptr()).key() }
     }
 }
 
@@ -416,7 +416,7 @@ pub struct OBSTAT {
 impl OBSTAT {
     pub(crate) fn obstat(&mut self) -> &fmc::Obstat {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*Fmc::ptr()).obstat() }
+        unsafe { (*Fmc::ptr()).obstat() }
     }
 }
 
@@ -429,7 +429,7 @@ pub struct OBKEY {
 impl OBKEY {
     pub(crate) fn optkeyr(&mut self) -> &fmc::Obkey {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*Fmc::ptr()).obkey() }
+        unsafe { (*Fmc::ptr()).obkey() }
     }
 }
 
@@ -441,7 +441,7 @@ pub struct STAT {
 impl STAT {
     pub(crate) fn stat(&mut self) -> &fmc::Stat {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*Fmc::ptr()).stat() }
+        unsafe { (*Fmc::ptr()).stat() }
     }
 }
 
@@ -454,6 +454,6 @@ pub struct WP {
 impl WP {
     pub(crate) fn wp(&mut self) -> &fmc::Wp {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*Fmc::ptr()).wp() }
+        unsafe { (*Fmc::ptr()).wp() }
     }
 }

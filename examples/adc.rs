@@ -30,10 +30,10 @@ fn main() -> ! {
     let mut gpiob = p.gpiob.split(&mut rcu.ahb);
 
     // Configure pb0 as an analog input
-    let mut ch0 = gpiob.pb0.into_analog(&mut gpiob.config);
+    let ch0 = gpiob.pb0.into_analog(&mut gpiob.config);
 
     loop {
-        let data: u16 = adc.read_channel(&mut ch0);
+        let data: u16 = adc.read_channel(&ch0);
         hprintln!("adc1: {}", data);
     }
 }

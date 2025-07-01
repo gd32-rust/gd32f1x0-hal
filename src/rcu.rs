@@ -86,7 +86,7 @@ impl AHB {
     #[allow(dead_code)]
     pub(crate) fn enr(&mut self) -> &rcu::Ahben {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).ahben() }
+        unsafe { (*RCU::ptr()).ahben() }
     }
 }
 
@@ -106,12 +106,12 @@ pub struct APB1 {
 impl APB1 {
     pub(crate) fn enr(&mut self) -> &rcu::Apb1en {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).apb1en() }
+        unsafe { (*RCU::ptr()).apb1en() }
     }
 
     pub(crate) fn rstr(&mut self) -> &rcu::Apb1rst {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).apb1rst() }
+        unsafe { (*RCU::ptr()).apb1rst() }
     }
 
     /// Set power interface clock (PWREN) bit in RCU_APB1ENR
@@ -136,12 +136,12 @@ pub struct APB2 {
 impl APB2 {
     pub(crate) fn enr(&mut self) -> &rcu::Apb2en {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).apb2en() }
+        unsafe { (*RCU::ptr()).apb2en() }
     }
 
     pub(crate) fn rstr(&mut self) -> &rcu::Apb2rst {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).apb2rst() }
+        unsafe { (*RCU::ptr()).apb2rst() }
     }
 }
 
@@ -162,13 +162,13 @@ impl ADDAPB1 {
     #[allow(unused)]
     pub(crate) fn enr(&mut self) -> &rcu::Adden {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).adden() }
+        unsafe { (*RCU::ptr()).adden() }
     }
 
     #[allow(unused)]
     pub(crate) fn rstr(&mut self) -> &rcu::Addrst {
         // NOTE(unsafe) this proxy grants exclusive access to this register
-        unsafe { &(*RCU::ptr()).addrst() }
+        unsafe { (*RCU::ptr()).addrst() }
     }
 }
 
@@ -270,7 +270,7 @@ impl CFGR {
         let (pllmf_msb, pllmf_bits, sysclk) = if pllmul == 1 {
             (false, None, self.hxtal.unwrap_or(IRC8M))
         } else {
-            let pllmul = cmp::min(cmp::max(pllmul, 2), 32);
+            let pllmul = pllmul.clamp(2, 32);
             if pllmul > 16 {
                 (true, Some(pllmul as u8 - 17), pllsrculk * pllmul)
             } else {

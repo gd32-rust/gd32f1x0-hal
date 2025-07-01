@@ -665,7 +665,7 @@ where
         let operations_count = operations.len();
         // `Some(true)` if the last operation was a read, `Some(false)` if it was a write.
         let mut last_operation_read = None;
-        for (i, operation) in operations.into_iter().enumerate() {
+        for (i, operation) in operations.iter_mut().enumerate() {
             match operation {
                 Operation::Read(buffer) => {
                     if last_operation_read != Some(true) {

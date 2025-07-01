@@ -66,7 +66,7 @@ fn main() -> ! {
     let (mut tx, _rx) = serial.split();
 
     let number = 103;
-    writeln!(tx, "Hello formatted string {}", number).unwrap();
+    writeln!(tx, "Hello formatted string {number}").unwrap();
 
     #[allow(clippy::empty_loop)]
     loop {}
