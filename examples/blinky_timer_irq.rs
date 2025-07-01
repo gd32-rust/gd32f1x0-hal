@@ -36,25 +36,15 @@ static G_TIM: Mutex<RefCell<Option<CountDownTimer<Timer1>>>> = Mutex::new(RefCel
 // This specific interrupt will "trip" when the timer TIMER1 times out
 #[interrupt]
 fn TIMER1() {
-    static mut LED: Option<LedPin> = None;
-    static mut TIM: Option<CountDownTimer<Timer1>> = None;
-
-    let led = LED.get_or_insert_with(|| {
-        cortex_m::interrupt::free(|cs| {
-            // Move LED pin here, leaving a None in its place
-            G_LED.borrow(cs).replace(None).unwrap()
-        })
+    cortex_m::interrupt::free(|cs| {
+        let _ = G_LED.borrow(cs).borrow_mut().as_mut().unwrap().toggle();
+        G_TIM
+            .borrow(cs)
+            .borrow_mut()
+            .as_mut()
+            .unwrap()
+            .clear_interrupt_flag(Event::Update);
     });
-
-    let tim = TIM.get_or_insert_with(|| {
-        cortex_m::interrupt::free(|cs| {
-            // Move LED pin here, leaving a None in its place
-            G_TIM.borrow(cs).replace(None).unwrap()
-        })
-    });
-
-    let _ = led.toggle();
-    tim.clear_interrupt_flag(Event::Update);
 }
 
 #[entry]
