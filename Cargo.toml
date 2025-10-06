@@ -22,7 +22,7 @@ embedded-hal = "1.0.0"
 embedded-hal-02 = { package = "embedded-hal", version = "0.2.7", features = [
   "unproven",
 ], optional = true }
-embedded-io = "0.6.1"
+embedded-io = "0.7.1"
 gd32f1 = { version = "0.9.1", features = ["critical-section"] }
 nb = "1.1.0"
 thiserror = { version = "2.0.17", default-features = false }
