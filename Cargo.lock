@@ -165,7 +165,7 @@ dependencies = [
 
 [[package]]
 name = "gd32f1x0-hal"
-version = "0.10.2"
+version = "0.11.0"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
