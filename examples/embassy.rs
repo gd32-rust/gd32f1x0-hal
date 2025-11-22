@@ -7,10 +7,17 @@ use panic_halt as _;
 use embassy_executor::{self, Spawner};
 use embassy_time::Timer;
 use embedded_hal::digital::OutputPin;
-use gd32f1x0_hal::{embassy, pac, prelude::*, time::MilliSeconds, watchdog::FreeWatchdog};
+use gd32f1x0_hal::{
+    embassy,
+    gpio::{Output, Pin, PushPull},
+    pac,
+    prelude::*,
+    time::MilliSeconds,
+    watchdog::FreeWatchdog,
+};
 
 #[embassy_executor::task]
-async fn blink_task(mut led: impl OutputPin + 'static) {
+async fn blink_task(mut led: Pin<Output<PushPull>>) {
     loop {
         Timer::after_millis(1_000).await;
         led.set_high().unwrap();
