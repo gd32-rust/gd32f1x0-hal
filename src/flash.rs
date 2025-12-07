@@ -348,7 +348,7 @@ pub struct Parts {
     pub(crate) _wp: WP,
 }
 impl Parts {
-    pub fn writer(&mut self, sector_sz: SectorSize, flash_sz: FlashSize) -> FlashWriter {
+    pub fn writer(&mut self, sector_sz: SectorSize, flash_sz: FlashSize) -> FlashWriter<'_> {
         FlashWriter {
             fmc: self,
             sector_sz,
