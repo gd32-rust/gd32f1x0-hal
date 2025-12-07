@@ -1,14 +1,14 @@
+use crate::pac::{Interrupt, interrupt};
+use crate::rcu::{Clocks, Enable, GetBusFreq, Reset, sealed::RcuBus};
 use core::cell::{Cell, RefCell};
 use core::convert::TryInto;
 use core::sync::atomic::{AtomicU32, Ordering, compiler_fence};
-use core::u16;
+use core::task::Waker;
+use cortex_m::peripheral::NVIC;
 use critical_section::CriticalSection;
-use embassy_sync::blocking_mutex::{Mutex, raw::CriticalSectionRawMutex};
-use embassy_time_driver::{Driver, TICK_HZ};
+use embassy_sync::{blocking_mutex::CriticalSectionMutex, once_lock::OnceLock};
+use embassy_time_driver::{Driver, TICK_HZ, time_driver_impl};
 use embassy_time_queue_utils::Queue;
-
-use crate::pac::{Interrupt, interrupt};
-use crate::rcu::{Clocks, Enable, GetBusFreq, Reset, sealed::RcuBus};
 
 #[cfg(not(any(
     feature = "time-driver-tim1",
@@ -45,10 +45,6 @@ type RegisterBlock = crate::pac::timer1::RegisterBlock;
 #[cfg(feature = "time-driver-tim14")]
 type RegisterBlock = crate::pac::timer14::RegisterBlock;
 
-fn timer() -> &'static RegisterBlock {
-    unsafe { &*Timer::PTR }
-}
-
 struct AlarmState {
     timestamp: Cell<u64>,
 }
@@ -60,9 +56,6 @@ impl AlarmState {
         }
     }
 }
-
-/// As any mutation of this internal type is done within a critical section, the Send implementation is sound
-unsafe impl Send for AlarmState {}
 
 // NOTE: this definitely could be improved in the PAC crate
 // An alternative would be to use a pointer-based access to the registers
@@ -144,11 +137,21 @@ fn calc_now(period: u32, counter: u32) -> u64 {
 pub(super) struct EmbassyTimeDriver {
     /// Number of 2^31 periods elapsed since boot.
     period: AtomicU32,
-    alarm: Mutex<CriticalSectionRawMutex, AlarmState>,
-    queue: Mutex<CriticalSectionRawMutex, RefCell<Queue>>,
+    alarm: CriticalSectionMutex<AlarmState>,
+    queue: CriticalSectionMutex<RefCell<Queue>>,
+    timer: OnceLock<CriticalSectionMutex<Timer>>,
 }
 
 impl EmbassyTimeDriver {
+    const fn new() -> Self {
+        Self {
+            period: AtomicU32::new(0),
+            alarm: CriticalSectionMutex::new(AlarmState::new()),
+            queue: CriticalSectionMutex::new(RefCell::new(Queue::new())),
+            timer: OnceLock::new(),
+        }
+    }
+
     pub(super) fn init(timer: Timer, clocks: &Clocks, apb: &mut Bus) {
         Timer::enable(apb);
         Timer::reset(apb);
@@ -185,43 +188,44 @@ impl EmbassyTimeDriver {
         #[cfg(feature = "time-driver-tim1")]
         {
             unsafe {
-                cortex_m::peripheral::NVIC::unmask(Interrupt::TIMER1);
+                NVIC::unmask(Interrupt::TIMER1);
             }
         }
         #[cfg(feature = "time-driver-tim2")]
         {
             unsafe {
-                cortex_m::peripheral::NVIC::unmask(Interrupt::TIMER2);
+                NVIC::unmask(Interrupt::TIMER2);
             }
         }
         #[cfg(feature = "time-driver-tim14")]
         {
             unsafe {
-                cortex_m::peripheral::NVIC::unmask(Interrupt::TIMER14);
+                NVIC::unmask(Interrupt::TIMER14);
             }
         }
 
         timer.ctl0().modify(|_, w| w.cen().enabled());
+
+        DRIVER.timer.init(CriticalSectionMutex::new(timer)).unwrap();
     }
 
     fn on_interrupt(&self) {
-        let r = timer();
-
         critical_section::with(|cs| {
-            let status = r.intf().read();
-            let enabled = r.dmainten().read();
+            let timer = self.timer.try_get().unwrap().borrow(cs);
+            let status = timer.intf().read();
+            let enabled = timer.dmainten().read();
 
             // Clear all interrupt flags. Bits in SR are "write 0 to clear", so write the bitwise NOT.
             // Other approaches such as writing all zeros, or RMWing won't work, they can
             // miss interrupts.
-            r.intf().write(|w| unsafe { w.bits(!status.bits()) });
+            timer.intf().write(|w| unsafe { w.bits(!status.bits()) });
 
             if status.upif().bit() {
-                self.next_period()
+                self.next_period(timer)
             }
 
             if status.ch0if().bit() {
-                self.next_period()
+                self.next_period(timer)
             }
 
             // Bit 0 indicates Update CC interrupt, bit 1 corresponds to reserved Channel 0
@@ -232,12 +236,9 @@ impl EmbassyTimeDriver {
         })
     }
 
-    fn next_period(&self) {
-        let r = timer();
-
+    fn next_period(&self, timer: &Timer) {
         // We only modify the period from the timer interrupt, so we know this can't race.
-        let period = self.period.load(Ordering::Relaxed) + 1;
-        self.period.store(period, Ordering::Relaxed);
+        let period = self.period.fetch_add(1, Ordering::Relaxed) + 1;
         let t = (period as u64) << 15;
 
         critical_section::with(move |cs| {
@@ -247,7 +248,7 @@ impl EmbassyTimeDriver {
 
             if at < t + 0xc000 {
                 // just enable it. `set_alarm` has already set the correct CCR val.
-                r.set_chn_ie(n + 1, true);
+                timer.set_chn_ie(n + 1, true);
             }
         })
     }
@@ -269,7 +270,7 @@ impl EmbassyTimeDriver {
     }
 
     fn set_alarm(&self, cs: CriticalSection, timestamp: u64) -> bool {
-        let r = timer();
+        let timer = self.timer.try_get().unwrap().borrow(cs);
 
         let n = 0;
         self.alarm.borrow(cs).timestamp.set(timestamp);
@@ -278,7 +279,7 @@ impl EmbassyTimeDriver {
         if timestamp <= t {
             // If alarm timestamp has passed the alarm will not fire.
             // Disarm the alarm and return `false` to indicate that.
-            r.set_chn_ie(n + 1, false);
+            timer.set_chn_ie(n + 1, false);
 
             self.alarm.borrow(cs).timestamp.set(u64::MAX);
 
@@ -287,14 +288,14 @@ impl EmbassyTimeDriver {
 
         // Write the CCR value regardless of whether we're going to enable it now or not.
         // This way, when we enable it later, the right value is already set.
-        r.set_chn_cc_value(
+        timer.set_chn_cc_value(
             n + 1,
             timestamp as <RegisterBlock as ChannelsAccess>::Counter,
         );
 
         // Enable it if it'll happen soon. Otherwise, `next_period` will enable it.
         let diff = timestamp - t;
-        r.set_chn_ie(n + 1, diff < 0xc000);
+        timer.set_chn_ie(n + 1, diff < 0xc000);
 
         // Reevaluate if the alarm timestamp is still in the future
         let t = self.now();
@@ -303,7 +304,7 @@ impl EmbassyTimeDriver {
             // the alarm may or may not have fired.
             // Disarm the alarm and return `false` to indicate that.
             // It is the caller's responsibility to handle this ambiguity.
-            r.set_chn_ie(n + 1, false);
+            timer.set_chn_ie(n + 1, false);
 
             self.alarm.borrow(cs).timestamp.set(u64::MAX);
 
@@ -317,16 +318,17 @@ impl EmbassyTimeDriver {
 
 impl Driver for EmbassyTimeDriver {
     fn now(&self) -> u64 {
-        let r = timer();
-        let period = self.period.load(Ordering::Relaxed);
-        compiler_fence(Ordering::Acquire);
-        // Timer1 has a 32-bit counter, while other timers resolution is limited to 16 bits
-        let counter = r.cnt().read().cnt().bits().into();
-
-        calc_now(period, counter)
+        critical_section::with(|cs| {
+            let timer = self.timer.try_get().unwrap().borrow(cs);
+            let period = self.period.load(Ordering::Relaxed);
+            compiler_fence(Ordering::Acquire);
+            // Timer1 has a 32-bit counter, while other timers resolution is limited to 16 bits
+            let counter = timer.cnt().read().cnt().bits().into();
+            calc_now(period, counter)
+        })
     }
 
-    fn schedule_wake(&self, at: u64, waker: &core::task::Waker) {
+    fn schedule_wake(&self, at: u64, waker: &Waker) {
         critical_section::with(|cs| {
             let mut queue = self.queue.borrow(cs).borrow_mut();
 
@@ -340,11 +342,7 @@ impl Driver for EmbassyTimeDriver {
     }
 }
 
-embassy_time_driver::time_driver_impl!(static DRIVER: EmbassyTimeDriver = EmbassyTimeDriver{
-    period: AtomicU32::new(0),
-    alarm: Mutex::const_new(CriticalSectionRawMutex::new(), AlarmState::new()),
-    queue: Mutex::new(RefCell::new(Queue::new()))
-});
+time_driver_impl!(static DRIVER: EmbassyTimeDriver = EmbassyTimeDriver::new());
 
 #[cfg(feature = "time-driver-tim1")]
 #[interrupt]
