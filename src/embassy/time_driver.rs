@@ -238,7 +238,7 @@ impl EmbassyTimeDriver {
 
     fn next_period(&self, timer: &Timer) {
         // We only modify the period from the timer interrupt, so we know this can't race.
-        let period = self.period.fetch_add(1, Ordering::Relaxed) + 1;
+        let period = self.period.fetch_add(1, Ordering::AcqRel) + 1;
         let t = (period as u64) << 15;
 
         critical_section::with(move |cs| {
@@ -320,7 +320,7 @@ impl Driver for EmbassyTimeDriver {
     fn now(&self) -> u64 {
         critical_section::with(|cs| {
             let timer = self.timer.try_get().unwrap().borrow(cs);
-            let period = self.period.load(Ordering::Relaxed);
+            let period = self.period.load(Ordering::Acquire);
             compiler_fence(Ordering::Acquire);
             // Timer1 has a 32-bit counter, while other timers resolution is limited to 16 bits
             let counter = timer.cnt().read().cnt().bits().into();
