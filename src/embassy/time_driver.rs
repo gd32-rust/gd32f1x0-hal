@@ -185,6 +185,12 @@ impl EmbassyTimeDriver {
             .dmainten()
             .modify(|_, w| w.upie().enabled().ch0ie().enabled());
 
+        timer.ctl0().modify(|_, w| w.cen().enabled());
+
+        DRIVER.timer.init(CriticalSectionMutex::new(timer)).unwrap();
+
+        // Don't unmask interrupt until after `DRIVER.timer` is initialised, to avoid race with
+        // interrupt handler.
         #[cfg(feature = "time-driver-tim1")]
         {
             unsafe {
@@ -203,10 +209,6 @@ impl EmbassyTimeDriver {
                 NVIC::unmask(Interrupt::TIMER14);
             }
         }
-
-        timer.ctl0().modify(|_, w| w.cen().enabled());
-
-        DRIVER.timer.init(CriticalSectionMutex::new(timer)).unwrap();
     }
 
     fn on_interrupt(&self) {
