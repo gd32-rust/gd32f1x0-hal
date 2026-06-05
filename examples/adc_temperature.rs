@@ -22,7 +22,7 @@ fn main() -> ! {
         .sysclk(56.mhz())
         .pclk1(28.mhz())
         .adcclk(14.mhz())
-        .freeze(&mut flash.ws);
+        .freeze(&mut flash);
     hprintln!("sysclk freq: {}", clocks.sysclk().0);
     hprintln!("adc freq: {}", clocks.adcclk().0);
 

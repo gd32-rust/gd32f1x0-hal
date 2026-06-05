@@ -25,7 +25,7 @@ fn main() -> ! {
     let mut rcu = p.rcu.constrain();
     let mut flash = p.fmc.constrain();
 
-    let clocks = rcu.cfgr.freeze(&mut flash.ws);
+    let clocks = rcu.cfgr.freeze(&mut flash);
 
     let mut gpioa = p.gpioa.split(&mut rcu.ahb);
     let mut gpiob = p.gpiob.split(&mut rcu.ahb);

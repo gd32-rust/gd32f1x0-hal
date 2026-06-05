@@ -29,7 +29,7 @@ fn main() -> ! {
 
     // Freeze the configuration of all the clocks in the system and store the frozen frequencies in
     // `clocks`.
-    let clocks = rcu.cfgr.freeze(&mut flash.ws);
+    let clocks = rcu.cfgr.freeze(&mut flash);
 
     // Prepare the GPIOA peripheral
     let mut gpioa = p.gpioa.split(&mut rcu.ahb);

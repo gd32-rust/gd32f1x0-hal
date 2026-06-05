@@ -4,7 +4,7 @@
 
 //! # Reset & Clock Unit
 
-use crate::flash::WS;
+use crate::flash::Parts as FmcParts;
 #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
 use crate::pac::rcu::cfg0::Usbdpsc;
 use crate::pac::{
@@ -260,9 +260,9 @@ impl CFGR {
     /// let dp = pac::Peripherals::take().unwrap();
     /// let mut flash = dp.fmc.constrain();
     /// let mut rcu = dp.rcu.constrain();
-    /// let clocks = rcu.cfgr.freeze(&mut flash.ws);
+    /// let clocks = rcu.cfgr.freeze(&mut flash);
     /// ```
-    pub fn freeze(self, ws: &mut WS) -> Clocks {
+    pub fn freeze(self, fmc: &mut FmcParts) -> Clocks {
         let pllsrculk = self.hxtal.unwrap_or(IRC8M / 2);
 
         let pllmul = self.sysclk.unwrap_or(pllsrculk) / pllsrculk;
@@ -331,9 +331,10 @@ impl CFGR {
         } else {
             Wscnt::Ws2
         };
-        ws.ws().write(|w| w.wscnt().variant(wscnt));
+        fmc.ws.ws().write(|w| w.wscnt().variant(wscnt));
         if wscnt != Wscnt::Ws0 {
-            ws.enable_wait_states();
+            fmc.enable_wait_states()
+                .expect("Failed to enable flash wait states");
         }
 
         #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
@@ -452,7 +453,7 @@ pub struct BKP {
 /// let mut rcu = dp.rcu.constrain();
 /// let mut flash = dp.fmc.constrain();
 ///
-/// let clocks = rcu.cfgr.freeze(&mut flash.ws);
+/// let clocks = rcu.cfgr.freeze(&mut flash);
 /// ```
 #[derive(Clone, Copy)]
 pub struct Clocks {

@@ -20,7 +20,7 @@ fn main() -> ! {
     // clock is configurable. So its frequency may be tweaked to meet certain
     // practical needs. User specified value is be approximated using supported
     // prescaler values 2/4/6/8.
-    let clocks = rcu.cfgr.adcclk(2.mhz()).freeze(&mut flash.ws);
+    let clocks = rcu.cfgr.adcclk(2.mhz()).freeze(&mut flash);
     hprintln!("adc freq: {}", clocks.adcclk().0);
 
     // Setup ADC

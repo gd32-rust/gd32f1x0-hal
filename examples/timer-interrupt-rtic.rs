@@ -48,7 +48,7 @@ mod app {
 
         // Freeze the configuration of all the clocks in the system and store the frozen frequencies
         // in `clocks`
-        let clocks = rcu.cfgr.freeze(&mut flash.ws);
+        let clocks = rcu.cfgr.freeze(&mut flash);
 
         // Acquire the GPIOC peripheral
         let mut gpioc = cx.device.gpioc.split(&mut rcu.ahb);
