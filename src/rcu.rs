@@ -324,15 +324,17 @@ impl CFGR {
         assert!(pclk2 <= 72_000_000);
 
         // adjust flash wait states
-        ws.ws().write(|w| {
-            w.wscnt().variant(if sysclk <= 24_000_000 {
-                Wscnt::Ws0
-            } else if sysclk <= 48_000_000 {
-                Wscnt::Ws1
-            } else {
-                Wscnt::Ws2
-            })
-        });
+        let wscnt = if sysclk <= 24_000_000 {
+            Wscnt::Ws0
+        } else if sysclk <= 48_000_000 {
+            Wscnt::Ws1
+        } else {
+            Wscnt::Ws2
+        };
+        ws.ws().write(|w| w.wscnt().variant(wscnt));
+        if wscnt != Wscnt::Ws0 {
+            ws.enable_wait_states();
+        }
 
         #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
         // the USB clock is only valid if an external crystal is used, the PLL is enabled, and the

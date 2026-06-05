@@ -4,6 +4,8 @@
 
 //! Flash memory
 
+use gd32f1::gd32f130::fmc::wsen;
+
 use crate::pac::{Fmc, fmc};
 
 pub const FLASH_START: u32 = 0x0800_0000;
@@ -368,6 +370,23 @@ impl WS {
     pub(crate) fn ws(&mut self) -> &fmc::Ws {
         // NOTE(unsafe) this proxy grants exclusive access to this register
         unsafe { (*Fmc::ptr()).ws() }
+    }
+
+    /// Enable flash wait states (set WSEN=1).
+    ///
+    /// WSCNT has no effect until this bit is set (GD32F1x0 manual §2.4.9).
+    /// The FMC must be unlocked first via the key sequence, then re-locked.
+    pub(crate) fn enable_wait_states(&mut self) {
+        let fmc = unsafe { &*Fmc::ptr() };
+        while fmc.stat().read().busy().is_active() {}
+        // Unlock FMC control register
+        fmc.key().write(|w| w.key().bits(KEY1));
+        fmc.key().write(|w| w.key().bits(KEY2));
+
+        fmc.wsen().write(|w| w.wsen().wait_state());
+
+        // Re-lock
+        fmc.ctl().modify(|_, w| w.lk().lock());
     }
 }
 
