@@ -365,7 +365,6 @@ pub struct WS {
     _0: (),
 }
 
-#[allow(dead_code)]
 impl WS {
     pub(crate) fn ws(&mut self) -> &fmc::Ws {
         // NOTE(unsafe) this proxy grants exclusive access to this register

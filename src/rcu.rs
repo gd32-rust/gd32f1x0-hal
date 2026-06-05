@@ -258,9 +258,9 @@ impl CFGR {
     ///
     /// ```rust
     /// let dp = pac::Peripherals::take().unwrap();
-    /// let mut flash = dp.FLASH.constrain();
+    /// let mut flash = dp.fmc.constrain();
     /// let mut rcu = dp.rcu.constrain();
-    /// let clocks = rcu.cfgr.freeze(&mut flash.acr);
+    /// let clocks = rcu.cfgr.freeze(&mut flash.ws);
     /// ```
     pub fn freeze(self, ws: &mut WS) -> Clocks {
         let pllsrculk = self.hxtal.unwrap_or(IRC8M / 2);
@@ -450,9 +450,9 @@ pub struct BKP {
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
 /// let mut rcu = dp.rcu.constrain();
-/// let mut flash = dp.FLASH.constrain();
+/// let mut flash = dp.fmc.constrain();
 ///
-/// let clocks = rcu.cfgr.freeze(&mut flash.acr);
+/// let clocks = rcu.cfgr.freeze(&mut flash.ws);
 /// ```
 #[derive(Clone, Copy)]
 pub struct Clocks {
