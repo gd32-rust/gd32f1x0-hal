@@ -319,9 +319,9 @@ checksum = "e575fab7d1e0dcb8d0c7bcf9a63ee213816ab51902e6d244a95819acacf1d4f7"
 
 [[package]]
 name = "gd32f1"
-version = "0.9.1"
+version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2eb728df95bc4a2e59020223c9e3a96a74c3e8a5a0c93e61d494b297666a2e4f"
+checksum = "f6f4454c039df9531361e25ee37d4024145b0fefc0d15141250e6d194fc70fb2"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",

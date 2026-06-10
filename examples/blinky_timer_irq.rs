@@ -53,11 +53,7 @@ fn main() -> ! {
 
     let mut flash = dp.fmc.constrain();
     let mut rcu = dp.rcu.constrain();
-    let clocks = rcu
-        .cfgr
-        .sysclk(8.mhz())
-        .pclk1(8.mhz())
-        .freeze(&mut flash.ws);
+    let clocks = rcu.cfgr.sysclk(8.mhz()).pclk1(8.mhz()).freeze(&mut flash);
 
     // Configure PC13 pin to blink LED
     let mut gpioc = dp.gpioc.split(&mut rcu.ahb);

@@ -49,11 +49,11 @@
 //! // Take ownership over the raw RCU and FMC devices and convert tem into the corresponding HAL
 //! //  structs.
 //! let mut rcu = dp.rcu.constrain();
-//! let mut flash = p.fmc.constrain();
+//! let mut flash = dp.fmc.constrain();
 //!
 //! // Freeze the configuration of all the clocks in the system and store the frozen frequencies in
 //! // `clocks`
-//! let clocks = rcu.cfgr.freeze(&mut flash.ws);
+//! let clocks = rcu.cfgr.freeze(&mut flash);
 //! ```
 //!
 //! ## Usage examples

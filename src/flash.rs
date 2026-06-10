@@ -81,36 +81,11 @@ pub struct FlashWriter<'a> {
 
 impl<'a> FlashWriter<'a> {
     fn unlock(&mut self) -> Result<()> {
-        // Wait for any ongoing operations
-        while self.fmc.stat.stat().read().busy().is_active() {}
-
-        // NOTE(unsafe) write Keys to the key register. This is safe because the
-        // only side effect of these writes is to unlock the fmc control
-        // register, which is the intent of this function. Do not rearrange the
-        // order of these writes or the control register will be permanently
-        // locked out until reset.
-        self.fmc.key.keyr().write(|w| w.key().bits(KEY1));
-        self.fmc.key.keyr().write(|w| w.key().bits(KEY2));
-
-        // Verify success
-        match self.fmc.ctl.ctl().read().lk().is_unlocked() {
-            true => Ok(()),
-            false => Err(Error::UnlockError),
-        }
+        self.fmc.unlock()
     }
 
     fn lock(&mut self) -> Result<()> {
-        // Wait for ongoing flash operations
-        while self.fmc.stat.stat().read().busy().is_active() {}
-
-        // Set lock bit
-        self.fmc.ctl.ctl().modify(|_, w| w.lk().lock());
-
-        // Verify success
-        match self.fmc.ctl.ctl().read().lk().is_locked() {
-            true => Ok(()),
-            false => Err(Error::LockError),
-        }
+        self.fmc.lock()
     }
 
     fn valid_address(&self, offset: u32) -> Result<()> {
@@ -310,6 +285,7 @@ impl FlashExt for Fmc {
     fn constrain(self) -> Parts {
         Parts {
             ws: WS { _0: () },
+            wsen: WSEN { _0: () },
             addr: ADDR { _0: () },
             ctl: CTL { _0: () },
             key: KEY { _0: () },
@@ -325,6 +301,9 @@ impl FlashExt for Fmc {
 pub struct Parts {
     /// Opaque WS register
     pub ws: WS,
+
+    /// Opaque WSEN register
+    pub wsen: WSEN,
 
     /// Opaque ADDR register
     pub(crate) addr: ADDR,
@@ -356,6 +335,45 @@ impl Parts {
             verify: true,
         }
     }
+
+    pub fn unlock(&mut self) -> Result<()> {
+        // Wait for any ongoing operations
+        while self.stat.stat().read().busy().is_active() {}
+
+        // NOTE(unsafe) write Keys to the key register. This is safe because the
+        // only side effect of these writes is to unlock the fmc control
+        // register, which is the intent of this function. Do not rearrange the
+        // order of these writes or the control register will be permanently
+        // locked out until reset.
+        self.key.keyr().write(|w| w.key().bits(KEY1));
+        self.key.keyr().write(|w| w.key().bits(KEY2));
+
+        // Verify success
+        match self.ctl.ctl().read().lk().is_unlocked() {
+            true => Ok(()),
+            false => Err(Error::UnlockError),
+        }
+    }
+
+    pub fn lock(&mut self) -> Result<()> {
+        // Wait for ongoing flash operations
+        while self.stat.stat().read().busy().is_active() {}
+
+        // Set lock bit
+        self.ctl.ctl().modify(|_, w| w.lk().lock());
+
+        // Verify success
+        match self.ctl.ctl().read().lk().is_locked() {
+            true => Ok(()),
+            false => Err(Error::LockError),
+        }
+    }
+
+    pub fn enable_wait_states(&mut self) -> Result<()> {
+        self.unlock()?;
+        self.wsen.wsen().write(|w| w.wsen().wait_state());
+        self.lock()
+    }
 }
 
 /// Opaque WS register
@@ -363,11 +381,22 @@ pub struct WS {
     _0: (),
 }
 
-#[allow(dead_code)]
 impl WS {
     pub(crate) fn ws(&mut self) -> &fmc::Ws {
         // NOTE(unsafe) this proxy grants exclusive access to this register
         unsafe { (*Fmc::ptr()).ws() }
+    }
+}
+
+/// Opaque WSEN register
+pub struct WSEN {
+    _0: (),
+}
+
+impl WSEN {
+    pub(crate) fn wsen(&mut self) -> &fmc::Wsen {
+        // NOTE(unsafe) this proxy grants exclusive access to this register
+        unsafe { (*Fmc::ptr()).wsen() }
     }
 }
 

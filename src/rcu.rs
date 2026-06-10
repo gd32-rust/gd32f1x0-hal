@@ -4,7 +4,7 @@
 
 //! # Reset & Clock Unit
 
-use crate::flash::WS;
+use crate::flash::Parts as FmcParts;
 #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
 use crate::pac::rcu::cfg0::Usbdpsc;
 use crate::pac::{
@@ -258,11 +258,11 @@ impl CFGR {
     ///
     /// ```rust
     /// let dp = pac::Peripherals::take().unwrap();
-    /// let mut flash = dp.FLASH.constrain();
+    /// let mut flash = dp.fmc.constrain();
     /// let mut rcu = dp.rcu.constrain();
-    /// let clocks = rcu.cfgr.freeze(&mut flash.acr);
+    /// let clocks = rcu.cfgr.freeze(&mut flash);
     /// ```
-    pub fn freeze(self, ws: &mut WS) -> Clocks {
+    pub fn freeze(self, fmc: &mut FmcParts) -> Clocks {
         let pllsrculk = self.hxtal.unwrap_or(IRC8M / 2);
 
         let pllmul = self.sysclk.unwrap_or(pllsrculk) / pllsrculk;
@@ -324,15 +324,18 @@ impl CFGR {
         assert!(pclk2 <= 72_000_000);
 
         // adjust flash wait states
-        ws.ws().write(|w| {
-            w.wscnt().variant(if sysclk <= 24_000_000 {
-                Wscnt::Ws0
-            } else if sysclk <= 48_000_000 {
-                Wscnt::Ws1
-            } else {
-                Wscnt::Ws2
-            })
-        });
+        let wscnt = if sysclk <= 24_000_000 {
+            Wscnt::Ws0
+        } else if sysclk <= 48_000_000 {
+            Wscnt::Ws1
+        } else {
+            Wscnt::Ws2
+        };
+        fmc.ws.ws().write(|w| w.wscnt().variant(wscnt));
+        if wscnt != Wscnt::Ws0 {
+            fmc.enable_wait_states()
+                .expect("Failed to enable flash wait states");
+        }
 
         #[cfg(any(feature = "gd32f130", feature = "gd32f150"))]
         // the USB clock is only valid if an external crystal is used, the PLL is enabled, and the
@@ -448,9 +451,9 @@ pub struct BKP {
 /// ```rust
 /// let dp = pac::Peripherals::take().unwrap();
 /// let mut rcu = dp.rcu.constrain();
-/// let mut flash = dp.FLASH.constrain();
+/// let mut flash = dp.fmc.constrain();
 ///
-/// let clocks = rcu.cfgr.freeze(&mut flash.acr);
+/// let clocks = rcu.cfgr.freeze(&mut flash);
 /// ```
 #[derive(Clone, Copy)]
 pub struct Clocks {

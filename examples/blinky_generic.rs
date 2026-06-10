@@ -19,7 +19,7 @@ fn main() -> ! {
     let mut rcu = dp.rcu.constrain();
     let mut flash = dp.fmc.constrain();
 
-    let clocks = rcu.cfgr.freeze(&mut flash.ws);
+    let clocks = rcu.cfgr.freeze(&mut flash);
 
     // Acquire the GPIO peripherals
     let mut gpioa = dp.gpioa.split(&mut rcu.ahb);

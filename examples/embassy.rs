@@ -31,7 +31,7 @@ async fn main(spawner: Spawner) {
     let p = pac::Peripherals::take().unwrap();
     let mut rcu = p.rcu.constrain();
     let mut flash = p.fmc.constrain();
-    let clocks = rcu.cfgr.freeze(&mut flash.ws);
+    let clocks = rcu.cfgr.freeze(&mut flash);
 
     embassy::init(p.timer1, &clocks, &mut rcu.apb1);
 
