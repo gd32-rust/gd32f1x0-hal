@@ -121,6 +121,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "cortex-m-semihosting"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fb6d409db102d77600a714dfa93744e379d9a7e03cbb175d64f09e14d3e921a2"
+dependencies = [
+ "critical-section",
+]
+
+[[package]]
 name = "critical-section"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -336,7 +345,7 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "cortex-m-rtic",
- "cortex-m-semihosting",
+ "cortex-m-semihosting 0.6.0",
  "critical-section",
  "embassy-executor",
  "embassy-sync",
@@ -472,7 +481,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee8a3e1233d9073d76a870223512ce4eeea43c067a94a445c13bd6d792d7b1ab"
 dependencies = [
  "cortex-m",
- "cortex-m-semihosting",
+ "cortex-m-semihosting 0.5.0",
 ]
 
 [[package]]
