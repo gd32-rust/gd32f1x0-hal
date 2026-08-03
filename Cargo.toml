@@ -43,7 +43,7 @@ embassy-executor = { version = "0.9.1", features = [
 embassy-time = { version = "0.5.1" }
 panic-halt = "1.0.0"
 panic-itm = "0.4.2"
-panic-semihosting = "0.6.0"
+panic-semihosting = "0.7.0"
 
 [features]
 device-selected = []
